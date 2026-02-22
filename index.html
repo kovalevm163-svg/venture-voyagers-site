@@ -1,0 +1,937 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate" />
+  <meta http-equiv="Pragma" content="no-cache" />
+  <meta http-equiv="Expires" content="0" />
+  <title>Venture Voyager Services - Concierge</title>
+  <meta name="description" content="Venture Voyager Services (VVS) - discreet luxury concierge and private access." />
+  <link rel="stylesheet" href="styles.css?v=20260221-20" />
+</head>
+<body>
+  <div class="wrap">
+    <header>
+      <div class="nav">
+        <a class="brand" href="#home" data-route="home" aria-label="Venture Voyager Services">
+          <span class="mark" aria-hidden="true">VVS</span>
+          <span>Venture Voyager Services</span>
+        </a>
+        <nav class="navlinks" aria-label="Primary">
+          <a href="#home" data-route="home" data-nav-link>Home</a>
+          <a href="#services" data-route="services" data-nav-link>Services</a>
+          <a href="#membership" data-route="membership" data-nav-link>Membership</a>
+          <a href="#ambassador" data-route="ambassador" data-nav-link id="nav-ambassador" hidden>Red Lounge</a>
+          <a href="#voyager-control" data-route="voyager-control" data-nav-link id="nav-voyager-control" hidden>Voyager Control</a>
+        </nav>
+        <div class="langControl" aria-label="Language">
+          <span class="langLabel">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" aria-hidden="true" xmlns="http://www.w3.org/2000/svg"><path d="M12 2.5a9.5 9.5 0 1 0 0 19 9.5 9.5 0 0 0 0-19Z" stroke="currentColor" stroke-width="1.6"/><path d="M2.8 12h18.4M12 2.7c2.7 2.5 2.7 16.1 0 18.6M12 2.7c-2.7 2.5-2.7 16.1 0 18.6" stroke="currentColor" stroke-width="1.4" stroke-linecap="round"/></svg>
+            Language
+          </span>
+          <select class="langSelect" id="site-language-country" aria-label="Language Country">
+            <option value="">English (Default)</option>
+          </select>
+        </div>
+        <div class="cta">
+          <a class="btn ghost" href="#contact" data-route="contact">Contact</a>
+          <a class="btn primary" href="#account" data-route="account" id="auth-cta">Log In / Sign Up</a>
+        </div>
+      </div>
+    </header>
+
+    <main>
+      <section class="routePage" data-page="home" aria-label="Home Page">
+        <section class="hero" aria-label="Hero">
+          <div class="panel left heroPrime">
+            <div class="kicker"><span class="dot" aria-hidden="true"></span> 24/7 Global Concierge</div>
+            <h1>Private movement.<br/>Precision response.</h1>
+            <p class="h1sub">
+              One command desk for travel, security, real estate management, and special requests.
+            </p>
+            <div class="actions">
+              <a class="btn ghost big" href="#services" data-route="services">Services</a>
+              <a class="btn ghost big" href="#membership" data-route="membership">Membership</a>
+              <a class="btn ghost big" href="https://instagram.com/venturevs" target="_blank" rel="noopener noreferrer" aria-label="Instagram">Instagram</a>
+            </div>
+            <div class="heroPills" aria-label="Core Benefits">
+              <span>Global Coverage</span>
+              <span>Verified Partners</span>
+              <span>Confidential Execution</span>
+            </div>
+            <div class="homeBottomCta">
+              <a class="btn primary jumbo" href="#contact" data-route="contact">Contact Concierge</a>
+            </div>
+          </div>
+
+          <aside class="panel right heroVisual" aria-label="VVS Command">
+            <div class="heroGlow" aria-hidden="true"></div>
+            <div class="heroRadar" aria-hidden="true"></div>
+            <div class="heroCore" aria-hidden="true">
+              <svg class="heroHat" viewBox="0 0 120 86" xmlns="http://www.w3.org/2000/svg">
+                <path class="markStroke" d="M35 20h50l6 32H29l6-32Z" />
+                <path class="markLine" d="M20 56h80" />
+                <path class="markLine" d="M17 64h86" />
+              </svg>
+            </div>
+            <div class="heroTargets" aria-hidden="true">
+              <span class="heroDot dot1"></span>
+              <span class="heroDot dot2"></span>
+              <span class="heroDot dot3"></span>
+              <span class="heroDot dot4"></span>
+              <span class="heroDot dot5"></span>
+              <span class="heroDot dot6"></span>
+              <span class="heroDot dot7"></span>
+              <span class="heroDot dot8"></span>
+            </div>
+            <div class="heroSignal" aria-hidden="true"></div>
+            <div class="heroLedger">
+              <p class="crestTitle">Live Operations</p>
+              <div class="heroKpiRow">
+                <span>Response Window</span>
+                <b>&lt; 15 min</b>
+              </div>
+              <div class="heroKpiRow">
+                <span>Coverage</span>
+                <b>Worldwide</b>
+              </div>
+              <div class="heroKpiRow">
+                <span>Command Status</span>
+                <b>Active 24/7</b>
+              </div>
+            </div>
+          </aside>
+        </section>
+      </section>
+
+      <section class="routePage" data-page="services" aria-label="Services Page" hidden>
+        <section class="view" aria-label="Services View">
+          <div class="viewInner">
+            <div class="viewTop">
+              <div class="kicker"><span class="dot" aria-hidden="true"></span> Services</div>
+              <a class="btn ghost" href="#home" data-route="home">Back</a>
+            </div>
+            <h2 class="viewTitle">Service command, simplified.</h2>
+            <p class="viewSub servicesIntro">Select the category. Submit once. Your assigned concierge handles execution end-to-end.</p>
+
+            <div class="serviceQuick" aria-label="Service Highlights">
+              <div class="quickMetric"><b>Response</b><span>&lt; 15 minutes dispatch target</span></div>
+              <div class="quickMetric"><b>Coverage</b><span>Global partner execution network</span></div>
+              <div class="quickMetric"><b>Standard</b><span>Confidential, accountable delivery</span></div>
+            </div>
+
+            <div class="cards servicesCards">
+              <a class="card serviceCardLink" href="#contact?service=travel_arrangement" data-service-request="travel_arrangement" aria-label="Request Travel Arrangement">
+                <div class="cardBadge">01</div>
+                <div>
+                  <div class="cardTitle">Travel Arrangement</div>
+                  <div class="cardText">Complete trip planning and live coordination from departure to arrival.</div>
+                </div>
+              </a>
+              <a class="card serviceCardLink" href="#contact?service=security_escort" data-service-request="security_escort" aria-label="Request Security Escort">
+                <div class="cardBadge">02</div>
+                <div>
+                  <div class="cardTitle">Security Escort</div>
+                  <div class="cardText">Vetted protection teams, secure routing, and dynamic risk-aware movement support.</div>
+                </div>
+              </a>
+              <a class="card serviceCardLink" href="#contact?service=real_estate_management" data-service-request="real_estate_management" aria-label="Request Real Estate Management">
+                <div class="cardBadge">03</div>
+                <div>
+                  <div class="cardTitle">Real Estate Management</div>
+                  <div class="cardText">Operational oversight for residences, villas, and managed properties with continuity support.</div>
+                </div>
+              </a>
+              <a class="card serviceCardLink" href="#contact?service=special_service_request" data-service-request="special_service_request" aria-label="Request Special Service Request">
+                <div class="cardBadge">04</div>
+                <div>
+                  <div class="cardTitle">Special Service Request</div>
+                  <div class="cardText">Custom support for sensitive or uncommon requests with discreet specialist assignment.</div>
+                </div>
+              </a>
+            </div>
+
+            <div class="viewActions">
+              <a class="btn" href="#contact" data-route="contact">Contact</a>
+              <a class="btn ghost" href="#membership" data-route="membership">Membership</a>
+            </div>
+          </div>
+        </section>
+      </section>
+
+      <section class="routePage" data-page="membership" aria-label="Membership Page" hidden>
+        <section class="view" aria-label="Membership View">
+          <div class="viewInner">
+            <div class="viewTop">
+              <div class="kicker"><span class="dot" aria-hidden="true"></span> Membership</div>
+              <a class="btn ghost" href="#home" data-route="home">Back</a>
+            </div>
+            <h2 class="viewTitle">Voyager Membership Tiers</h2>
+            <p class="viewSub">A progression system built for long-term clients. Select a tier card to review qualification requirements, duration, and benefit profile.</p>
+            <p class="serviceLead">All Voyager tiers include 24/7 assistance, a private member card delivery, and free instant execution service. Voyager Cuprum through Voyager Noir are valid for one year; Voyager Red is lifetime by executive invitation only.</p>
+
+            <div class="membershipGrid">
+              <div class="tierList" role="tablist" aria-label="Membership Tiers">
+                <button class="tierOption tier-cu isActive" type="button" data-tier="cuprum" role="tab" aria-selected="true"><span class="tierMini"><span class="tierMiniLabel">Voyager Tier</span><span class="tierMiniName">Voyager Cuprum</span></span><span class="tierHint">Entry milestone with foundational loyalty benefits.</span></button>
+                <button class="tierOption tier-ar" type="button" data-tier="argentum" role="tab" aria-selected="false"><span class="tierMini"><span class="tierMiniLabel">Voyager Tier</span><span class="tierMiniName">Voyager Argentum</span></span><span class="tierHint">Expanded value with priority airport support.</span></button>
+                <button class="tierOption tier-au" type="button" data-tier="aurum" role="tab" aria-selected="false"><span class="tierMini"><span class="tierMiniLabel">Voyager Tier</span><span class="tierMiniName">Voyager Aurum</span></span><span class="tierHint">Higher-access tier with business-level airport comfort.</span></button>
+                <button class="tierOption tier-pt" type="button" data-tier="platinum" role="tab" aria-selected="false"><span class="tierMini"><span class="tierMiniLabel">Voyager Tier</span><span class="tierMiniName">Voyager Platinum</span></span><span class="tierHint">Strategic travel privileges with premium transfers and stays.</span></button>
+                <button class="tierOption tier-di" type="button" data-tier="diamante" role="tab" aria-selected="false"><span class="tierMini"><span class="tierMiniLabel">Voyager Tier</span><span class="tierMiniName">Voyager Diamante</span></span><span class="tierHint">High-privilege tier with advanced protection and special requests.</span></button>
+                <button class="tierOption tier-no" type="button" data-tier="noir" role="tab" aria-selected="false"><span class="tierMini"><span class="tierMiniLabel">Voyager Tier</span><span class="tierMiniName">Voyager Noir</span></span><span class="tierHint">Elite ongoing tier with maximum operational flexibility.</span></button>
+                <button class="tierOption tier-re" type="button" data-tier="red" role="tab" aria-selected="false"><span class="tierMini"><span class="tierMiniLabel">Voyager Tier</span><span class="tierMiniName">Voyager Red</span></span><span class="tierHint">Executive invitation tier with lifetime and Red Lounge privileges.</span></button>
+              </div>
+
+              <aside class="tierDetail" role="tabpanel" aria-live="polite">
+                <div class="tierDetailTop"><h3 class="tierName" id="tier-name">Voyager Cuprum</h3><span class="tierValidity" id="tier-validity">Validity: 1 Year</span></div>
+                <div class="tierBlock"><p class="tierBlockTitle">Achievement Path</p><p class="tierParagraph" id="tier-achievement"></p></div>
+                <div class="tierBlock"><p class="tierBlockTitle">Included Benefits</p><ul class="tierBenefits" id="tier-benefits"></ul></div>
+              </aside>
+            </div>
+
+            <div class="viewActions">
+              <a class="btn" href="#services" data-route="services">View Services</a>
+            </div>
+          </div>
+        </section>
+      </section>
+
+      <section class="routePage" data-page="contact" aria-label="Contact Page" hidden>
+        <section class="view" aria-label="Contact View">
+          <div class="viewInner">
+            <div class="viewTop">
+              <div class="kicker"><span class="dot" aria-hidden="true"></span> Contact</div>
+              <a class="btn ghost" href="#home" data-route="home">Back</a>
+            </div>
+            <h2 class="viewTitle">Submit Your Service Request</h2>
+            <p class="viewSub">Provide your request profile and preferred response channel. A concierge specialist will review your case and respond with execution details.</p>
+
+            <form id="contact-form" novalidate>
+              <div class="contactLayout">
+                <div class="field">
+                  <label for="first-name">First Name</label>
+                  <input class="input" id="first-name" name="firstName" type="text" required />
+                </div>
+                <div class="field">
+                  <label for="last-name">Last Name</label>
+                  <input class="input" id="last-name" name="lastName" type="text" required />
+                </div>
+                <div class="field">
+                  <label for="title">Title</label>
+                  <input class="input" id="title" name="title" type="text" placeholder="Mr, Ms, Dr, Executive Assistant..." required />
+                </div>
+                <div class="field">
+                  <label for="country-issued">Country of Issued Service</label>
+                  <select class="select" id="country-issued" name="countryIssued" required>
+                    <option value="">Select country</option>
+                  </select>
+                </div>
+                <div class="field">
+                  <label for="phone">Phone Number (with Country Code)</label>
+                  <input class="input" id="phone" name="phone" type="tel" placeholder="+1 555 123 4567" required />
+                </div>
+                <div class="field">
+                  <label for="email">Email Address</label>
+                  <input class="input" id="email" name="email" type="email" required />
+                </div>
+                <div class="field">
+                  <label for="service-type">Service Type</label>
+                  <select class="select" id="service-type" name="serviceType" required>
+                    <option value="">Select service</option>
+                    <option value="travel_arrangement">Travel Arrangement</option>
+                    <option value="security_escort">Security Escort</option>
+                    <option value="real_estate_management">Real Estate Management</option>
+                    <option value="special_service_request">Special Service Request</option>
+                  </select>
+                </div>
+                <div class="field">
+                  <label for="execution-time">Desired Execution Time</label>
+                  <select class="select" id="execution-time" name="executionTime" required>
+                    <option value="">Select time window</option>
+                    <option value="Instant">Instant</option>
+                    <option value="24 Hours">24 Hours</option>
+                    <option value="48 Hours">48 Hours</option>
+                    <option value="72 Hours">72 Hours</option>
+                    <option value="Within a Week">Within a Week</option>
+                    <option value="Within a Month">Within a Month</option>
+                    <option value="2 Months">2 Months</option>
+                    <option value="3 Months">3 Months</option>
+                    <option value="6 Months">6 Months</option>
+                  </select>
+                  <div class="warningNote" id="instant-warning" hidden>Additional fees for non-Voyager members apply for Instant execution.</div>
+                </div>
+                <div class="field full">
+                  <label>Preferred Contact Method</label>
+                  <div class="contactChoice">
+                    <label class="choice"><input type="checkbox" name="contactMethod" value="email" /> Contact by Email</label>
+                    <label class="choice"><input type="checkbox" name="contactMethod" value="phone" /> Contact by Phone</label>
+                  </div>
+                </div>
+                <div class="field full">
+                  <label for="request-details">Request Details</label>
+                  <textarea class="textarea" id="request-details" name="requestDetails" placeholder="Describe your request, context, and required outcomes." required></textarea>
+                </div>
+              </div>
+
+              <div class="errorLine" id="contact-error" aria-live="polite"></div>
+
+              <div class="viewActions">
+                <button class="btn primary" type="submit">Submit Request</button>
+                <a class="btn ghost" href="#membership" data-route="membership">View Membership</a>
+              </div>
+            </form>
+
+          </div>
+        </section>
+      </section>
+
+      <section class="routePage" data-page="account" aria-label="Account Page" hidden>
+        <section class="view" aria-label="Account View">
+          <div class="viewInner">
+            <div class="viewTop">
+              <div class="kicker"><span class="dot" aria-hidden="true"></span> Account</div>
+              <a class="btn ghost" href="#home" data-route="home">Back</a>
+            </div>
+            <h2 class="viewTitle">Access Your VVS Account</h2>
+
+            <div class="authCard">
+              <div class="authTabs" role="tablist" aria-label="Authentication Tabs">
+                <button type="button" class="authTab isActive" data-auth-tab="login" role="tab" aria-selected="true">Log In</button>
+                <button type="button" class="authTab" data-auth-tab="signup" role="tab" aria-selected="false">Sign Up</button>
+              </div>
+
+              <div class="authPanel" data-auth-panel="login">
+                <form id="login-step1" class="authGrid" novalidate>
+                  <div class="field full">
+                    <label for="login-email">Email Address</label>
+                    <input class="input" id="login-email" type="email" required />
+                  </div>
+                  <div class="field full">
+                    <label for="login-password">Password</label>
+                    <input class="input" id="login-password" type="password" required />
+                  </div>
+                  <div class="viewActions">
+                    <button class="btn primary" type="submit">Continue to Verification</button>
+                  </div>
+                </form>
+
+                <form id="login-step2" class="authGrid" hidden novalidate>
+                  <div class="field full">
+                    <label for="login-phrase">Secret Phrase</label>
+                    <input class="input" id="login-phrase" type="text" required />
+                  </div>
+                  <div class="field full">
+                    <label for="login-code">Email Confirmation Code</label>
+                    <input class="input" id="login-code" type="text" inputmode="numeric" required />
+                  </div>
+                  <div class="viewActions">
+                    <button class="btn primary" type="submit">Verify and Log In</button>
+                  </div>
+                </form>
+                <p class="authInfo" id="login-info"></p>
+                <div class="viewActions" style="margin-top:10px;">
+                  <button class="authLinkBtn" type="button" data-open-password-tab data-password-mode="recovery">Forgot your password?</button>
+                  <button class="authLinkBtn" type="button" data-open-password-tab data-password-mode="change">Change Password</button>
+                </div>
+              </div>
+
+              <div class="authPanel" data-auth-panel="signup" hidden>
+                <form id="signup-step1" class="authGrid" novalidate>
+                  <div class="field">
+                    <label for="signup-title">Preferred Title</label>
+                    <input class="input" id="signup-title" type="text" placeholder="Mr., Ms., Dr., His Highness..." required />
+                  </div>
+                  <div class="field">
+                    <label for="signup-first">First Name</label>
+                    <input class="input" id="signup-first" type="text" required />
+                  </div>
+                  <div class="field">
+                    <label for="signup-last">Last Name</label>
+                    <input class="input" id="signup-last" type="text" required />
+                  </div>
+                  <div class="field">
+                    <label for="signup-country">Country of Residence</label>
+                    <select class="select" id="signup-country" required>
+                      <option value="">Select country</option>
+                    </select>
+                  </div>
+                  <div class="field">
+                    <label for="signup-phone">Phone Number (with Country Code)</label>
+                    <input class="input" id="signup-phone" type="tel" placeholder="+1 555 123 4567" required />
+                  </div>
+                  <div class="field full">
+                    <label for="signup-email">Email Address</label>
+                    <input class="input" id="signup-email" type="email" required />
+                  </div>
+                  <div class="field">
+                    <label for="signup-password">Password</label>
+                    <input class="input" id="signup-password" type="password" minlength="12" required />
+                    <div class="warningNote">Minimum 12 characters, with at least 2 capital letters, 2 numbers, and 2 special symbols.</div>
+                  </div>
+                  <div class="field">
+                    <label for="signup-phrase">Secret Phrase</label>
+                    <input class="input" id="signup-phrase" type="text" required />
+                  </div>
+                  <div class="viewActions">
+                    <button class="btn primary" type="submit">Create Account and Send Code</button>
+                  </div>
+                </form>
+
+                <form id="signup-step2" class="authGrid" hidden novalidate>
+                  <div class="field full">
+                    <label for="signup-code">Email Confirmation Code</label>
+                    <input class="input" id="signup-code" type="text" inputmode="numeric" required />
+                  </div>
+                  <div class="viewActions">
+                    <button class="btn primary" type="submit">Verify and Complete Sign Up</button>
+                  </div>
+                </form>
+                <p class="authInfo" id="signup-info"></p>
+                <div class="viewActions" style="margin-top:10px;">
+                  <button class="authLinkBtn" type="button" data-open-password-tab data-password-mode="recovery">Forgot your password?</button>
+                  <button class="authLinkBtn" type="button" data-open-password-tab data-password-mode="change">Change Password</button>
+                </div>
+              </div>
+
+              <div class="authPanel" data-auth-panel="password" hidden>
+                <form id="pw-old-form" class="authGrid" novalidate>
+                  <div class="field full">
+                    <label for="pw-old-email">Email Address</label>
+                    <input class="input" id="pw-old-email" type="email" required />
+                  </div>
+                  <div class="field">
+                    <label for="pw-old-password">Current Password</label>
+                    <input class="input" id="pw-old-password" type="password" required />
+                  </div>
+                  <div class="field">
+                    <label for="pw-old-new">New Password</label>
+                    <input class="input" id="pw-old-new" type="password" minlength="12" required />
+                  </div>
+                  <div class="field full">
+                    <label for="pw-old-confirm">Confirm New Password</label>
+                    <input class="input" id="pw-old-confirm" type="password" minlength="12" required />
+                  </div>
+                  <div class="viewActions">
+                    <button class="btn primary" type="submit">Update Password</button>
+                  </div>
+                </form>
+                <p class="authInfo" id="password-info"></p>
+              </div>
+
+              <div class="authPanel" data-auth-panel="password-recovery" hidden>
+                <form id="pw-recovery-step1" class="authGrid" novalidate>
+                  <div class="field full">
+                    <label for="pw-rec-email">Email Address</label>
+                    <input class="input" id="pw-rec-email" type="email" required />
+                  </div>
+                  <div class="field full">
+                    <label for="pw-rec-phrase">Secret Phrase</label>
+                    <input class="input" id="pw-rec-phrase" type="text" required />
+                  </div>
+                  <div class="field full">
+                    <label for="pw-rec-tier">Membership Tier</label>
+                    <select class="select" id="pw-rec-tier" required>
+                      <option value="">Select tier</option>
+                      <option value="non-member">Non-Member</option>
+                      <option value="voyager cuprum">Voyager Cuprum</option>
+                      <option value="voyager argentum">Voyager Argentum</option>
+                      <option value="voyager aurum">Voyager Aurum</option>
+                      <option value="voyager platinum">Voyager Platinum</option>
+                      <option value="voyager diamante">Voyager Diamante</option>
+                      <option value="voyager noir">Voyager Noir</option>
+                      <option value="voyager red">Voyager Red</option>
+                    </select>
+                  </div>
+                  <div class="viewActions">
+                    <button class="btn primary" type="submit">Send Verification Code</button>
+                  </div>
+                </form>
+                <p class="authInfo" id="password-recovery-info"></p>
+              </div>
+            </div>
+          </div>
+        </section>
+      </section>
+
+      <section class="routePage" data-page="profile" aria-label="Account Dashboard Page" hidden>
+        <section class="view" aria-label="Account Dashboard View">
+          <div class="viewInner profileTheme tier-theme-red" id="profile-shell">
+            <div class="viewTop">
+              <div class="kicker"><span class="dot" aria-hidden="true"></span> Account Dashboard</div>
+              <div class="viewActions" style="margin-top:0;">
+                <a class="btn ghost" href="#sunrise" data-route="sunrise" id="profile-sunrise-btn" hidden>Access VVS Sunrise</a>
+                <a class="btn ghost" href="#ambassador" data-route="ambassador" id="profile-ambassador-btn" hidden>Red Lounge</a>
+                <button class="btn ghost" type="button" id="logout-btn">Log Out</button>
+                <a class="btn ghost" href="#home" data-route="home">Back</a>
+              </div>
+            </div>
+
+            <p class="ownerExecutiveTag" id="owner-executive-tag" hidden>VVS - EXECUTIVE</p>
+            <h2 class="profileGreeting" id="profile-greeting">Marhaba His Higness Al-Qinar</h2>
+            <p class="viewSub" id="profile-summary">Voyager Red member profile with active service operations.</p>
+
+            <div class="profileGrid">
+              <article class="profileCard">
+                <p class="profileLabel" id="profile-status-label">Membership</p>
+                <h3 class="profileValue" id="profile-tier">Voyager Red</h3>
+                <p class="profileNote">Services completed: <b id="profile-services-completed">347</b></p>
+              </article>
+
+              <article class="profileCard">
+                <p class="profileLabel">Past Service</p>
+                <h3 class="profileValue" id="profile-past-title">Jerusalem Security Escort</h3>
+                <p class="profileNote" id="profile-past-details"></p>
+              </article>
+
+              <article class="profileCard">
+                <p class="profileLabel">Upcoming Service</p>
+                <h3 class="profileValue" id="profile-upcoming-title">Maldives - Radoga Resorts</h3>
+                <p class="profileNote" id="profile-upcoming-details"></p>
+              </article>
+
+              <article class="profileCard profileCardWide" id="profile-owner-metrics" hidden>
+                <p class="profileLabel">Owner Control Center (Past 24 Hours)</p>
+                <div class="ownerMetricsGrid">
+                  <div class="teamItem"><b>Services Completed</b><span id="owner-services-completed-24h"></span></div>
+                  <div class="teamItem"><b>Client Reviews</b><span id="owner-client-reviews-24h"></span></div>
+                  <div class="teamItem"><b>Revenue (Brut / Net)</b><span id="owner-revenue-24h"></span></div>
+                  <div class="teamItem"><b>Expenses</b><span id="owner-expenses-24h"></span></div>
+                  <div class="teamItem"><b>Money to be Earned / Paid</b><span id="owner-money-flow-24h"></span></div>
+                  <div class="teamItem"><b>Concierge Extra-Time Hours</b><span id="owner-overtime-24h"></span></div>
+                  <div class="teamItem"><b>Most Important Goal Today</b><span id="owner-goal-today"></span></div>
+                  <div class="teamItem"><b>Average Satisfaction Rate</b><span id="owner-satisfaction-rate"></span></div>
+                </div>
+                <div class="ownerListWrap">
+                  <div>
+                    <p class="profileLabel">Top 5 Concierge Performances Today</p>
+                    <ul class="profileTips" id="owner-top-performance"></ul>
+                  </div>
+                  <div>
+                    <p class="profileLabel">Top 5 Most Selected Concierges Today</p>
+                    <ul class="profileTips" id="owner-top-selected"></ul>
+                  </div>
+                </div>
+              </article>
+
+              <article class="profileCard profileCardWide" id="profile-red-team">
+                <p class="profileLabel">Your Private Team</p>
+                <div class="teamGrid">
+                  <div class="teamItem"><b>Fleet</b><span id="team-pilot"></span></div>
+                  <div class="teamItem"><b>Driver</b><span id="team-driver"></span></div>
+                  <div class="teamItem"><b>Concierge</b><span id="team-concierge"></span></div>
+                  <div class="teamItem"><b>Head of Security</b><span id="team-security"></span></div>
+                </div>
+              </article>
+
+              <article class="profileCard profileCardWide" id="profile-standard-support" hidden>
+                <p class="profileLabel">Last Concierge Worked With</p>
+                <p class="profileNote" id="profile-concierge-auto-note" style="margin-top:10px;">Auto-assigned by VVS dispatch engine based on account profile and active routing load.</p>
+                <p class="profileNote" id="profile-last-concierge"></p>
+                <div class="viewActions">
+                  <button class="btn ghost" type="button" id="same-concierge-btn">Request Same Concierge (Check Availability)</button>
+                </div>
+                <p class="authInfo" id="same-concierge-result"></p>
+              </article>
+
+              <article class="profileCard profileCardWide" id="profile-progress-wrap" hidden>
+                <p class="profileLabel">Tier Progress</p>
+                <div class="progressTrack">
+                  <div class="progressFill" id="profile-progress-fill" style="width: 0%;"></div>
+                </div>
+                <p class="profileNote" id="profile-progress-text"></p>
+              </article>
+
+              <article class="profileCard profileCardWide" id="profile-concierge-desk-card">
+                <p class="profileLabel">Available Concierge Desk</p>
+                <div class="teamGrid" id="profile-concierge-list"></div>
+              </article>
+
+              <article class="profileCard profileCardWide" id="profile-tips-card">
+                <p class="profileLabel">Trip & Safety Tips</p>
+                <ul class="profileTips" id="profile-tips">
+                  <li>Carry primary and backup identification in separate locations.</li>
+                  <li>Keep one trusted contact informed of itinerary shifts.</li>
+                  <li>Use verified transport and avoid publishing live location online.</li>
+                </ul>
+              </article>
+            </div>
+          </div>
+        </section>
+      </section>
+
+      <section class="routePage" data-page="ambassador" aria-label="Red Lounge Page" hidden>
+        <section class="view" aria-label="Red Lounge View">
+          <div class="viewInner ambassadorShell">
+            <div class="viewTop">
+              <div class="kicker"><span class="dot" aria-hidden="true"></span> Red Lounge</div>
+              <a class="btn ghost" href="#profile" data-route="profile">Back</a>
+            </div>
+            <h2 class="viewTitle" id="ambassador-greeting">Good Evening, Mrs. Kovaleva-Buyvidayte</h2>
+            <p class="viewSub">Private Red-tier briefing with curated events, daily privilege offers, and executive notes from VVS leadership.</p>
+
+            <div class="ambassadorGrid">
+              <article class="ambassadorCard">
+                <p class="profileLabel">Upcoming Red Events by VVS</p>
+                <ul class="profileTips" id="ambassador-events">
+                  <li>Red Circle Gala, Monaco - March 14, 2026, 20:00 (CET)</li>
+                  <li>Private Aviation Forum, Zurich - March 29, 2026, 11:00 (CET)</li>
+                  <li>Security Leadership Dinner, Dubai - April 10, 2026, 19:30 (GST)</li>
+                </ul>
+              </article>
+
+              <article class="ambassadorCard">
+                <p class="profileLabel">Special Concierge Offers for Today</p>
+                <ul class="profileTips" id="ambassador-offers">
+                  <li>Priority same-day executive dispatch window until 23:00 local time.</li>
+                  <li>Complimentary private terminal handling for one international departure.</li>
+                  <li>Extended late-night operations desk with direct Red-tier routing.</li>
+                </ul>
+              </article>
+
+              <article class="ambassadorCard ambassadorCardWide">
+                <p class="profileLabel">Upcoming Event Details</p>
+                <p class="profileNote" id="ambassador-event-details">
+                  Red Circle Gala, Monaco: private waterfront venue access, security perimeter coordination from 18:30, fleet staging in three secure zones, and dedicated concierge command channel from first pickup through post-event return.
+                </p>
+              </article>
+
+              <article class="ambassadorCard ambassadorCardWide">
+                <p class="profileLabel">CEO & COO Greeting | Gift of the Month</p>
+                <p class="profileNote" id="ambassador-ceo-note">
+                  Founders message: thank you for your continued trust in VVS and for allowing our team to support your global movements with precision and discretion. Gift of the month: a bespoke carbon-shell executive travel case with RFID-shielded document vault, encrypted luggage tracker, monogrammed leather passport folio, and a private route-briefing dossier prepared for your next trip.
+                </p>
+              </article>
+
+              <article class="ambassadorCard ambassadorMoneyCard ambassadorCardWide">
+                <p class="profileLabel">Money Saved by Travelling with VVS</p>
+                <h3 class="ambassadorMoneyValue" id="ambassador-money-saved">$0 USD</h3>
+                <p class="profileNote">Estimated cumulative savings based on Red-tier privileges, optimized routing, and operational efficiency credits.</p>
+              </article>
+            </div>
+          </div>
+        </section>
+      </section>
+
+      <section class="routePage" data-page="voyager-control" aria-label="Voyager Control Page" hidden>
+        <section class="view" aria-label="Voyager Control View">
+          <div class="viewInner profileTheme tier-theme-owner">
+            <div class="viewTop">
+              <div class="kicker"><span class="dot" aria-hidden="true"></span> Voyager Control</div>
+              <a class="btn ghost" href="#profile" data-route="profile">Back</a>
+            </div>
+            <h2 class="viewTitle" id="voyager-control-greeting">Voyager Control - Owner Board</h2>
+            <p class="viewSub">Executive operational oversight for tier experience, concierge outcomes, and member-critical alerts.</p>
+
+            <div class="profileGrid">
+              <article class="profileCard profileCardWide">
+                <p class="profileLabel">All Tiers Satisfaction</p>
+                <p class="profileNote" id="vc-all-tiers-summary">System-wide member satisfaction blend and service quality pulse.</p>
+              </article>
+
+              <article class="profileCard">
+                <p class="profileLabel">Cuprum</p>
+                <h3 class="profileValue" id="vc-sat-cuprum">0%</h3>
+              </article>
+              <article class="profileCard">
+                <p class="profileLabel">Argentum</p>
+                <h3 class="profileValue" id="vc-sat-argentum">0%</h3>
+              </article>
+              <article class="profileCard">
+                <p class="profileLabel">Aurum</p>
+                <h3 class="profileValue" id="vc-sat-aurum">0%</h3>
+              </article>
+              <article class="profileCard">
+                <p class="profileLabel">Platinum</p>
+                <h3 class="profileValue" id="vc-sat-platinum">0%</h3>
+              </article>
+              <article class="profileCard">
+                <p class="profileLabel">Diamante</p>
+                <h3 class="profileValue" id="vc-sat-diamante">0%</h3>
+              </article>
+              <article class="profileCard">
+                <p class="profileLabel">Noir</p>
+                <h3 class="profileValue" id="vc-sat-noir">0%</h3>
+              </article>
+              <article class="profileCard">
+                <p class="profileLabel">Red</p>
+                <h3 class="profileValue" id="vc-sat-red">0%</h3>
+              </article>
+
+              <article class="profileCard profileCardWide">
+                <p class="profileLabel">Complaints of the Day</p>
+                <ul class="profileTips" id="vc-complaints-day"></ul>
+              </article>
+
+              <article class="profileCard profileCardWide">
+                <p class="profileLabel">Team Red Performance | Information | Monthly Spend</p>
+                <p class="profileNote" id="vc-red-performance"></p>
+              </article>
+
+              <article class="profileCard profileCardWide">
+                <p class="profileLabel">Red Main Requests / Complaints (Assigned Concierges)</p>
+                <ul class="profileTips" id="vc-red-requests"></ul>
+              </article>
+
+              <article class="profileCard profileCardWide">
+                <p class="profileLabel">Tier KPIs and Performance</p>
+                <ul class="profileTips" id="vc-tier-kpis"></ul>
+              </article>
+
+              <article class="profileCard profileCardWide">
+                <p class="profileLabel">General Information to Pay Attention To</p>
+                <ul class="profileTips" id="vc-general-attention"></ul>
+              </article>
+            </div>
+          </div>
+        </section>
+      </section>
+
+      <section class="routePage" data-page="sunrise" aria-label="VVS Sunrise Page" hidden>
+        <section class="view" aria-label="VVS Sunrise View">
+          <div class="viewInner profileTheme tier-theme-owner sunriseShell">
+            <div class="sunriseAmbient" aria-hidden="true">
+              <span class="sunriseOrb orbA"></span>
+              <span class="sunriseOrb orbB"></span>
+              <span class="sunriseOrb orbC"></span>
+            </div>
+            <div class="viewTop">
+              <div class="kicker"><span class="dot" aria-hidden="true"></span> VVS Sunrise</div>
+              <div class="viewActions" style="margin-top:0;">
+                <button class="btn ghost" type="button" id="sunrise-logout-btn">Log Out</button>
+                <a class="btn ghost" href="#profile" data-route="profile">Back</a>
+              </div>
+            </div>
+
+            <section class="sunriseAuthCard" id="sunrise-auth-card">
+              <h2 class="viewTitle sunriseTitle">Sunrise Secure Access</h2>
+              <p class="viewSub">Owner verification required before opening Sunrise modules.</p>
+              <form id="sunrise-step1" class="authGrid" novalidate>
+                <div class="field">
+                  <label for="sunrise-email">Sunrise Email</label>
+                  <input class="input" id="sunrise-email" type="email" required autocomplete="off" />
+                </div>
+                <div class="field">
+                  <label for="sunrise-password">Sunrise Password</label>
+                  <input class="input" id="sunrise-password" type="password" required autocomplete="off" />
+                </div>
+                <div class="viewActions">
+                  <button class="btn primary" type="submit">Continue to Verification</button>
+                </div>
+              </form>
+              <form id="sunrise-step2" class="authGrid" hidden novalidate>
+                <div class="field">
+                  <label for="sunrise-phrase">Secret Phrase</label>
+                  <input class="input" id="sunrise-phrase" type="text" required autocomplete="off" />
+                </div>
+                <div class="field">
+                  <label for="sunrise-code">Email Confirmation Code</label>
+                  <input class="input" id="sunrise-code" type="text" inputmode="numeric" required autocomplete="off" />
+                </div>
+                <div class="viewActions">
+                  <button class="btn primary" type="submit">Unlock Sunrise</button>
+                </div>
+              </form>
+              <p class="authInfo" id="sunrise-info"></p>
+            </section>
+
+            <section id="sunrise-panel" hidden>
+              <h2 class="viewTitle" id="sunrise-greeting">Good Morning, Mr. Totev - Welcome to Sunrise, Access Level - Owner</h2>
+              <p class="viewSub">Owner command modules for strategic control of VVS operations.</p>
+
+              <div class="sunriseOpsSummary" id="sunrise-ops-summary">
+                <article class="sunriseSummaryCard"><p class="sunriseCategoryTitle">DTS Documents</p><b id="sum-dts-count">0</b></article>
+                <article class="sunriseSummaryCard"><p class="sunriseCategoryTitle">Total Expenses</p><b id="sum-eam-total">$0</b></article>
+                <article class="sunriseSummaryCard"><p class="sunriseCategoryTitle">Total Income</p><b id="sum-ifs-total">$0</b></article>
+                <article class="sunriseSummaryCard"><p class="sunriseCategoryTitle">Employees</p><b id="sum-ecs-count">0</b></article>
+                <article class="sunriseSummaryCard"><p class="sunriseCategoryTitle">SOC Active Services</p><b id="sum-soc-current">0</b></article>
+                <article class="sunriseSummaryCard"><p class="sunriseCategoryTitle">Notos Sessions</p><b id="sum-lcs-count">0</b></article>
+              </div>
+
+              <div class="sunriseCategoryWrap">
+                <article class="sunriseCategoryCard">
+                  <p class="sunriseCategoryTitle">Finance & Performance</p>
+                  <div class="sunriseLaunchGrid">
+                    <a class="sunriseLaunchBtn" href="#sunrise-revenue" data-route="sunrise-revenue" data-shortcut="rev1"><span class="sunriseShortcutCode">REV1</span>Revenue Management</a>
+                    <a class="sunriseLaunchBtn" href="#sunrise-sales" data-route="sunrise-sales" data-shortcut="sls1"><span class="sunriseShortcutCode">SLS1</span>Sales Performance</a>
+                    <a class="sunriseLaunchBtn" href="#sunrise-income" data-route="sunrise-income" data-shortcut="inc1"><span class="sunriseShortcutCode">INC1</span>Income Management</a>
+                    <a class="sunriseLaunchBtn" href="#sunrise-expenses" data-route="sunrise-expenses" data-shortcut="exp1"><span class="sunriseShortcutCode">EXP1</span>Expenses Management</a>
+                    <a class="sunriseLaunchBtn" href="#sunrise-performance" data-route="sunrise-performance" data-shortcut="ovr1"><span class="sunriseShortcutCode">OVR1</span>VVS Performance Overview</a>
+                  </div>
+                </article>
+
+                <article class="sunriseCategoryCard">
+                  <p class="sunriseCategoryTitle">Operations & Delivery</p>
+                  <div class="sunriseLaunchGrid">
+                    <a class="sunriseLaunchBtn" href="#sunrise-services" data-route="sunrise-services" data-shortcut="srv1"><span class="sunriseShortcutCode">SRV1</span>Services Dashboard</a>
+                    <a class="sunriseLaunchBtn" href="#sunrise-locations" data-route="sunrise-locations" data-shortcut="loc1"><span class="sunriseShortcutCode">LOC1</span>Locations</a>
+                    <a class="sunriseLaunchBtn" href="#sunrise-maintenance" data-route="sunrise-maintenance" data-shortcut="mnt1"><span class="sunriseShortcutCode">MNT1</span>Maintenance</a>
+                    <a class="sunriseLaunchBtn" href="#sunrise-events" data-route="sunrise-events" data-shortcut="evt1"><span class="sunriseShortcutCode">EVT1</span>Events Planning</a>
+                  </div>
+                </article>
+
+                <article class="sunriseCategoryCard">
+                  <p class="sunriseCategoryTitle">People, Marketing & Compliance</p>
+                  <div class="sunriseLaunchGrid">
+                    <a class="sunriseLaunchBtn" href="#sunrise-marketing" data-route="sunrise-marketing" data-shortcut="mkt1"><span class="sunriseShortcutCode">MKT1</span>Marketing</a>
+                    <a class="sunriseLaunchBtn" href="#sunrise-employees" data-route="sunrise-employees" data-shortcut="emp1"><span class="sunriseShortcutCode">EMP1</span>Employees Dashboard</a>
+                    <a class="sunriseLaunchBtn" href="#sunrise-surveys" data-route="sunrise-surveys" data-shortcut="csv1"><span class="sunriseShortcutCode">CSV1</span>Customer Surveys</a>
+                    <a class="sunriseLaunchBtn" href="#sunrise-legality" data-route="sunrise-legality" data-shortcut="lgl1"><span class="sunriseShortcutCode">LGL1</span>Legality Follow Ups</a>
+                  </div>
+                </article>
+              </div>
+            </section>
+          </div>
+        </section>
+      </section>
+
+      <section class="routePage" data-page="sunrise-revenue" aria-label="Sunrise Revenue Page" hidden>
+        <section class="view"><div class="viewInner sunriseShell sunriseDetailShell"><div class="viewTop"><div class="kicker"><span class="dot" aria-hidden="true"></span> Sunrise • Revenue</div><div class="viewActions" style="margin-top:0;"><button class="btn ghost" type="button" data-sunrise-logout>Log Out</button><a class="btn ghost" href="#sunrise" data-route="sunrise">Back</a></div></div><h2 class="viewTitle">Revenue Management</h2><div class="sunriseDetailGrid"><article class="sunriseDetailCard opsEditableBlock"><h3>Revenue Flow Access</h3><p class="opsText">Live revenue flow by corridor, service category, and client segment with detailed operational insights.</p><textarea class="opsEditor" hidden></textarea><div class="sunriseModuleActions"><button class="sunriseMiniBtn ops-edit" type="button">Edit</button><button class="sunriseMiniBtn ops-save" type="button" hidden>Save</button><button class="sunriseMiniBtn ops-cancel" type="button" hidden>Cancel</button></div></article><article class="sunriseDetailCard opsEditableBlock"><h3>Gross/Net Detail</h3><p class="opsText">Gross: $612,940 | Net: $462,380 | Margin: 75.4% | YTD uplift +8.2%.</p><textarea class="opsEditor" hidden></textarea><div class="sunriseModuleActions"><button class="sunriseMiniBtn ops-edit" type="button">Edit</button><button class="sunriseMiniBtn ops-save" type="button" hidden>Save</button><button class="sunriseMiniBtn ops-cancel" type="button" hidden>Cancel</button></div></article></div></div></section>
+      </section>
+
+      <section class="routePage" data-page="sunrise-sales" aria-label="Sunrise Sales Page" hidden>
+        <section class="view"><div class="viewInner sunriseShell sunriseDetailShell"><div class="viewTop"><div class="kicker"><span class="dot"></span> Sunrise • Sales</div><div class="viewActions" style="margin-top:0;"><button class="btn ghost" type="button" data-sunrise-logout>Log Out</button><a class="btn ghost" href="#sunrise" data-route="sunrise">Back</a></div></div><h2 class="viewTitle">Sales Performance</h2><div class="sunriseDetailGrid"><article class="sunriseDetailCard opsEditableBlock"><h3>Sales Metrics</h3><p class="opsText">Services sold, upsales, collaborations, conversion rate, close-time, and account performance in detail.</p><textarea class="opsEditor" hidden></textarea><div class="sunriseModuleActions"><button class="sunriseMiniBtn ops-edit" type="button">Edit</button><button class="sunriseMiniBtn ops-save" type="button" hidden>Save</button><button class="sunriseMiniBtn ops-cancel" type="button" hidden>Cancel</button></div></article></div></div></section>
+      </section>
+
+      <section class="routePage" data-page="sunrise-marketing" aria-label="Sunrise Marketing Page" hidden>
+        <section class="view"><div class="viewInner sunriseShell sunriseDetailShell"><div class="viewTop"><div class="kicker"><span class="dot"></span> Sunrise • Marketing</div><div class="viewActions" style="margin-top:0;"><button class="btn ghost" type="button" data-sunrise-logout>Log Out</button><a class="btn ghost" href="#sunrise" data-route="sunrise">Back</a></div></div><h2 class="viewTitle">Marketing</h2><div class="sunriseDetailGrid"><article class="sunriseDetailCard opsEditableBlock"><h3>Flow & Performance</h3><p class="opsText">General marketing flow, campaign performance, lead quality insights, and overall brand-response efficiency.</p><textarea class="opsEditor" hidden></textarea><div class="sunriseModuleActions"><button class="sunriseMiniBtn ops-edit" type="button">Edit</button><button class="sunriseMiniBtn ops-save" type="button" hidden>Save</button><button class="sunriseMiniBtn ops-cancel" type="button" hidden>Cancel</button></div></article></div></div></section>
+      </section>
+
+      <section class="routePage" data-page="sunrise-locations" aria-label="Sunrise Locations Page" hidden>
+        <section class="view"><div class="viewInner sunriseShell sunriseDetailShell"><div class="viewTop"><div class="kicker"><span class="dot"></span> Sunrise • Locations</div><div class="viewActions" style="margin-top:0;"><button class="btn ghost" type="button" data-sunrise-logout>Log Out</button><a class="btn ghost" href="#sunrise" data-route="sunrise">Back</a></div></div><h2 class="viewTitle">Locations</h2><div class="sunriseDetailGrid"><article class="sunriseDetailCard opsEditableBlock"><h3>Office & IR Coverage</h3><p class="opsText">All VVS office locations and immediate-response (IR) locations with readiness and response windows.</p><textarea class="opsEditor" hidden></textarea><div class="sunriseModuleActions"><button class="sunriseMiniBtn ops-edit" type="button">Edit</button><button class="sunriseMiniBtn ops-save" type="button" hidden>Save</button><button class="sunriseMiniBtn ops-cancel" type="button" hidden>Cancel</button></div></article></div></div></section>
+      </section>
+
+      <section class="routePage" data-page="sunrise-maintenance" aria-label="Sunrise Maintenance Page" hidden>
+        <section class="view"><div class="viewInner sunriseShell sunriseDetailShell"><div class="viewTop"><div class="kicker"><span class="dot"></span> Sunrise • Maintenance</div><div class="viewActions" style="margin-top:0;"><button class="btn ghost" type="button" data-sunrise-logout>Log Out</button><a class="btn ghost" href="#sunrise" data-route="sunrise">Back</a></div></div><h2 class="viewTitle">Maintenance</h2><div class="sunriseDetailGrid"><article class="sunriseDetailCard opsEditableBlock"><h3>Cleanings Pipeline</h3><p class="opsText">Cleanings after past services and before new services, including completion status and escalation flags.</p><textarea class="opsEditor" hidden></textarea><div class="sunriseModuleActions"><button class="sunriseMiniBtn ops-edit" type="button">Edit</button><button class="sunriseMiniBtn ops-save" type="button" hidden>Save</button><button class="sunriseMiniBtn ops-cancel" type="button" hidden>Cancel</button></div></article></div></div></section>
+      </section>
+
+      <section class="routePage" data-page="sunrise-employees" aria-label="Sunrise Employees Page" hidden>
+        <section class="view"><div class="viewInner sunriseShell sunriseDetailShell"><div class="viewTop"><div class="kicker"><span class="dot"></span> Sunrise • Employees</div><div class="viewActions" style="margin-top:0;"><button class="btn ghost" type="button" data-sunrise-logout>Log Out</button><a class="btn ghost" href="#sunrise" data-route="sunrise">Back</a></div></div><h2 class="viewTitle">Employees Dashboard</h2><div class="sunriseDetailGrid"><article class="sunriseDetailCard opsEditableBlock"><h3>Performance & Wages</h3><p class="opsText">Employee performance matrix, wages paid/to be paid, and active team allocation by function.</p><textarea class="opsEditor" hidden></textarea><div class="sunriseModuleActions"><button class="sunriseMiniBtn ops-edit" type="button">Edit</button><button class="sunriseMiniBtn ops-save" type="button" hidden>Save</button><button class="sunriseMiniBtn ops-cancel" type="button" hidden>Cancel</button></div></article></div></div></section>
+      </section>
+
+      <section class="routePage" data-page="sunrise-services" aria-label="Sunrise Services Page" hidden>
+        <section class="view"><div class="viewInner sunriseShell sunriseDetailShell"><div class="viewTop"><div class="kicker"><span class="dot"></span> Sunrise • Services</div><div class="viewActions" style="margin-top:0;"><button class="btn ghost" type="button" data-sunrise-logout>Log Out</button><a class="btn ghost" href="#sunrise" data-route="sunrise">Back</a></div></div><h2 class="viewTitle">Services Dashboard</h2><div class="sunriseDetailGrid"><article class="sunriseDetailCard opsEditableBlock"><h3>Active Queue</h3><p class="opsText">All services to be completed (basic to high), requested timeframes, and past service performance details.</p><textarea class="opsEditor" hidden></textarea><div class="sunriseModuleActions"><button class="sunriseMiniBtn ops-edit" type="button">Edit</button><button class="sunriseMiniBtn ops-save" type="button" hidden>Save</button><button class="sunriseMiniBtn ops-cancel" type="button" hidden>Cancel</button></div></article></div></div></section>
+      </section>
+
+      <section class="routePage" data-page="sunrise-legality" aria-label="Sunrise Legality Page" hidden>
+        <section class="view"><div class="viewInner sunriseShell sunriseDetailShell"><div class="viewTop"><div class="kicker"><span class="dot"></span> Sunrise • Legality</div><div class="viewActions" style="margin-top:0;"><button class="btn ghost" type="button" data-sunrise-logout>Log Out</button><a class="btn ghost" href="#sunrise" data-route="sunrise">Back</a></div></div><h2 class="viewTitle">Legality Follow Ups</h2><div class="sunriseDetailGrid"><article class="sunriseDetailCard opsEditableBlock"><h3>Legal Operations</h3><p class="opsText">Legal cases, review documents, company file box, solved cases, and cases pending legal review.</p><textarea class="opsEditor" hidden></textarea><div class="sunriseModuleActions"><button class="sunriseMiniBtn ops-edit" type="button">Edit</button><button class="sunriseMiniBtn ops-save" type="button" hidden>Save</button><button class="sunriseMiniBtn ops-cancel" type="button" hidden>Cancel</button></div></article></div></div></section>
+      </section>
+
+      <section class="routePage" data-page="sunrise-expenses" aria-label="Sunrise Expenses Page" hidden>
+        <section class="view"><div class="viewInner sunriseShell sunriseDetailShell"><div class="viewTop"><div class="kicker"><span class="dot"></span> Sunrise • Expenses</div><div class="viewActions" style="margin-top:0;"><button class="btn ghost" type="button" data-sunrise-logout>Log Out</button><a class="btn ghost" href="#sunrise" data-route="sunrise">Back</a></div></div><h2 class="viewTitle">Expenses Management</h2><div class="sunriseDetailGrid"><article class="sunriseDetailCard opsEditableBlock"><h3>Detailed Spend</h3><p class="opsText">Expenses in full detail, highlights, anomalies, and recommended adjustments by operational segment.</p><textarea class="opsEditor" hidden></textarea><div class="sunriseModuleActions"><button class="sunriseMiniBtn ops-edit" type="button">Edit</button><button class="sunriseMiniBtn ops-save" type="button" hidden>Save</button><button class="sunriseMiniBtn ops-cancel" type="button" hidden>Cancel</button></div></article></div></div></section>
+      </section>
+
+      <section class="routePage" data-page="sunrise-income" aria-label="Sunrise Income Page" hidden>
+        <section class="view"><div class="viewInner sunriseShell sunriseDetailShell"><div class="viewTop"><div class="kicker"><span class="dot"></span> Sunrise • Income</div><div class="viewActions" style="margin-top:0;"><button class="btn ghost" type="button" data-sunrise-logout>Log Out</button><a class="btn ghost" href="#sunrise" data-route="sunrise">Back</a></div></div><h2 class="viewTitle">Income Management</h2><div class="sunriseDetailGrid"><article class="sunriseDetailCard opsEditableBlock"><h3>Net Profit Trace</h3><p class="opsText">Income tracing, net profits, net YTD performance, receivables status, and forecast confidence levels.</p><textarea class="opsEditor" hidden></textarea><div class="sunriseModuleActions"><button class="sunriseMiniBtn ops-edit" type="button">Edit</button><button class="sunriseMiniBtn ops-save" type="button" hidden>Save</button><button class="sunriseMiniBtn ops-cancel" type="button" hidden>Cancel</button></div></article></div></div></section>
+      </section>
+
+      <section class="routePage" data-page="sunrise-surveys" aria-label="Sunrise Surveys Page" hidden>
+        <section class="view"><div class="viewInner sunriseShell sunriseDetailShell"><div class="viewTop"><div class="kicker"><span class="dot"></span> Sunrise • Surveys</div><div class="viewActions" style="margin-top:0;"><button class="btn ghost" type="button" data-sunrise-logout>Log Out</button><a class="btn ghost" href="#sunrise" data-route="sunrise">Back</a></div></div><h2 class="viewTitle">Customer Surveys</h2><div class="sunriseDetailGrid"><article class="sunriseDetailCard opsEditableBlock"><h3>Survey Intelligence</h3><p class="opsText">Surveys, reviews, FAQ responded, avg handling time, most asked question, and positive/negative discussion topics.</p><textarea class="opsEditor" hidden></textarea><div class="sunriseModuleActions"><button class="sunriseMiniBtn ops-edit" type="button">Edit</button><button class="sunriseMiniBtn ops-save" type="button" hidden>Save</button><button class="sunriseMiniBtn ops-cancel" type="button" hidden>Cancel</button></div></article><article class="sunriseDetailCard sunriseDetailWide"><h3>Respond to Client (Demo)</h3><form class="sunriseReplyForm sunriseClientReplyForm"><div class="field"><label>Client Email</label><input class="input sunrise-client-email" type="email" required /></div><div class="field"><label>Response Message</label><textarea class="input sunrise-client-reply" rows="3" required></textarea></div><div class="sunriseModuleActions"><button class="sunriseMiniBtn ops-save" type="submit">Send Response</button></div></form><p class="authInfo sunrise-reply-info"></p></article></div></div></section>
+      </section>
+
+      <section class="routePage" data-page="sunrise-events" aria-label="Sunrise Events Page" hidden>
+        <section class="view"><div class="viewInner sunriseShell sunriseDetailShell"><div class="viewTop"><div class="kicker"><span class="dot"></span> Sunrise • Events</div><div class="viewActions" style="margin-top:0;"><button class="btn ghost" type="button" data-sunrise-logout>Log Out</button><a class="btn ghost" href="#sunrise" data-route="sunrise">Back</a></div></div><h2 class="viewTitle">Events Planning</h2><div class="sunriseDetailGrid"><article class="sunriseDetailCard opsEditableBlock"><h3>Planning & Metrics</h3><p class="opsText">Upcoming events planning, detailed delivery metrics, past event performance, and team/client response logs.</p><textarea class="opsEditor" hidden></textarea><div class="sunriseModuleActions"><button class="sunriseMiniBtn ops-edit" type="button">Edit</button><button class="sunriseMiniBtn ops-save" type="button" hidden>Save</button><button class="sunriseMiniBtn ops-cancel" type="button" hidden>Cancel</button></div></article></div></div></section>
+      </section>
+
+      <section class="routePage" data-page="sunrise-performance" aria-label="Sunrise Performance Page" hidden>
+        <section class="view"><div class="viewInner sunriseShell sunriseDetailShell"><div class="viewTop"><div class="kicker"><span class="dot"></span> Sunrise • Overview</div><div class="viewActions" style="margin-top:0;"><button class="btn ghost" type="button" data-sunrise-logout>Log Out</button><a class="btn ghost" href="#sunrise" data-route="sunrise">Back</a></div></div><h2 class="viewTitle">VVS Performance Overview</h2><div class="sunriseDetailGrid"><article class="sunriseDetailCard opsEditableBlock"><h3>Overall Company Insight</h3><p class="opsText">Overall company performance with detailed operational, financial, sales, and service-execution insights.</p><textarea class="opsEditor" hidden></textarea><div class="sunriseModuleActions"><button class="sunriseMiniBtn ops-edit" type="button">Edit</button><button class="sunriseMiniBtn ops-save" type="button" hidden>Save</button><button class="sunriseMiniBtn ops-cancel" type="button" hidden>Cancel</button></div></article></div></div></section>
+      </section>
+      <section class="routePage" data-page="sunrise-dts" aria-label="Sunrise DTS Page" hidden>
+        <section class="view"><div class="viewInner sunriseShell sunriseDetailShell"><div class="viewTop"><div class="kicker"><span class="dot"></span> Sunrise • DTS</div><div class="viewActions" style="margin-top:0;"><button class="btn ghost" type="button" data-sunrise-logout>Log Out</button><a class="btn ghost" href="#sunrise" data-route="sunrise">Back</a></div></div><h2 class="viewTitle">Documents To Submit</h2><div class="sunriseDetailGrid" id="sunrise-dts-grid"></div></div></section>
+      </section>
+      <section class="routePage" data-page="sunrise-eam" aria-label="Sunrise EAM Page" hidden>
+        <section class="view"><div class="viewInner sunriseShell sunriseDetailShell"><div class="viewTop"><div class="kicker"><span class="dot"></span> Sunrise • EAM</div><div class="viewActions" style="margin-top:0;"><button class="btn ghost" type="button" data-sunrise-logout>Log Out</button><a class="btn ghost" href="#sunrise" data-route="sunrise">Back</a></div></div><h2 class="viewTitle">Expenses Adjusting Menu</h2><div class="sunriseDetailGrid" id="sunrise-eam-grid"></div></div></section>
+      </section>
+      <section class="routePage" data-page="sunrise-ifs" aria-label="Sunrise IFS Page" hidden>
+        <section class="view"><div class="viewInner sunriseShell sunriseDetailShell"><div class="viewTop"><div class="kicker"><span class="dot"></span> Sunrise • IFS</div><div class="viewActions" style="margin-top:0;"><button class="btn ghost" type="button" data-sunrise-logout>Log Out</button><a class="btn ghost" href="#sunrise" data-route="sunrise">Back</a></div></div><h2 class="viewTitle">Income Flow Spreader</h2><div class="sunriseDetailGrid" id="sunrise-ifs-grid"></div></div></section>
+      </section>
+      <section class="routePage" data-page="sunrise-ecs" aria-label="Sunrise ECS Page" hidden>
+        <section class="view"><div class="viewInner sunriseShell sunriseDetailShell"><div class="viewTop"><div class="kicker"><span class="dot"></span> Sunrise • ECS</div><div class="viewActions" style="margin-top:0;"><button class="btn ghost" type="button" data-sunrise-logout>Log Out</button><a class="btn ghost" href="#sunrise" data-route="sunrise">Back</a></div></div><h2 class="viewTitle">Employees Control System</h2><div class="sunriseDetailGrid" id="sunrise-ecs-grid"></div></div></section>
+      </section>
+      <section class="routePage" data-page="sunrise-smca" aria-label="Sunrise SMCA Page" hidden>
+        <section class="view"><div class="viewInner sunriseShell sunriseDetailShell"><div class="viewTop"><div class="kicker"><span class="dot"></span> Sunrise • SMCA</div><div class="viewActions" style="margin-top:0;"><button class="btn ghost" type="button" data-sunrise-logout>Log Out</button><a class="btn ghost" href="#sunrise" data-route="sunrise">Back</a></div></div><h2 class="viewTitle">Sales & Marketing Commissions Adjustments</h2><div class="sunriseDetailGrid" id="sunrise-smca-grid"></div></div></section>
+      </section>
+      <section class="routePage" data-page="sunrise-rim" aria-label="Sunrise RIM Page" hidden>
+        <section class="view"><div class="viewInner sunriseShell sunriseDetailShell"><div class="viewTop"><div class="kicker"><span class="dot"></span> Sunrise • RIM</div><div class="viewActions" style="margin-top:0;"><button class="btn ghost" type="button" data-sunrise-logout>Log Out</button><a class="btn ghost" href="#sunrise" data-route="sunrise">Back</a></div></div><h2 class="viewTitle">Red Inviting Menu</h2><div class="sunriseDetailGrid" id="sunrise-rim-grid"></div></div></section>
+      </section>
+      <section class="routePage" data-page="sunrise-soc" aria-label="Sunrise SOC Page" hidden>
+        <section class="view"><div class="viewInner sunriseShell sunriseDetailShell"><div class="viewTop"><div class="kicker"><span class="dot"></span> Sunrise • SOC</div><div class="viewActions" style="margin-top:0;"><button class="btn ghost" type="button" data-sunrise-logout>Log Out</button><a class="btn ghost" href="#sunrise" data-route="sunrise">Back</a></div></div><h2 class="viewTitle">Services & Operations Control</h2><div class="sunriseDetailGrid" id="sunrise-soc-grid"></div></div></section>
+      </section>
+      <section class="routePage" data-page="sunrise-soc-details" aria-label="Sunrise SOC Service Details Page" hidden>
+        <section class="view"><div class="viewInner sunriseShell sunriseDetailShell"><div class="viewTop"><div class="kicker"><span class="dot"></span> Sunrise • SOC Details</div><div class="viewActions" style="margin-top:0;"><button class="btn ghost" type="button" data-sunrise-logout>Log Out</button><a class="btn ghost" href="#sunrise-soc" data-route="sunrise-soc">Back to SOC</a></div></div><h2 class="viewTitle">Selected Service Details</h2><div class="sunriseDetailGrid" id="sunrise-soc-details-grid"></div></div></section>
+      </section>
+      <section class="routePage" data-page="sunrise-inbox" aria-label="Sunrise Inbox Page" hidden>
+        <section class="view"><div class="viewInner sunriseShell sunriseDetailShell"><div class="viewTop"><div class="kicker"><span class="dot"></span> Sunrise • Inbox</div><div class="viewActions" style="margin-top:0;"><button class="btn ghost" type="button" data-sunrise-logout>Log Out</button><a class="btn ghost" href="#sunrise" data-route="sunrise">Back</a></div></div><h2 class="viewTitle">Sunrise Inbox</h2><div id="sunrise-inbox-root"></div></div></section>
+      </section>
+      <section class="routePage" data-page="sunrise-lcs" aria-label="Sunrise LCS Page" hidden>
+        <section class="view"><div class="viewInner sunriseShell sunriseDetailShell"><div class="viewTop"><div class="kicker"><span class="dot"></span> Sunrise • LCS</div><div class="viewActions" style="margin-top:0;"><button class="btn ghost" type="button" data-sunrise-logout>Log Out</button><a class="btn ghost" href="#sunrise" data-route="sunrise">Back</a></div></div><h2 class="viewTitle">Notos - Login Control System</h2><div class="sunriseDetailGrid" id="sunrise-lcs-grid"></div></div></section>
+      </section>
+      <section class="routePage" data-page="shutdown-404" aria-label="Website Shutdown Page" hidden>
+        <section class="view"><div class="viewInner sunriseShell sunriseDetailShell"><div class="viewTop"><div class="kicker"><span class="dot"></span> System Status</div></div><h2 class="viewTitle">404 - VVS will be back as soon as possible</h2><p class="viewSub">VVS web system is currently frozen by command. Access will be restored when the owner executes the restore command.</p></div></section>
+      </section>
+    </main>
+
+    <div class="sunriseShortcutDock" id="sunrise-shortcut-dock" hidden>
+      <form class="sunriseShortcutDockForm sunriseShortcutForm" id="sunrise-shortcut-dock-form" data-info-target="sunrise-shortcut-dock-info" autocomplete="off">
+        <label for="sunrise-shortcut-dock-input">Enter selection:</label>
+        <input class="input sunriseShortcutInput" id="sunrise-shortcut-dock-input" type="text" placeholder="ex: rev1, sls1, mkt1..." />
+        <button class="btn ghost sunriseShortcutBtn" type="submit">Open</button>
+      </form>
+      <p class="authInfo sunriseDockInfo" id="sunrise-shortcut-dock-info"></p>
+    </div>
+
+    <div class="contactOverlay" id="contact-overlay" hidden>
+      <div class="contactWindow">
+        <div class="hatMark" aria-hidden="true">
+          <svg viewBox="0 0 220 120" xmlns="http://www.w3.org/2000/svg">
+            <path d="M48 76h124v10H48z" class="markStroke"/>
+            <path d="M74 38h72v38H74z" class="markStroke"/>
+          </svg>
+        </div>
+        <p class="successMsg" id="contact-success-message"></p>
+        <div class="elegantLine" aria-hidden="true"></div>
+        <div class="viewActions" style="justify-content:center; margin-top:10px;">
+          <button class="btn ghost" type="button" id="contact-overlay-close">Close</button>
+        </div>
+      </div>
+    </div>
+
+    <div class="contactOverlay" id="sunrise-email-overlay" hidden>
+      <div class="contactWindow sunriseMailWindow">
+        <div class="kicker"><span class="dot" aria-hidden="true"></span> VVS Mail Dashboard</div>
+        <h3 class="mailTitle">Compose Email</h3>
+        <div class="mailFormGrid">
+          <label class="mailLabel" for="sunrise-mail-to">To</label>
+          <input class="input" id="sunrise-mail-to" type="email" placeholder="employee@venture-voyagers.com" />
+          <label class="mailLabel" for="sunrise-mail-subject">Subject</label>
+          <input class="input" id="sunrise-mail-subject" type="text" placeholder="VVS Operations Notice" />
+          <label class="mailLabel" for="sunrise-mail-body">Message</label>
+          <textarea class="input mailTextarea" id="sunrise-mail-body" placeholder="Write your message..."></textarea>
+        </div>
+        <p class="authInfo" id="sunrise-mail-info"></p>
+        <div class="viewActions" style="justify-content:center; margin-top:10px;">
+          <button class="btn primary" type="button" data-sunrise-mail-send>Send</button>
+          <button class="btn ghost" type="button" data-sunrise-mail-close>Cancel</button>
+        </div>
+      </div>
+    </div>
+    <div class="contactOverlay" id="notos-path-overlay" hidden>
+      <div class="contactWindow sunriseMailWindow">
+        <div class="kicker"><span class="dot" aria-hidden="true"></span> Notos Path Detail</div>
+        <h3 class="mailTitle" id="notos-path-title">Session Path</h3>
+        <div class="mailFormGrid" id="notos-path-body"></div>
+        <p class="authInfo" id="notos-path-info"></p>
+        <div class="viewActions" style="justify-content:center; margin-top:10px;">
+          <button class="btn ghost" type="button" id="notos-path-close">Close</button>
+        </div>
+      </div>
+    </div>
+
+    <footer>
+      <div>&copy; <span id="year"></span> <span class="tiny">Venture Voyager Services</span></div>
+      <div class="tiny" style="color:rgba(242,239,231,.45)">Discreet • Precise • Global</div>
+    </footer>
+  </div>
+
+  <script src="script.js?v=20260221-69"></script>
+</body>
+</html>
