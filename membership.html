@@ -1,0 +1,87 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Venture Voyager Services - Membership</title>
+  <meta name="description" content="VVS Voyager Membership Tiers and achievement system." />
+  <link rel="stylesheet" href="styles.css" />
+</head>
+<body>
+  <div class="wrap">
+    <header>
+      <div class="nav">
+        <a class="brand" href="index.html" aria-label="Venture Voyager Services">
+          <span class="mark" aria-hidden="true">VVS</span>
+          <span>Venture Voyager Services</span>
+        </a>
+        <nav class="navlinks" aria-label="Primary">
+          <a href="index.html">Home</a>
+          <a href="services.html">Services</a>
+          <a class="active" href="membership.html">Membership</a>
+          <a href="index.html#contact">Contact</a>
+        </nav>
+        <div class="cta">
+          <a class="btn" href="services.html">Request Access</a>
+          <a class="btn ghost" href="membership.html">Membership</a>
+          <a class="btn primary" href="services.html">View Services</a>
+        </div>
+      </div>
+    </header>
+
+    <main>
+      <section class="view" aria-label="Membership View">
+        <div class="viewInner">
+          <div class="viewTop">
+            <div class="kicker"><span class="dot" aria-hidden="true"></span> Membership</div>
+            <a class="btn ghost" href="index.html" aria-label="Back to Home">Back</a>
+          </div>
+
+          <h2 class="viewTitle">Voyager Membership Tiers</h2>
+          <p class="viewSub">A progression system built for long-term clients. Select a tier card to review qualification requirements, duration, and benefit profile.</p>
+          <p class="serviceLead">All Voyager tiers include 24/7 assistance and delivery of a private member card. Voyager Cuprum through Voyager Noir are valid for one year; Voyager Red is lifetime by executive invitation only.</p>
+
+          <div class="membershipGrid">
+            <div class="tierList" role="tablist" aria-label="Membership Tiers">
+              <button class="tierOption tier-cu isActive" type="button" data-tier="cuprum" role="tab" aria-selected="true"><span class="tierMini"><span class="tierMiniLabel">Voyager Tier</span><span class="tierMiniName">Voyager Cuprum</span></span><span class="tierHint">Entry milestone with foundational loyalty benefits.</span></button>
+              <button class="tierOption tier-ar" type="button" data-tier="argentum" role="tab" aria-selected="false"><span class="tierMini"><span class="tierMiniLabel">Voyager Tier</span><span class="tierMiniName">Voyager Argentum</span></span><span class="tierHint">Expanded value with priority airport support.</span></button>
+              <button class="tierOption tier-au" type="button" data-tier="aurum" role="tab" aria-selected="false"><span class="tierMini"><span class="tierMiniLabel">Voyager Tier</span><span class="tierMiniName">Voyager Aurum</span></span><span class="tierHint">Higher discount tier with business-level airport comfort.</span></button>
+              <button class="tierOption tier-pt" type="button" data-tier="platinum" role="tab" aria-selected="false"><span class="tierMini"><span class="tierMiniLabel">Voyager Tier</span><span class="tierMiniName">Voyager Platinum</span></span><span class="tierHint">Strategic travel privileges with premium transfers and stays.</span></button>
+              <button class="tierOption tier-di" type="button" data-tier="diamante" role="tab" aria-selected="false"><span class="tierMini"><span class="tierMiniLabel">Voyager Tier</span><span class="tierMiniName">Voyager Diamante</span></span><span class="tierHint">High-privilege tier with advanced protection and special requests.</span></button>
+              <button class="tierOption tier-no" type="button" data-tier="noir" role="tab" aria-selected="false"><span class="tierMini"><span class="tierMiniLabel">Voyager Tier</span><span class="tierMiniName">Voyager Noir</span></span><span class="tierHint">Elite ongoing tier with maximum operational flexibility.</span></button>
+              <button class="tierOption tier-re" type="button" data-tier="red" role="tab" aria-selected="false"><span class="tierMini"><span class="tierMiniLabel">Voyager Tier</span><span class="tierMiniName">Voyager Red</span></span><span class="tierHint">Executive invitation tier with lifetime and ambassador privileges.</span></button>
+            </div>
+
+            <aside class="tierDetail" role="tabpanel" aria-live="polite">
+              <div class="tierDetailTop">
+                <h3 class="tierName" id="tier-name">Voyager Cuprum</h3>
+                <span class="tierValidity" id="tier-validity">Validity: 1 Year</span>
+              </div>
+              <div class="tierBlock">
+                <p class="tierBlockTitle">Achievement Path</p>
+                <p class="tierParagraph" id="tier-achievement"></p>
+              </div>
+              <div class="tierBlock">
+                <p class="tierBlockTitle">Included Benefits</p>
+                <ul class="tierBenefits" id="tier-benefits"></ul>
+              </div>
+            </aside>
+          </div>
+
+          <div class="viewActions">
+            <a class="btn primary" href="mailto:hello@venturevoyager.services?subject=Membership%20Application">Apply for Membership</a>
+            <a class="btn" href="services.html">View Services</a>
+          </div>
+        </div>
+      </section>
+    </main>
+
+    <footer>
+      <div>&copy; <span id="year"></span> <span class="tiny">Venture Voyager Services</span></div>
+      <div class="tiny" style="color:rgba(242,239,231,.45)">Discreet • Precise • Global</div>
+    </footer>
+  </div>
+
+  <script src="script.js"></script>
+</body>
+</html>
