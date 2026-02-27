@@ -2083,9 +2083,15 @@ input[type="file"]::-webkit-file-upload-button{
   gap:8px;
   font-size:13px;
   color: rgba(242,239,231,.82);
+  cursor:pointer;
+  user-select:none;
 }
 
-.choice input{accent-color: var(--gold);}
+.choice input{
+  accent-color: var(--gold);
+  pointer-events:auto;
+  cursor:pointer;
+}
 
 .warningNote{
   margin-top:10px;

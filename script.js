@@ -3593,7 +3593,9 @@ function renderTier(tierKey) {
 }
 
 document.addEventListener("click", (e) => {
-  const instagramLink = e.target.closest("[data-instagram-link]");
+  const clickTarget = e.target instanceof Element ? e.target : null;
+  if (!clickTarget) return;
+  const instagramLink = clickTarget.closest("[data-instagram-link]");
   if (instagramLink) {
     e.preventDefault();
     const url = String(instagramLink.getAttribute("href") || "https://www.instagram.com/venturevs/").trim();
@@ -3604,34 +3606,34 @@ document.addEventListener("click", (e) => {
     }
     return;
   }
-  const serviceRequestLink = e.target.closest("[data-service-request]");
+  const serviceRequestLink = clickTarget.closest("[data-service-request]");
   if (serviceRequestLink) {
     e.preventDefault();
     const serviceKey = String(serviceRequestLink.getAttribute("data-service-request") || "").trim();
     goToContactForService(serviceKey);
     return;
   }
-  const profileServiceBtn = e.target.closest("#profile-submit-service-btn, #profile-submit-service-top");
+  const profileServiceBtn = clickTarget.closest("#profile-submit-service-btn, #profile-submit-service-top");
   if (profileServiceBtn) {
     e.preventDefault();
     showRoute("contact");
     return;
   }
-  const conciergePick = e.target.closest("[data-concierge-pick]");
+  const conciergePick = clickTarget.closest("[data-concierge-pick]");
   if (conciergePick) {
     e.preventDefault();
     pendingPreferredConcierge = String(conciergePick.getAttribute("data-concierge-pick") || "").trim();
     showRoute("contact");
     return;
   }
-  const routeLink = e.target.closest("[data-route]");
+  const routeLink = clickTarget.closest("[data-route]");
   if (routeLink) {
     e.preventDefault();
     showRoute(routeLink.getAttribute("data-route"));
     return;
   }
 
-  const tierButton = e.target.closest("[data-tier]");
+  const tierButton = clickTarget.closest("[data-tier]");
   if (!tierButton) return;
 
   const key = tierButton.getAttribute("data-tier");
@@ -4114,7 +4116,7 @@ if (contactForm) {
     event.preventDefault();
     if (contactError) contactError.textContent = "";
 
-    const methods = Array.from(document.querySelectorAll('input[name="contactMethod"]:checked'))
+    const methods = Array.from(contactForm.querySelectorAll('input[name="contactMethod"]:checked'))
       .map((node) => node.value);
 
     if (methods.length === 0) {
@@ -7205,19 +7207,22 @@ function bindSunriseControlInteractions() {
   };
 
   document.addEventListener("click", (event) => {
-    const saveBtn = event.target.closest("[data-sunrise-save-changes]");
+    const clickTarget = event.target instanceof Element ? event.target : null;
+    if (!clickTarget) return;
+
+    const saveBtn = clickTarget.closest("[data-sunrise-save-changes]");
     if (saveBtn) {
       commitSunriseChanges();
       return;
     }
 
-    const deleteClick = event.target.closest("[data-amp-del],[data-alp-del],[data-code-del],[data-dts-del],[data-money-del],[data-ecs-del],[data-rim-del],[data-smca-del],[data-soc-delete],[data-soc-restore],[data-lcs-del]");
+    const deleteClick = clickTarget.closest("[data-amp-del],[data-alp-del],[data-code-del],[data-dts-del],[data-money-del],[data-ecs-del],[data-rim-del],[data-smca-del],[data-soc-delete],[data-soc-restore],[data-lcs-del]");
     if (deleteClick) {
       event.preventDefault();
       event.stopPropagation();
     }
 
-    const actionBtn = event.target.closest("[data-shortcut-action]");
+    const actionBtn = clickTarget.closest("[data-shortcut-action]");
     if (actionBtn) {
       const action = String(actionBtn.getAttribute("data-shortcut-action") || "").toLowerCase();
       if (action === "ws") {
@@ -7230,7 +7235,7 @@ function bindSunriseControlInteractions() {
       return;
     }
 
-    const moneyAdd = event.target.closest("[data-money-add]");
+    const moneyAdd = clickTarget.closest("[data-money-add]");
     if (moneyAdd && sunriseControlState) {
       const key = String(moneyAdd.getAttribute("data-money-add") || "");
       const list = sunriseControlState[key];
@@ -7242,7 +7247,7 @@ function bindSunriseControlInteractions() {
       return;
     }
 
-    const moneyDel = event.target.closest("[data-money-del]");
+    const moneyDel = clickTarget.closest("[data-money-del]");
     if (moneyDel && sunriseControlState) {
       const { key, idx } = parseKey(moneyDel.getAttribute("data-money-del"));
       const list = sunriseControlState[key];
@@ -7252,7 +7257,7 @@ function bindSunriseControlInteractions() {
       return;
     }
 
-    const dtsDel = event.target.closest("[data-dts-del]");
+    const dtsDel = clickTarget.closest("[data-dts-del]");
     if (dtsDel && sunriseControlState) {
       sunriseControlState.dtsDocs.splice(Number(dtsDel.getAttribute("data-dts-del")), 1);
       saveSunriseControlState();
@@ -7260,7 +7265,7 @@ function bindSunriseControlInteractions() {
       return;
     }
 
-    const dtsCmd = event.target.closest("[data-dts-editor-cmd]");
+    const dtsCmd = clickTarget.closest("[data-dts-editor-cmd]");
     if (dtsCmd) {
       const cmd = String(dtsCmd.getAttribute("data-dts-editor-cmd") || "");
       const editor = document.getElementById("dts-editor");
@@ -7269,7 +7274,7 @@ function bindSunriseControlInteractions() {
       return;
     }
 
-    const dtsStyle = event.target.closest("[data-dts-editor-style]");
+    const dtsStyle = clickTarget.closest("[data-dts-editor-style]");
     if (dtsStyle) {
       const style = String(dtsStyle.getAttribute("data-dts-editor-style") || "body");
       const editor = document.getElementById("dts-editor");
@@ -7281,7 +7286,7 @@ function bindSunriseControlInteractions() {
       return;
     }
 
-    const dtsSave = event.target.closest("[data-dts-editor-save]");
+    const dtsSave = clickTarget.closest("[data-dts-editor-save]");
     if (dtsSave && sunriseControlState) {
       const editor = document.getElementById("dts-editor");
       const text = String(editor?.innerHTML || "").trim();
@@ -7292,7 +7297,7 @@ function bindSunriseControlInteractions() {
       return;
     }
 
-    const dtsSignClear = event.target.closest("[data-dts-sign-clear]");
+    const dtsSignClear = clickTarget.closest("[data-dts-sign-clear]");
     if (dtsSignClear) {
       const canvas = document.getElementById("dts-signature-pad");
       if (canvas instanceof HTMLCanvasElement) {
@@ -7302,7 +7307,7 @@ function bindSunriseControlInteractions() {
       return;
     }
 
-    const ecsAdd = event.target.closest("[data-ecs-add]");
+    const ecsAdd = clickTarget.closest("[data-ecs-add]");
     if (ecsAdd && sunriseControlState) {
       sunriseControlState.ecsEmployees.push({ id: `EMP-${Math.floor(Math.random() * 900 + 100)}`, name: "New Employee", role: "Concierge", position: "Concierge Associate", salary: 0, hours: 0, bonus: 0, commission: 0, status: "Active", email: "", login: "", permission: "Tier-1" });
       saveSunriseControlState();
@@ -7310,7 +7315,7 @@ function bindSunriseControlInteractions() {
       return;
     }
 
-    const ecsDel = event.target.closest("[data-ecs-del]");
+    const ecsDel = clickTarget.closest("[data-ecs-del]");
     if (ecsDel && sunriseControlState) {
       sunriseControlState.ecsEmployees.splice(Number(ecsDel.getAttribute("data-ecs-del")), 1);
       saveSunriseControlState();
@@ -7318,7 +7323,7 @@ function bindSunriseControlInteractions() {
       return;
     }
 
-    const ecsMail = event.target.closest("[data-ecs-mail]");
+    const ecsMail = clickTarget.closest("[data-ecs-mail]");
     if (ecsMail && sunriseControlState) {
       const idx = Number(ecsMail.getAttribute("data-ecs-mail"));
       const user = sunriseControlState.ecsEmployees[idx];
@@ -7326,13 +7331,13 @@ function bindSunriseControlInteractions() {
       return;
     }
 
-    const sunriseMailBack = event.target.closest("[data-sunrise-mail-back]");
+    const sunriseMailBack = clickTarget.closest("[data-sunrise-mail-back]");
     if (sunriseMailBack) {
       closeSunriseEmailComposer();
       return;
     }
 
-    const sunriseMailClose = event.target.closest("[data-sunrise-mail-close]");
+    const sunriseMailClose = clickTarget.closest("[data-sunrise-mail-close]");
     if (sunriseMailClose) {
       resetSunriseEmailComposer();
       if (sunriseMailInfo) sunriseMailInfo.textContent = "Composition canceled.";
@@ -7340,7 +7345,7 @@ function bindSunriseControlInteractions() {
       return;
     }
 
-    const sunriseMailSend = event.target.closest("[data-sunrise-mail-send]");
+    const sunriseMailSend = clickTarget.closest("[data-sunrise-mail-send]");
     if (sunriseMailSend) {
       const to = String(sunriseMailTo?.value || "").trim();
       const cc = String(sunriseMailCc?.value || "").trim();
@@ -7379,7 +7384,7 @@ function bindSunriseControlInteractions() {
       return;
     }
 
-    const sunriseMailDraft = event.target.closest("[data-sunrise-mail-draft]");
+    const sunriseMailDraft = clickTarget.closest("[data-sunrise-mail-draft]");
     if (sunriseMailDraft) {
       const to = String(sunriseMailTo?.value || "").trim();
       const cc = String(sunriseMailCc?.value || "").trim();
@@ -7420,7 +7425,7 @@ function bindSunriseControlInteractions() {
       return;
     }
 
-    const sunriseMailStyle = event.target.closest("[data-sunrise-mail-style]");
+    const sunriseMailStyle = clickTarget.closest("[data-sunrise-mail-style]");
     if (sunriseMailStyle && sunriseMailBody) {
       const style = String(sunriseMailStyle.getAttribute("data-sunrise-mail-style") || "body");
       if (style === "title") sunriseMailBody.style.fontWeight = "700";
@@ -7429,7 +7434,7 @@ function bindSunriseControlInteractions() {
       return;
     }
 
-    const sunriseMailCmd = event.target.closest("[data-sunrise-mail-cmd]");
+    const sunriseMailCmd = clickTarget.closest("[data-sunrise-mail-cmd]");
     if (sunriseMailCmd && sunriseMailBody) {
       const cmd = String(sunriseMailCmd.getAttribute("data-sunrise-mail-cmd") || "");
       if (cmd === "bold") sunriseMailBody.style.fontWeight = sunriseMailBody.style.fontWeight === "700" ? "400" : "700";
@@ -7438,7 +7443,7 @@ function bindSunriseControlInteractions() {
       return;
     }
 
-    const rimAdd = event.target.closest("[data-rim-add]");
+    const rimAdd = clickTarget.closest("[data-rim-add]");
     if (rimAdd && sunriseControlState) {
       sunriseControlState.rimInvites.push({ id: `RIM-${Math.floor(Math.random() * 900 + 100)}`, name: "New Invite", email: "", country: "", team: "", status: "Draft" });
       saveSunriseControlState();
@@ -7446,7 +7451,7 @@ function bindSunriseControlInteractions() {
       return;
     }
 
-    const rimDel = event.target.closest("[data-rim-del]");
+    const rimDel = clickTarget.closest("[data-rim-del]");
     if (rimDel && sunriseControlState) {
       sunriseControlState.rimInvites.splice(Number(rimDel.getAttribute("data-rim-del")), 1);
       saveSunriseControlState();
@@ -7454,7 +7459,7 @@ function bindSunriseControlInteractions() {
       return;
     }
 
-    const smcaAdd = event.target.closest("[data-smca-add]");
+    const smcaAdd = clickTarget.closest("[data-smca-add]");
     if (smcaAdd && sunriseControlState) {
       sunriseControlState.smca.push({
         id: `SM-${Math.floor(Math.random() * 900 + 100)}`,
@@ -7468,7 +7473,7 @@ function bindSunriseControlInteractions() {
       return;
     }
 
-    const smcaDel = event.target.closest("[data-smca-del]");
+    const smcaDel = clickTarget.closest("[data-smca-del]");
     if (smcaDel && sunriseControlState) {
       sunriseControlState.smca.splice(Number(smcaDel.getAttribute("data-smca-del")), 1);
       saveSunriseControlState();
@@ -7476,7 +7481,7 @@ function bindSunriseControlInteractions() {
       return;
     }
 
-    const addService = event.target.closest("#soc-add-service");
+    const addService = clickTarget.closest("#soc-add-service");
     if (addService && sunriseControlState) {
       const title = (document.getElementById("soc-new-title")?.value || "").trim();
       const client = (document.getElementById("soc-new-client")?.value || "").trim();
@@ -7503,7 +7508,7 @@ function bindSunriseControlInteractions() {
       return;
     }
 
-    const socDelete = event.target.closest("[data-soc-delete]");
+    const socDelete = clickTarget.closest("[data-soc-delete]");
     if (socDelete && sunriseControlState) {
       const { key, idx } = parseKey(socDelete.getAttribute("data-soc-delete"));
       const list = sunriseControlState.socServices[key] || [];
@@ -7514,7 +7519,7 @@ function bindSunriseControlInteractions() {
       return;
     }
 
-    const socRestore = event.target.closest("[data-soc-restore]");
+    const socRestore = clickTarget.closest("[data-soc-restore]");
     if (socRestore && sunriseControlState) {
       const idx = Number(socRestore.getAttribute("data-soc-restore"));
       const [restored] = sunriseControlState.socServices.deleted.splice(idx, 1);
@@ -7524,7 +7529,7 @@ function bindSunriseControlInteractions() {
       return;
     }
 
-    const socOpen = event.target.closest("[data-soc-open]");
+    const socOpen = clickTarget.closest("[data-soc-open]");
     if (socOpen && sunriseControlState) {
       sunriseControlState.socSelectedServiceId = String(socOpen.getAttribute("data-soc-open") || "").toUpperCase();
       saveSunriseControlState();
@@ -7533,7 +7538,7 @@ function bindSunriseControlInteractions() {
       return;
     }
 
-    const socdAddStep = event.target.closest("[data-socd-add-step]");
+    const socdAddStep = clickTarget.closest("[data-socd-add-step]");
     if (socdAddStep && sunriseControlState) {
       const meta = findServiceMetaById(sunriseControlState.socSelectedServiceId);
       if (!meta) return;
@@ -7551,7 +7556,7 @@ function bindSunriseControlInteractions() {
       return;
     }
 
-    const socdDelStep = event.target.closest("[data-socd-del]");
+    const socdDelStep = clickTarget.closest("[data-socd-del]");
     if (socdDelStep && sunriseControlState) {
       const meta = findServiceMetaById(sunriseControlState.socSelectedServiceId);
       if (!meta) return;
@@ -7568,7 +7573,7 @@ function bindSunriseControlInteractions() {
       return;
     }
 
-    const inboxFolderBtn = event.target.closest("[data-inbox-folder]");
+    const inboxFolderBtn = clickTarget.closest("[data-inbox-folder]");
     if (inboxFolderBtn && sunriseControlState) {
       const nextFolder = String(inboxFolderBtn.getAttribute("data-inbox-folder") || "inbox");
       const applyFolderChange = () => {
@@ -7598,7 +7603,7 @@ function bindSunriseControlInteractions() {
       return;
     }
 
-    const inboxFolderAdd = event.target.closest("[data-inbox-folder-add]");
+    const inboxFolderAdd = clickTarget.closest("[data-inbox-folder-add]");
     if (inboxFolderAdd && sunriseControlState) {
       const inbox = sunriseControlState.inbox || {};
       const input = document.getElementById("inbox-new-folder");
@@ -7613,7 +7618,7 @@ function bindSunriseControlInteractions() {
       return;
     }
 
-    const inboxSignatureAdd = event.target.closest("[data-inbox-signature-add]");
+    const inboxSignatureAdd = clickTarget.closest("[data-inbox-signature-add]");
     if (inboxSignatureAdd && sunriseControlState) {
       const inbox = sunriseControlState.inbox || {};
       const input = document.getElementById("inbox-new-signature-name");
@@ -7630,7 +7635,7 @@ function bindSunriseControlInteractions() {
       return;
     }
 
-    const inboxSignatureDel = event.target.closest("[data-inbox-signature-del]");
+    const inboxSignatureDel = clickTarget.closest("[data-inbox-signature-del]");
     if (inboxSignatureDel && sunriseControlState) {
       const inbox = sunriseControlState.inbox || {};
       const idx = Number(inboxSignatureDel.getAttribute("data-inbox-signature-del"));
@@ -7647,7 +7652,7 @@ function bindSunriseControlInteractions() {
       return;
     }
 
-    const inboxSignatureManagerOpen = event.target.closest("[data-inbox-signature-manager-open]");
+    const inboxSignatureManagerOpen = clickTarget.closest("[data-inbox-signature-manager-open]");
     if (inboxSignatureManagerOpen) {
       renderSignatureManager();
       if (signatureOverlay) signatureOverlay.hidden = false;
@@ -7655,7 +7660,7 @@ function bindSunriseControlInteractions() {
       return;
     }
 
-    const inboxComposeNew = event.target.closest("[data-inbox-new-compose]");
+    const inboxComposeNew = clickTarget.closest("[data-inbox-new-compose]");
     if (inboxComposeNew && sunriseControlState) {
       if (sunriseMailTo) sunriseMailTo.value = "";
       if (sunriseMailCc) sunriseMailCc.value = "";
@@ -7672,7 +7677,7 @@ function bindSunriseControlInteractions() {
       return;
     }
 
-    const inboxMiniToggle = event.target.closest("[data-inbox-toggle-mini]");
+    const inboxMiniToggle = clickTarget.closest("[data-inbox-toggle-mini]");
     if (inboxMiniToggle) {
       const panel = String(inboxMiniToggle.getAttribute("data-inbox-toggle-mini") || "");
       document.querySelectorAll(".sunriseInboxMiniPanel").forEach((node) => {
@@ -7681,7 +7686,7 @@ function bindSunriseControlInteractions() {
       return;
     }
 
-    const inboxOpen = event.target.closest("[data-inbox-open]");
+    const inboxOpen = clickTarget.closest("[data-inbox-open]");
     if (inboxOpen && sunriseControlState) {
       const id = String(inboxOpen.getAttribute("data-inbox-open") || "");
       const inbox = sunriseControlState.inbox || {};
@@ -7694,7 +7699,7 @@ function bindSunriseControlInteractions() {
       return;
     }
 
-    const inboxArchive = event.target.closest("[data-inbox-archive]");
+    const inboxArchive = clickTarget.closest("[data-inbox-archive]");
     if (inboxArchive && sunriseControlState) {
       const inbox = sunriseControlState.inbox || {};
       const id = String(inboxArchive.getAttribute("data-inbox-archive") || "");
@@ -7710,7 +7715,7 @@ function bindSunriseControlInteractions() {
       return;
     }
 
-    const inboxMove = event.target.closest("[data-inbox-move]");
+    const inboxMove = clickTarget.closest("[data-inbox-move]");
     if (inboxMove && sunriseControlState) {
       const inbox = sunriseControlState.inbox || {};
       const id = String(inboxMove.getAttribute("data-inbox-move") || "");
@@ -7728,7 +7733,7 @@ function bindSunriseControlInteractions() {
       return;
     }
 
-    const inboxDelete = event.target.closest("[data-inbox-delete]");
+    const inboxDelete = clickTarget.closest("[data-inbox-delete]");
     if (inboxDelete && sunriseControlState) {
       const inbox = sunriseControlState.inbox || {};
       const id = String(inboxDelete.getAttribute("data-inbox-delete") || "");
@@ -7744,7 +7749,7 @@ function bindSunriseControlInteractions() {
       return;
     }
 
-    const inboxClearTrash = event.target.closest("[data-inbox-clear-trash]");
+    const inboxClearTrash = clickTarget.closest("[data-inbox-clear-trash]");
     if (inboxClearTrash && sunriseControlState) {
       const inbox = sunriseControlState.inbox || {};
       const allMessages = Array.isArray(inbox.messages) ? inbox.messages : [];
@@ -7762,7 +7767,7 @@ function bindSunriseControlInteractions() {
       return;
     }
 
-    const inboxEditorCmd = event.target.closest("[data-inbox-editor-cmd]");
+    const inboxEditorCmd = clickTarget.closest("[data-inbox-editor-cmd]");
     if (inboxEditorCmd) {
       const cmd = String(inboxEditorCmd.getAttribute("data-inbox-editor-cmd") || "");
       const editor = document.getElementById("inbox-editor");
@@ -7771,7 +7776,7 @@ function bindSunriseControlInteractions() {
       return;
     }
 
-    const inboxStylePreset = event.target.closest("[data-inbox-style-preset]");
+    const inboxStylePreset = clickTarget.closest("[data-inbox-style-preset]");
     if (inboxStylePreset) {
       const preset = String(inboxStylePreset.getAttribute("data-inbox-style-preset") || "body");
       const editor = document.getElementById("inbox-editor");
@@ -7789,7 +7794,7 @@ function bindSunriseControlInteractions() {
       return;
     }
 
-    const inboxApplySignature = event.target.closest("[data-inbox-apply-signature]");
+    const inboxApplySignature = clickTarget.closest("[data-inbox-apply-signature]");
     if (inboxApplySignature && sunriseControlState) {
       const inbox = sunriseControlState.inbox || {};
       const sigId = String(document.getElementById("inbox-signature-select")?.value || "");
@@ -7805,7 +7810,7 @@ function bindSunriseControlInteractions() {
       return;
     }
 
-    const inboxSend = event.target.closest("[data-inbox-send]");
+    const inboxSend = clickTarget.closest("[data-inbox-send]");
     if (inboxSend && sunriseControlState) {
       const inbox = sunriseControlState.inbox || {};
       const to = String(document.getElementById("inbox-to")?.value || "").trim();
@@ -7864,7 +7869,7 @@ function bindSunriseControlInteractions() {
       return;
     }
 
-    const lcsAdd = event.target.closest("[data-lcs-add]");
+    const lcsAdd = clickTarget.closest("[data-lcs-add]");
     if (lcsAdd && sunriseControlState) {
       sunriseControlState.lcsSessions.push({ id: generateGenericNotosSessionId(), code: "OPS1", employee: "New User", loginAt: "", logoutAt: "", loginTs: 0, logoutTs: 0, session: "00hr:00min:00sec", path: "", pathTimeline: [], permission: "Tier-1" });
       saveSunriseControlState();
@@ -7872,14 +7877,14 @@ function bindSunriseControlInteractions() {
       return;
     }
 
-    const lcsSearch = event.target.closest("[data-lcs-search]");
+    const lcsSearch = clickTarget.closest("[data-lcs-search]");
     if (lcsSearch) {
       const query = String(document.getElementById("lcs-search")?.value || "").trim();
       renderLCSPage(query);
       return;
     }
 
-    const lcsPathOpen = event.target.closest("[data-lcs-path-open]");
+    const lcsPathOpen = clickTarget.closest("[data-lcs-path-open]");
     if (lcsPathOpen && sunriseControlState) {
       const idx = Number(lcsPathOpen.getAttribute("data-lcs-path-open"));
       const row = sunriseControlState.lcsSessions[idx];
@@ -7898,7 +7903,7 @@ function bindSunriseControlInteractions() {
       return;
     }
 
-    const lcsDel = event.target.closest("[data-lcs-del]");
+    const lcsDel = clickTarget.closest("[data-lcs-del]");
     if (lcsDel && sunriseControlState) {
       sunriseControlState.lcsSessions.splice(Number(lcsDel.getAttribute("data-lcs-del")), 1);
       saveSunriseControlState();
@@ -7906,14 +7911,14 @@ function bindSunriseControlInteractions() {
       return;
     }
 
-    const ampSearchBtn = event.target.closest("[data-amp-search]");
+    const ampSearchBtn = clickTarget.closest("[data-amp-search]");
     if (ampSearchBtn) {
       const query = String(document.getElementById("amp-search")?.value || "").trim();
       renderAMPPage(query);
       return;
     }
 
-    const ampSectionBtn = event.target.closest("[data-amp-section]");
+    const ampSectionBtn = clickTarget.closest("[data-amp-section]");
     if (ampSectionBtn) {
       sunriseAdminViewState.ampSection = normalizeAdminSection(ampSectionBtn.getAttribute("data-amp-section"));
       const query = String(document.getElementById("amp-search")?.value || "").trim();
@@ -7921,7 +7926,7 @@ function bindSunriseControlInteractions() {
       return;
     }
 
-    const ampAdd = event.target.closest("[data-amp-add]");
+    const ampAdd = clickTarget.closest("[data-amp-add]");
     if (ampAdd) {
       const section = normalizeAdminSection(sunriseAdminViewState.ampSection);
       let seed = Date.now();
@@ -7955,7 +7960,7 @@ function bindSunriseControlInteractions() {
       return;
     }
 
-    const ampDel = event.target.closest("[data-amp-del]");
+    const ampDel = clickTarget.closest("[data-amp-del]");
     if (ampDel) {
       const targetKey = String(ampDel.getAttribute("data-amp-del") || "");
       if (isAleksAmpRestrictedKey(targetKey)) {
@@ -7969,7 +7974,7 @@ function bindSunriseControlInteractions() {
       return;
     }
 
-    const ampRestore = event.target.closest("[data-amp-restore]");
+    const ampRestore = clickTarget.closest("[data-amp-restore]");
     if (ampRestore && sunriseControlState) {
       ensureAmpDeletedAccountsStore();
       const idx = Number(ampRestore.getAttribute("data-amp-restore"));
@@ -7991,7 +7996,7 @@ function bindSunriseControlInteractions() {
       return;
     }
 
-    const ampPurge = event.target.closest("[data-amp-purge]");
+    const ampPurge = clickTarget.closest("[data-amp-purge]");
     if (ampPurge && sunriseControlState) {
       ensureAmpDeletedAccountsStore();
       const idx = Number(ampPurge.getAttribute("data-amp-purge"));
@@ -8008,14 +8013,14 @@ function bindSunriseControlInteractions() {
       return;
     }
 
-    const alpSearchBtn = event.target.closest("[data-alp-search]");
+    const alpSearchBtn = clickTarget.closest("[data-alp-search]");
     if (alpSearchBtn) {
       const query = String(document.getElementById("alp-search")?.value || "").trim();
       renderALPPage(query);
       return;
     }
 
-    const alpSectionBtn = event.target.closest("[data-alp-section]");
+    const alpSectionBtn = clickTarget.closest("[data-alp-section]");
     if (alpSectionBtn) {
       sunriseAdminViewState.alpSection = normalizeAdminSection(alpSectionBtn.getAttribute("data-alp-section"));
       const query = String(document.getElementById("alp-search")?.value || "").trim();
@@ -8023,7 +8028,7 @@ function bindSunriseControlInteractions() {
       return;
     }
 
-    const alpAdd = event.target.closest("[data-alp-add]");
+    const alpAdd = clickTarget.closest("[data-alp-add]");
     if (alpAdd && sunriseControlState) {
       sunriseControlState.accessLevels.push({ code: "NEW", title: "New Level", access: "Define access rights" });
       saveSunriseControlState();
@@ -8031,7 +8036,7 @@ function bindSunriseControlInteractions() {
       return;
     }
 
-    const alpDel = event.target.closest("[data-alp-del]");
+    const alpDel = clickTarget.closest("[data-alp-del]");
     if (alpDel && sunriseControlState) {
       const idx = Number(alpDel.getAttribute("data-alp-del"));
       if (!Number.isInteger(idx) || idx < 0 || idx >= sunriseControlState.accessLevels.length) return;
@@ -8047,28 +8052,28 @@ function bindSunriseControlInteractions() {
       return;
     }
 
-    const mccSearchBtn = event.target.closest("[data-mcc-search]");
+    const mccSearchBtn = clickTarget.closest("[data-mcc-search]");
     if (mccSearchBtn) {
       const query = String(document.getElementById("mcc-search")?.value || "").trim();
       renderMCCPage(query);
       return;
     }
 
-    const ampCodeSearchBtn = event.target.closest("[data-amp-code-search]");
+    const ampCodeSearchBtn = clickTarget.closest("[data-amp-code-search]");
     if (ampCodeSearchBtn) {
       const query = String(document.getElementById("amp-code-search")?.value || "").trim();
       renderAMPPage(query);
       return;
     }
 
-    const alpCodeSearchBtn = event.target.closest("[data-alp-code-search]");
+    const alpCodeSearchBtn = clickTarget.closest("[data-alp-code-search]");
     if (alpCodeSearchBtn) {
       const query = String(document.getElementById("alp-code-search")?.value || "").trim();
       renderALPPage(query);
       return;
     }
 
-    const addCodeBtn = event.target.closest("[data-mcc-add], [data-amp-code-add], [data-alp-code-add]");
+    const addCodeBtn = clickTarget.closest("[data-mcc-add], [data-amp-code-add], [data-alp-code-add]");
     if (addCodeBtn && sunriseControlState) {
       ensureShortcutCodeRegistry();
       sunriseControlState.shortcutCodes.unshift({
@@ -8082,7 +8087,7 @@ function bindSunriseControlInteractions() {
       return;
     }
 
-    const delCodeBtn = event.target.closest("[data-code-del]");
+    const delCodeBtn = clickTarget.closest("[data-code-del]");
     if (delCodeBtn && sunriseControlState) {
       ensureShortcutCodeRegistry();
       const idx = Number(delCodeBtn.getAttribute("data-code-del"));
