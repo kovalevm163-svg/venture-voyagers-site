@@ -3604,6 +3604,19 @@ document.addEventListener("click", (e) => {
     }
     return;
   }
+  const serviceRequestLink = e.target.closest("[data-service-request]");
+  if (serviceRequestLink) {
+    e.preventDefault();
+    const serviceKey = String(serviceRequestLink.getAttribute("data-service-request") || "").trim();
+    goToContactForService(serviceKey);
+    return;
+  }
+  const profileServiceBtn = e.target.closest("#profile-submit-service-btn, #profile-submit-service-top");
+  if (profileServiceBtn) {
+    e.preventDefault();
+    showRoute("contact");
+    return;
+  }
   const conciergePick = e.target.closest("[data-concierge-pick]");
   if (conciergePick) {
     e.preventDefault();
