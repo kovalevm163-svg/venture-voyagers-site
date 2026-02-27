@@ -8,7 +8,7 @@
   <meta http-equiv="Expires" content="0" />
   <title>Venture Voyager Services - Concierge</title>
   <meta name="description" content="Venture Voyager Services (VVS) - discreet luxury concierge and private access." />
-  <link rel="stylesheet" href="styles.css?v=20260221-20" />
+  <link rel="stylesheet" href="styles.css?v=20260224-47" />
 </head>
 <body>
   <div class="wrap">
@@ -35,7 +35,7 @@
           </select>
         </div>
         <div class="cta">
-          <a class="btn ghost" href="#contact" data-route="contact">Contact</a>
+          <a class="btn ghost" href="#contact" data-route="contact" id="contact-cta">Contact</a>
           <a class="btn primary" href="#account" data-route="account" id="auth-cta">Log In / Sign Up</a>
         </div>
       </div>
@@ -53,7 +53,7 @@
             <div class="actions">
               <a class="btn ghost big" href="#services" data-route="services">Services</a>
               <a class="btn ghost big" href="#membership" data-route="membership">Membership</a>
-              <a class="btn ghost big" href="https://instagram.com/venturevs" target="_blank" rel="noopener noreferrer" aria-label="Instagram">Instagram</a>
+              <a class="btn ghost big" data-instagram-link href="https://www.instagram.com/venturevs/" target="_blank" rel="noopener noreferrer" aria-label="Instagram">Instagram</a>
             </div>
             <div class="heroPills" aria-label="Core Benefits">
               <span>Global Coverage</span>
@@ -172,21 +172,71 @@
             <p class="serviceLead">All Voyager tiers include 24/7 assistance, a private member card delivery, and free instant execution service. Voyager Cuprum through Voyager Noir are valid for one year; Voyager Red is lifetime by executive invitation only.</p>
 
             <div class="membershipGrid">
-              <div class="tierList" role="tablist" aria-label="Membership Tiers">
-                <button class="tierOption tier-cu isActive" type="button" data-tier="cuprum" role="tab" aria-selected="true"><span class="tierMini"><span class="tierMiniLabel">Voyager Tier</span><span class="tierMiniName">Voyager Cuprum</span></span><span class="tierHint">Entry milestone with foundational loyalty benefits.</span></button>
-                <button class="tierOption tier-ar" type="button" data-tier="argentum" role="tab" aria-selected="false"><span class="tierMini"><span class="tierMiniLabel">Voyager Tier</span><span class="tierMiniName">Voyager Argentum</span></span><span class="tierHint">Expanded value with priority airport support.</span></button>
-                <button class="tierOption tier-au" type="button" data-tier="aurum" role="tab" aria-selected="false"><span class="tierMini"><span class="tierMiniLabel">Voyager Tier</span><span class="tierMiniName">Voyager Aurum</span></span><span class="tierHint">Higher-access tier with business-level airport comfort.</span></button>
-                <button class="tierOption tier-pt" type="button" data-tier="platinum" role="tab" aria-selected="false"><span class="tierMini"><span class="tierMiniLabel">Voyager Tier</span><span class="tierMiniName">Voyager Platinum</span></span><span class="tierHint">Strategic travel privileges with premium transfers and stays.</span></button>
-                <button class="tierOption tier-di" type="button" data-tier="diamante" role="tab" aria-selected="false"><span class="tierMini"><span class="tierMiniLabel">Voyager Tier</span><span class="tierMiniName">Voyager Diamante</span></span><span class="tierHint">High-privilege tier with advanced protection and special requests.</span></button>
-                <button class="tierOption tier-no" type="button" data-tier="noir" role="tab" aria-selected="false"><span class="tierMini"><span class="tierMiniLabel">Voyager Tier</span><span class="tierMiniName">Voyager Noir</span></span><span class="tierHint">Elite ongoing tier with maximum operational flexibility.</span></button>
-                <button class="tierOption tier-re" type="button" data-tier="red" role="tab" aria-selected="false"><span class="tierMini"><span class="tierMiniLabel">Voyager Tier</span><span class="tierMiniName">Voyager Red</span></span><span class="tierHint">Executive invitation tier with lifetime and Red Lounge privileges.</span></button>
+              <div class="tierList tierFlipList" role="tablist" aria-label="Membership Tiers">
+                <button class="tierOption tier-cu isActive" type="button" data-tier="cuprum" role="tab" aria-selected="true">
+                  <span class="tierFlipInner">
+                    <span class="tierFaceFront">
+                      <span class="tierMini"><span class="tierMiniLabel">Voyager Tier</span><span class="tierMiniName">Cuprum</span><span class="tierMiniBrand">VVS</span></span>
+                      <span class="tierHint">Entry milestone with foundational loyalty benefits.</span>
+                    </span>
+                    <span class="tierFaceBack" data-tier-back="cuprum"></span>
+                  </span>
+                </button>
+                <button class="tierOption tier-ar" type="button" data-tier="argentum" role="tab" aria-selected="false">
+                  <span class="tierFlipInner">
+                    <span class="tierFaceFront">
+                      <span class="tierMini"><span class="tierMiniLabel">Voyager Tier</span><span class="tierMiniName">Argentum</span><span class="tierMiniBrand">VVS</span></span>
+                      <span class="tierHint">Expanded value with priority airport support.</span>
+                    </span>
+                    <span class="tierFaceBack" data-tier-back="argentum"></span>
+                  </span>
+                </button>
+                <button class="tierOption tier-au" type="button" data-tier="aurum" role="tab" aria-selected="false">
+                  <span class="tierFlipInner">
+                    <span class="tierFaceFront">
+                      <span class="tierMini"><span class="tierMiniLabel">Voyager Tier</span><span class="tierMiniName">Aurum</span><span class="tierMiniBrand">VVS</span></span>
+                      <span class="tierHint">Higher-access tier with business-level airport comfort.</span>
+                    </span>
+                    <span class="tierFaceBack" data-tier-back="aurum"></span>
+                  </span>
+                </button>
+                <button class="tierOption tier-pt" type="button" data-tier="platinum" role="tab" aria-selected="false">
+                  <span class="tierFlipInner">
+                    <span class="tierFaceFront">
+                      <span class="tierMini"><span class="tierMiniLabel">Voyager Tier</span><span class="tierMiniName">Platinum</span><span class="tierMiniBrand">VVS</span></span>
+                      <span class="tierHint">Strategic travel privileges with premium transfers and stays.</span>
+                    </span>
+                    <span class="tierFaceBack" data-tier-back="platinum"></span>
+                  </span>
+                </button>
+                <button class="tierOption tier-di" type="button" data-tier="diamante" role="tab" aria-selected="false">
+                  <span class="tierFlipInner">
+                    <span class="tierFaceFront">
+                      <span class="tierMini"><span class="tierMiniLabel">Voyager Tier</span><span class="tierMiniName">Diamante</span><span class="tierMiniBrand">VVS</span></span>
+                      <span class="tierHint">High-privilege tier with advanced protection and special requests.</span>
+                    </span>
+                    <span class="tierFaceBack" data-tier-back="diamante"></span>
+                  </span>
+                </button>
+                <button class="tierOption tier-no" type="button" data-tier="noir" role="tab" aria-selected="false">
+                  <span class="tierFlipInner">
+                    <span class="tierFaceFront">
+                      <span class="tierMini"><span class="tierMiniLabel">Voyager Tier</span><span class="tierMiniName">Noir</span><span class="tierMiniBrand">VVS</span></span>
+                      <span class="tierHint">Elite ongoing tier with maximum operational flexibility.</span>
+                    </span>
+                    <span class="tierFaceBack" data-tier-back="noir"></span>
+                  </span>
+                </button>
+                <button class="tierOption tier-re" type="button" data-tier="red" role="tab" aria-selected="false">
+                  <span class="tierFlipInner">
+                    <span class="tierFaceFront">
+                      <span class="tierMini"><span class="tierMiniLabel">Voyager Tier</span><span class="tierMiniName">Red</span><span class="tierMiniBrand">VVS</span></span>
+                      <span class="tierHint">Executive invitation tier with lifetime and Red Lounge privileges.</span>
+                    </span>
+                    <span class="tierFaceBack" data-tier-back="red"></span>
+                  </span>
+                </button>
               </div>
-
-              <aside class="tierDetail" role="tabpanel" aria-live="polite">
-                <div class="tierDetailTop"><h3 class="tierName" id="tier-name">Voyager Cuprum</h3><span class="tierValidity" id="tier-validity">Validity: 1 Year</span></div>
-                <div class="tierBlock"><p class="tierBlockTitle">Achievement Path</p><p class="tierParagraph" id="tier-achievement"></p></div>
-                <div class="tierBlock"><p class="tierBlockTitle">Included Benefits</p><ul class="tierBenefits" id="tier-benefits"></ul></div>
-              </aside>
             </div>
 
             <div class="viewActions">
@@ -461,6 +511,7 @@
               <div class="viewActions" style="margin-top:0;">
                 <a class="btn ghost" href="#sunrise" data-route="sunrise" id="profile-sunrise-btn" hidden>Access VVS Sunrise</a>
                 <a class="btn ghost" href="#ambassador" data-route="ambassador" id="profile-ambassador-btn" hidden>Red Lounge</a>
+                <button class="btn primary" type="button" id="profile-submit-service-top" data-route="contact">Request Service</button>
                 <button class="btn ghost" type="button" id="logout-btn">Log Out</button>
                 <a class="btn ghost" href="#home" data-route="home">Back</a>
               </div>
@@ -474,7 +525,7 @@
               <article class="profileCard">
                 <p class="profileLabel" id="profile-status-label">Membership</p>
                 <h3 class="profileValue" id="profile-tier">Voyager Red</h3>
-                <p class="profileNote">Services completed: <b id="profile-services-completed">347</b></p>
+                <p class="profileNote"><span id="profile-status-note-label">Services completed</span>: <b id="profile-services-completed">347</b></p>
               </article>
 
               <article class="profileCard">
@@ -533,6 +584,14 @@
                 <p class="authInfo" id="same-concierge-result"></p>
               </article>
 
+              <article class="profileCard profileCardWide" id="profile-service-toolbar" hidden>
+                <p class="profileLabel">Service Submission</p>
+                <p class="profileNote">Your account details will be prefilled automatically. Choose a concierge from your desk or submit directly.</p>
+                <div class="viewActions">
+                  <button class="btn primary" type="button" id="profile-submit-service-btn" data-route="contact">Submit Service</button>
+                </div>
+              </article>
+
               <article class="profileCard profileCardWide" id="profile-progress-wrap" hidden>
                 <p class="profileLabel">Tier Progress</p>
                 <div class="progressTrack">
@@ -541,13 +600,19 @@
                 <p class="profileNote" id="profile-progress-text"></p>
               </article>
 
+              <article class="profileCard profileCardWide" id="profile-staff-dashboard" hidden>
+                <p class="profileLabel">Staff Operations Dashboard</p>
+                <div class="teamGrid" id="profile-staff-metrics"></div>
+                <ul class="profileTips" id="profile-staff-modules"></ul>
+              </article>
+
               <article class="profileCard profileCardWide" id="profile-concierge-desk-card">
-                <p class="profileLabel">Available Concierge Desk</p>
+                <p class="profileLabel" id="profile-concierge-card-label">Available Concierge Desk</p>
                 <div class="teamGrid" id="profile-concierge-list"></div>
               </article>
 
               <article class="profileCard profileCardWide" id="profile-tips-card">
-                <p class="profileLabel">Trip & Safety Tips</p>
+                <p class="profileLabel" id="profile-tips-label">Trip & Safety Tips</p>
                 <ul class="profileTips" id="profile-tips">
                   <li>Carry primary and backup identification in separate locations.</li>
                   <li>Keep one trusted contact informed of itinerary shifts.</li>
@@ -736,7 +801,7 @@
 
             <section id="sunrise-panel" hidden>
               <h2 class="viewTitle" id="sunrise-greeting">Good Morning, Mr. Totev - Welcome to Sunrise, Access Level - Owner</h2>
-              <p class="viewSub">Owner command modules for strategic control of VVS operations.</p>
+              <p class="viewSub" id="sunrise-subtitle">Owner command modules for strategic control of VVS operations.</p>
 
               <div class="sunriseOpsSummary" id="sunrise-ops-summary">
                 <article class="sunriseSummaryCard"><p class="sunriseCategoryTitle">DTS Documents</p><b id="sum-dts-count">0</b></article>
@@ -865,17 +930,33 @@
       <section class="routePage" data-page="sunrise-lcs" aria-label="Sunrise LCS Page" hidden>
         <section class="view"><div class="viewInner sunriseShell sunriseDetailShell"><div class="viewTop"><div class="kicker"><span class="dot"></span> Sunrise • LCS</div><div class="viewActions" style="margin-top:0;"><button class="btn ghost" type="button" data-sunrise-logout>Log Out</button><a class="btn ghost" href="#sunrise" data-route="sunrise">Back</a></div></div><h2 class="viewTitle">Notos - Login Control System</h2><div class="sunriseDetailGrid" id="sunrise-lcs-grid"></div></div></section>
       </section>
+      <section class="routePage" data-page="sunrise-amp" aria-label="Sunrise AMP Page" hidden>
+        <section class="view"><div class="viewInner sunriseShell sunriseDetailShell"><div class="viewTop"><div class="kicker"><span class="dot"></span> Sunrise • AMP</div><div class="viewActions" style="margin-top:0;"><button class="btn ghost" type="button" data-sunrise-logout>Log Out</button><a class="btn ghost" href="#sunrise" data-route="sunrise">Back</a></div></div><h2 class="viewTitle">Account Management Page</h2><div class="sunriseDetailGrid" id="sunrise-amp-grid"></div></div></section>
+      </section>
+      <section class="routePage" data-page="sunrise-alp" aria-label="Sunrise ALP Page" hidden>
+        <section class="view"><div class="viewInner sunriseShell sunriseDetailShell"><div class="viewTop"><div class="kicker"><span class="dot"></span> Sunrise • ALP</div><div class="viewActions" style="margin-top:0;"><button class="btn ghost" type="button" data-sunrise-logout>Log Out</button><a class="btn ghost" href="#sunrise" data-route="sunrise">Back</a></div></div><h2 class="viewTitle">Access Levels Page</h2><div class="sunriseDetailGrid" id="sunrise-alp-grid"></div></div></section>
+      </section>
+      <section class="routePage" data-page="sunrise-mcc" aria-label="Sunrise MCC Page" hidden>
+        <section class="view"><div class="viewInner sunriseShell sunriseDetailShell"><div class="viewTop"><div class="kicker"><span class="dot"></span> Sunrise • MCC</div><div class="viewActions" style="margin-top:0;"><button class="btn ghost" type="button" data-sunrise-logout>Log Out</button><a class="btn ghost" href="#sunrise" data-route="sunrise">Back</a></div></div><h2 class="viewTitle">Manage &amp; Create Codes</h2><div class="sunriseDetailGrid" id="sunrise-mcc-grid"></div></div></section>
+      </section>
       <section class="routePage" data-page="shutdown-404" aria-label="Website Shutdown Page" hidden>
         <section class="view"><div class="viewInner sunriseShell sunriseDetailShell"><div class="viewTop"><div class="kicker"><span class="dot"></span> System Status</div></div><h2 class="viewTitle">404 - VVS will be back as soon as possible</h2><p class="viewSub">VVS web system is currently frozen by command. Access will be restored when the owner executes the restore command.</p></div></section>
       </section>
     </main>
 
+    <div class="sunriseSessionBar" id="sunrise-session-bar" hidden>
+      <span>Active Session</span>
+      <strong id="sunrise-session-live">00hr:00min:00sec</strong>
+    </div>
+
     <div class="sunriseShortcutDock" id="sunrise-shortcut-dock" hidden>
       <form class="sunriseShortcutDockForm sunriseShortcutForm" id="sunrise-shortcut-dock-form" data-info-target="sunrise-shortcut-dock-info" autocomplete="off">
         <label for="sunrise-shortcut-dock-input">Enter selection:</label>
-        <input class="input sunriseShortcutInput" id="sunrise-shortcut-dock-input" type="text" placeholder="ex: rev1, sls1, mkt1..." />
-        <button class="btn ghost sunriseShortcutBtn" type="submit">Open</button>
+        <input class="input sunriseShortcutInput" id="sunrise-shortcut-dock-input" type="text" placeholder="ex: rev1, sls1, mkt1..." onkeydown="if(event.key==='Enter'){event.preventDefault();window.sunriseDockSubmitShortcut&&window.sunriseDockSubmitShortcut();}" />
+        <button class="btn ghost sunriseShortcutBtn" type="submit" onclick="event.preventDefault();window.sunriseDockSubmitShortcut&&window.sunriseDockSubmitShortcut();">Open</button>
+        <button class="btn ghost sunriseShortcutBtn" type="button" id="sunrise-shortcut-help-toggle" onclick="event.preventDefault();window.sunriseDockToggleCodes&&window.sunriseDockToggleCodes();">Codes</button>
       </form>
+      <div class="sunriseCodeHelp" id="sunrise-code-help" hidden></div>
       <p class="authInfo sunriseDockInfo" id="sunrise-shortcut-dock-info"></p>
     </div>
 
@@ -901,16 +982,79 @@
         <h3 class="mailTitle">Compose Email</h3>
         <div class="mailFormGrid">
           <label class="mailLabel" for="sunrise-mail-to">To</label>
-          <input class="input" id="sunrise-mail-to" type="email" placeholder="employee@venture-voyagers.com" />
+          <input class="input" id="sunrise-mail-to" type="text" autocomplete="off" placeholder="receiver1@vvs.com, receiver2@vvs.com" />
+          <label class="mailLabel" for="sunrise-mail-cc">CC</label>
+          <input class="input" id="sunrise-mail-cc" type="text" autocomplete="off" placeholder="cc1@vvs.com, cc2@vvs.com" />
+          <label class="mailLabel" for="sunrise-mail-bcc">BCC</label>
+          <input class="input" id="sunrise-mail-bcc" type="text" autocomplete="off" placeholder="bcc1@vvs.com, bcc2@vvs.com" />
           <label class="mailLabel" for="sunrise-mail-subject">Subject</label>
-          <input class="input" id="sunrise-mail-subject" type="text" placeholder="VVS Operations Notice" />
+          <input class="input" id="sunrise-mail-subject" type="text" autocomplete="off" placeholder="VVS Operations Notice" />
           <label class="mailLabel" for="sunrise-mail-body">Message</label>
           <textarea class="input mailTextarea" id="sunrise-mail-body" placeholder="Write your message..."></textarea>
+          <div class="sunriseInboxMiniBar">
+            <button class="sunriseMiniBtn" type="button" data-sunrise-mail-style="title">Title</button>
+            <button class="sunriseMiniBtn" type="button" data-sunrise-mail-style="subtitle">Subtitle</button>
+            <button class="sunriseMiniBtn" type="button" data-sunrise-mail-style="body">Body</button>
+            <button class="sunriseMiniBtn" type="button" data-sunrise-mail-cmd="bold"><b>B</b></button>
+            <button class="sunriseMiniBtn" type="button" data-sunrise-mail-cmd="italic"><i>I</i></button>
+            <button class="sunriseMiniBtn" type="button" data-sunrise-mail-cmd="underline"><u>U</u></button>
+          </div>
+          <label class="mailLabel" for="sunrise-mail-font">Font</label>
+          <select class="select" id="sunrise-mail-font">
+            <option value="Arial, sans-serif">Arial</option>
+            <option value="Georgia, serif">Georgia</option>
+            <option value="'Times New Roman', serif">Times New Roman</option>
+            <option value="'Courier New', monospace">Courier New</option>
+          </select>
+          <label class="mailLabel" for="sunrise-mail-font-size">Font Size</label>
+          <select class="select" id="sunrise-mail-font-size">
+            <option value="12">Small</option>
+            <option value="14" selected>Normal</option>
+            <option value="16">Large</option>
+            <option value="18">XL</option>
+          </select>
+          <label class="mailLabel" for="sunrise-mail-priority">Priority</label>
+          <select class="select" id="sunrise-mail-priority">
+            <option>Low</option>
+            <option selected>Normal</option>
+            <option>High</option>
+            <option>Urgent</option>
+          </select>
+          <label class="mailLabel" for="sunrise-mail-schedule">Schedule (dd/mm/yyyy hr/min/sec)</label>
+          <input class="input" id="sunrise-mail-schedule" type="text" autocomplete="off" placeholder="31/12/2026 14/30/00" />
+          <label class="mailLabel" for="sunrise-mail-attach">Attachments</label>
+          <input class="input" id="sunrise-mail-attach" type="file" multiple />
         </div>
         <p class="authInfo" id="sunrise-mail-info"></p>
         <div class="viewActions" style="justify-content:center; margin-top:10px;">
+          <button class="btn ghost" type="button" data-sunrise-mail-back>Back</button>
           <button class="btn primary" type="button" data-sunrise-mail-send>Send</button>
+          <button class="btn" type="button" data-sunrise-mail-draft>Draft</button>
           <button class="btn ghost" type="button" data-sunrise-mail-close>Cancel</button>
+        </div>
+      </div>
+    </div>
+    <div class="contactOverlay" id="sunrise-notos-overlay" hidden>
+      <div class="contactWindow sunriseMailWindow">
+        <div class="kicker"><span class="dot" aria-hidden="true"></span> Sunrise Access Verification</div>
+        <h3 class="mailTitle">Enter NOTOS Employee ID</h3>
+        <div class="mailFormGrid">
+          <label class="mailLabel" for="sunrise-notos-id-popup">NOTOS Employee ID</label>
+          <input class="input" id="sunrise-notos-id-popup" type="text" autocomplete="off" placeholder="NTS-XXXXXL" />
+        </div>
+        <p class="authInfo" id="sunrise-notos-info"></p>
+        <div class="viewActions" style="justify-content:center; margin-top:10px;">
+          <button class="btn primary" type="button" id="sunrise-notos-submit">Verify and Continue</button>
+        </div>
+      </div>
+    </div>
+    <div class="contactOverlay" id="sunrise-owner-alert-overlay" hidden>
+      <div class="contactWindow sunriseMailWindow">
+        <div class="kicker"><span class="dot" aria-hidden="true"></span> NOTOS Critical Warning</div>
+        <h3 class="mailTitle">Sunrise Owner Access Attempt Blocked</h3>
+        <p class="authInfo" id="sunrise-owner-alert-text">NOTOS Critical Warning - Sunrise Owner Access attempts are prohibited from your VVS platform. Please notify the Owner about the credentials breach immediately and return to Log In Page</p>
+        <div class="viewActions" style="justify-content:center; margin-top:10px;">
+          <button class="btn primary" type="button" id="sunrise-owner-alert-btn">Send Sunrise Alert &amp; Return to Sunrise Log In</button>
         </div>
       </div>
     </div>
@@ -925,6 +1069,29 @@
         </div>
       </div>
     </div>
+    <div class="contactOverlay" id="inbox-signature-overlay" hidden>
+      <div class="contactWindow sunriseMailWindow">
+        <div class="kicker"><span class="dot" aria-hidden="true"></span> Sunrise Signatures</div>
+        <h3 class="mailTitle">Manage Signatures</h3>
+        <div id="inbox-signature-manager"></div>
+        <p class="authInfo" id="inbox-signature-manager-info"></p>
+        <div class="viewActions" style="justify-content:center; margin-top:10px;">
+          <button class="btn ghost" type="button" id="inbox-signature-close">Close</button>
+        </div>
+      </div>
+    </div>
+    <div class="contactOverlay" id="sunrise-unsaved-overlay" hidden>
+      <div class="contactWindow sunriseMailWindow">
+        <div class="kicker"><span class="dot" aria-hidden="true"></span> Sunrise Confirmation</div>
+        <h3 class="mailTitle">Unsaved Changes Detected</h3>
+        <p class="authInfo" id="sunrise-unsaved-info">You have unsaved changes in this Sunrise page. Confirm how to proceed.</p>
+        <div class="viewActions" style="justify-content:center; margin-top:10px;">
+          <button class="btn primary" type="button" id="sunrise-unsaved-save">Save &amp; Continue</button>
+          <button class="btn" type="button" id="sunrise-unsaved-discard">Discard &amp; Continue</button>
+          <button class="btn ghost" type="button" id="sunrise-unsaved-stay">Stay</button>
+        </div>
+      </div>
+    </div>
 
     <footer>
       <div>&copy; <span id="year"></span> <span class="tiny">Venture Voyager Services</span></div>
@@ -932,6 +1099,6 @@
     </footer>
   </div>
 
-  <script src="script.js?v=20260221-69"></script>
+  <script src="script.js?v=20260224-72"></script>
 </body>
 </html>

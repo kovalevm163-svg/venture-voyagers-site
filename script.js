@@ -7,6 +7,7 @@ const SESSION_EMAIL_KEY = "vvs_active_account_email";
 const SESSION_ACCOUNT_SNAPSHOT_KEY = "vvs_active_account_snapshot";
 const SUNRISE_SESSION_KEY = "vvs_sunrise_session";
 const SUNRISE_CONTROL_DATA_KEY = "vvs_sunrise_control_data";
+const ACCOUNTS_DATA_KEY = "vvs_accounts_data";
 const WEBSITE_SHUTDOWN_KEY = "vvs_website_shutdown_v3";
 
 const accounts = {
@@ -528,6 +529,91 @@ const accounts = {
       "Book high-priority requests early to secure optimal timings."
     ]
   },
+  "concierge.basic@vvs.com": {
+    email: "concierge.basic@vvs.com",
+    password: "Concierge#2026",
+    secretPhrase: "MarbleKey",
+    prefix: "Ms.",
+    firstName: "Camille",
+    lastName: "Rowan",
+    country: "United Kingdom",
+    membership: "Staff",
+    sunriseAccessLevel: "STA",
+    notosId: "NTS-2147C",
+    roleTitle: "Concierge (Basic Employee)",
+    servicesCompleted: 0,
+    pastService: { title: "N/A", details: "Internal employee account.", endedAt: "N/A" },
+    upcomingService: { title: "N/A", details: "Internal employee account.", startsAt: "N/A" },
+    tips: []
+  },
+  "ssr.supervisor@vvs.com": {
+    email: "ssr.supervisor@vvs.com",
+    password: "Ssr!Supervisor26",
+    secretPhrase: "AuroraLock",
+    prefix: "Mr.",
+    firstName: "Rafael",
+    lastName: "Novak",
+    country: "Spain",
+    membership: "Staff",
+    sunriseAccessLevel: "SS",
+    notosId: "NTS-5802R",
+    roleTitle: "Special Service Requests Supervisor",
+    servicesCompleted: 0,
+    pastService: { title: "N/A", details: "Internal employee account.", endedAt: "N/A" },
+    upcomingService: { title: "N/A", details: "Internal employee account.", startsAt: "N/A" },
+    tips: []
+  },
+  "red.concierge.head@vvs.com": {
+    email: "red.concierge.head@vvs.com",
+    password: "RedHead#2626",
+    secretPhrase: "CrimsonCode",
+    prefix: "Mrs.",
+    firstName: "Selena",
+    lastName: "Ward",
+    country: "United Arab Emirates",
+    membership: "Staff",
+    sunriseAccessLevel: "CA",
+    notosId: "NTS-9346S",
+    roleTitle: "RED Head of Concierge Team",
+    servicesCompleted: 0,
+    pastService: { title: "N/A", details: "Internal employee account.", endedAt: "N/A" },
+    upcomingService: { title: "N/A", details: "Internal employee account.", startsAt: "N/A" },
+    tips: []
+  },
+  "ops.director@vvs.com": {
+    email: "ops.director@vvs.com",
+    password: "DirectorOps@26",
+    secretPhrase: "AtlasNode",
+    prefix: "Dr.",
+    firstName: "Ibrahim",
+    lastName: "Khaled",
+    country: "Qatar",
+    membership: "Staff",
+    sunriseAccessLevel: "DA",
+    notosId: "NTS-7024K",
+    roleTitle: "Director of Operations",
+    servicesCompleted: 0,
+    pastService: { title: "N/A", details: "Internal employee account.", endedAt: "N/A" },
+    upcomingService: { title: "N/A", details: "Internal employee account.", startsAt: "N/A" },
+    tips: []
+  },
+  "cmo@vvs.com": {
+    email: "cmo@vvs.com",
+    password: "CMO!Vision26",
+    secretPhrase: "BloomThread",
+    prefix: "Ms.",
+    firstName: "Gianna",
+    lastName: "Vale",
+    country: "Italy",
+    membership: "Staff",
+    sunriseAccessLevel: "SM",
+    notosId: "NTS-4475V",
+    roleTitle: "Chief Marketing Officer",
+    servicesCompleted: 0,
+    pastService: { title: "N/A", details: "Internal employee account.", endedAt: "N/A" },
+    upcomingService: { title: "N/A", details: "Internal employee account.", startsAt: "N/A" },
+    tips: []
+  },
   "aleks.totev@vvs.com": {
     email: "aleks.totev@vvs.com",
     password: "OwnerAlek26",
@@ -773,6 +859,134 @@ const accounts = {
     }
   }
 };
+
+function normalizeAccountsObject(raw) {
+  if (!raw || typeof raw !== "object") return null;
+  const normalized = {};
+  Object.entries(raw).forEach(([rawKey, rawAccount]) => {
+    if (!rawAccount || typeof rawAccount !== "object") return;
+    const key = String(rawKey || rawAccount.email || "").trim().toLowerCase();
+    if (!key) return;
+    normalized[key] = {
+      ...rawAccount,
+      email: String(rawAccount.email || key).trim()
+    };
+  });
+  return Object.keys(normalized).length ? normalized : null;
+}
+
+function replaceAccountsData(nextAccounts) {
+  const normalized = normalizeAccountsObject(nextAccounts);
+  if (!normalized) return false;
+  Object.keys(accounts).forEach((key) => delete accounts[key]);
+  Object.entries(normalized).forEach(([key, value]) => {
+    accounts[key] = value;
+  });
+  return true;
+}
+
+function persistAccountsData() {
+  try {
+    localStorage.setItem(ACCOUNTS_DATA_KEY, JSON.stringify(accounts));
+  } catch (_) {}
+}
+
+function loadAccountsDataFromStorage() {
+  try {
+    const raw = localStorage.getItem(ACCOUNTS_DATA_KEY);
+    if (!raw) return false;
+    const parsed = JSON.parse(raw);
+    return replaceAccountsData(parsed);
+  } catch (_) {
+    return false;
+  }
+}
+
+function initializeAccountsData() {
+  if (!loadAccountsDataFromStorage()) {
+    persistAccountsData();
+  }
+}
+
+function removeAutoGeneratedAmpNoise() {
+  Object.keys(accounts).forEach((key) => {
+    const account = accounts[key];
+    if (!account || typeof account !== "object") return;
+    if (isOwnerAccount(account)) return;
+    const first = String(account.firstName || "").trim().toLowerCase();
+    const last = String(account.lastName || "").trim().toLowerCase();
+    const email = String(account.email || key || "").trim().toLowerCase();
+    if ((first === "roman" && last === "novikov") || last === "novikov") {
+      delete accounts[key];
+      return;
+    }
+    if (email !== key && accounts[email] === account && email !== key) {
+      delete accounts[key];
+    }
+  });
+}
+
+function buildSunriseEmail(baseEmail) {
+  const key = String(baseEmail || "").trim().toLowerCase();
+  const local = key.split("@")[0] || "user";
+  let candidate = `${local}.sunrise@vvs.com`;
+  let idx = 1;
+  while (accounts[candidate]) {
+    candidate = `${local}.sunrise${idx}@vvs.com`;
+    idx += 1;
+  }
+  return candidate;
+}
+
+function ensureSunriseCredentials() {
+  const snapshot = Object.entries(accounts);
+  snapshot.forEach(([key, account]) => {
+    if (!account || typeof account !== "object") return;
+    const emailKey = String(key || "").trim().toLowerCase();
+    const membership = String(account.membership || "").trim().toLowerCase();
+    const hasSunriseAccessFlag = !!String(account.sunriseAccessLevel || "").trim();
+    const isOwner = membership === "owner";
+    const isStaff = membership === "staff";
+    const isSunriseCred = emailKey.endsWith(".sunrise@vvs.com") || !!account.sunriseCredential;
+    if (isSunriseCred) {
+      account.sunriseCredential = true;
+      if (!account.sunriseLinkedEmail) {
+        if (emailKey === "aleks.sunrise@vvs.com") account.sunriseLinkedEmail = "aleks.totev@vvs.com";
+        if (emailKey === "mikhail.sunrise@vvs.com") account.sunriseLinkedEmail = "mikhail.kovalev@vvs.com";
+      }
+      return;
+    }
+    if (!isOwner && !(isStaff && hasSunriseAccessFlag)) return;
+    const sunriseEmail = isOwner
+      ? (String(account.firstName || "").trim().toLowerCase() === "aleks"
+        ? "aleks.sunrise@vvs.com"
+        : (String(account.firstName || "").trim().toLowerCase() === "mikhail"
+          ? "mikhail.sunrise@vvs.com"
+          : buildSunriseEmail(emailKey)))
+      : buildSunriseEmail(emailKey);
+    if (!accounts[sunriseEmail]) {
+      accounts[sunriseEmail] = {
+        ...account,
+        email: sunriseEmail,
+        password: String(account.password || ""),
+        secretPhrase: String(account.secretPhrase || ""),
+        sunriseCredential: true,
+        sunriseLinkedEmail: emailKey,
+        notosId: String(account.notosId || "").trim().toUpperCase()
+      };
+    } else {
+      accounts[sunriseEmail].sunriseCredential = true;
+      accounts[sunriseEmail].sunriseLinkedEmail = emailKey;
+      if (account.notosId) accounts[sunriseEmail].notosId = String(account.notosId).trim().toUpperCase();
+      if (account.sunriseAccessLevel) accounts[sunriseEmail].sunriseAccessLevel = String(account.sunriseAccessLevel).trim().toUpperCase();
+    }
+  });
+}
+
+initializeAccountsData();
+removeAutoGeneratedAmpNoise();
+ensureSunriseCredentials();
+persistAccountsData();
 
 const countryDialCodes = {
   "united arab emirates": "+971",
@@ -1827,6 +2041,8 @@ let activeTranslationAbortController = null;
 const TRANSLATION_REQUEST_TIMEOUT_MS = 3000;
 let activeRefreshTimer = null;
 let pendingServiceRequestKey = "";
+let pendingPreferredConcierge = "";
+let sunriseSessionTicker = null;
 const sunriseModuleRoutes = [
   "sunrise-revenue",
   "sunrise-sales",
@@ -1850,7 +2066,10 @@ const sunriseModuleRoutes = [
   "sunrise-soc",
   "sunrise-soc-details",
   "sunrise-inbox",
-  "sunrise-lcs"
+  "sunrise-lcs",
+  "sunrise-amp",
+  "sunrise-alp",
+  "sunrise-mcc"
 ];
 const sunriseShortcutRouteMap = {
   rev1: "sunrise-revenue",
@@ -1875,7 +2094,60 @@ const sunriseShortcutRouteMap = {
   rim: "sunrise-rim",
   soc: "sunrise-soc",
   lcs: "sunrise-lcs",
-  notos: "sunrise-lcs"
+  notos: "sunrise-lcs",
+  amp: "sunrise-amp",
+  alp: "sunrise-alp",
+  mcc: "sunrise-mcc"
+};
+
+const sunriseShortcutDescriptions = {
+  dts: "Documents To Submit",
+  eam: "Expenses Adjusting Menu",
+  ifs: "Income Flow Spreader",
+  ecs: "Employees Control System",
+  smca: "Sales & Marketing Commissions Adjustments",
+  rim: "Red Inviting Menu",
+  soc: "Services & Operations Control",
+  lcs: "Notos - Login Control System",
+  notos: "Notos - Login Control System",
+  amp: "Account Management Page",
+  alp: "Access Levels Page",
+  mcc: "Manage & Create Codes",
+  ws: "Website shutdown (freeze public access to 404)",
+  wr: "Website restore"
+};
+
+const sunriseAccessRouteDefaults = {
+  STA: ["sunrise", "sunrise-inbox", "sunrise-services", "sunrise-performance"],
+  SA: ["sunrise", "sunrise-inbox", "sunrise-services", "sunrise-performance", "sunrise-sales", "sunrise-marketing", "sunrise-locations"],
+  SS: ["sunrise", "sunrise-inbox", "sunrise-services", "sunrise-performance", "sunrise-sales", "sunrise-marketing", "sunrise-locations", "sunrise-soc", "sunrise-soc-details", "sunrise-employees", "sunrise-lcs"],
+  SM: ["sunrise", "sunrise-inbox", "sunrise-services", "sunrise-performance", "sunrise-sales", "sunrise-marketing", "sunrise-locations", "sunrise-soc", "sunrise-soc-details", "sunrise-employees", "sunrise-lcs", "sunrise-expenses", "sunrise-income", "sunrise-eam", "sunrise-ifs", "sunrise-smca", "sunrise-surveys", "sunrise-events", "sunrise-maintenance", "sunrise-mcc"],
+  DA: sunriseModuleRoutes.slice(),
+  CA: sunriseModuleRoutes.slice(),
+  OW: sunriseModuleRoutes.slice()
+};
+
+const sunriseAccessKeywordRoutes = {
+  inbox: ["sunrise-inbox"],
+  soc: ["sunrise-soc", "sunrise-soc-details"],
+  services: ["sunrise-services"],
+  employees: ["sunrise-employees", "sunrise-ecs"],
+  lcs: ["sunrise-lcs"],
+  notos: ["sunrise-lcs"],
+  dts: ["sunrise-dts"],
+  expenses: ["sunrise-expenses", "sunrise-eam"],
+  income: ["sunrise-income", "sunrise-ifs"],
+  sales: ["sunrise-sales", "sunrise-smca"],
+  marketing: ["sunrise-marketing", "sunrise-smca"],
+  legality: ["sunrise-legality"],
+  events: ["sunrise-events"],
+  surveys: ["sunrise-surveys"],
+  revenue: ["sunrise-revenue"],
+  amp: ["sunrise-amp"],
+  alp: ["sunrise-alp"],
+  locations: ["sunrise-locations"],
+  maintenance: ["sunrise-maintenance"],
+  rim: ["sunrise-rim"]
 };
 
 const languageFallbackMap = {
@@ -2453,6 +2725,7 @@ function randomConciergeDesk(size = 8) {
 }
 
 function setActiveNav(route) {
+  document.body.setAttribute("data-route", String(route || "home"));
   document.querySelectorAll("[data-nav-link]").forEach((link) => {
     const isActive = link.getAttribute("data-route") === route;
     link.classList.toggle("active", isActive);
@@ -2529,8 +2802,149 @@ function canAccessDuringShutdown(route) {
   return normalized === "sunrise" || sunriseModuleRoutes.includes(normalized);
 }
 
+function getCurrentSunriseOperator() {
+  if (sunriseState.unlocked && sunriseState.account) return sunriseState.account;
+  return activeAccount;
+}
+
+function sunriseAccessMeta(account) {
+  const fallback = { code: "SA", title: "Sunrise Associate", access: "Operational dashboards" };
+  if (!account) return fallback;
+  const code = (isOwnerAccount(account) ? "OW" : String(account.sunriseAccessLevel || "SA")).trim().toUpperCase();
+  const levels = Array.isArray(sunriseControlState?.accessLevels) ? sunriseControlState.accessLevels : [];
+  const row = levels.find((item) => String(item?.code || "").trim().toUpperCase() === code);
+  return {
+    code,
+    title: String(row?.title || (code === "OW" ? "Owner" : fallback.title)).trim(),
+    access: String(row?.access || (code === "OW" ? "Full Sunrise command and shutdown/restore authority" : fallback.access)).trim()
+  };
+}
+
+function isSameOwnerIdentity(accountA, accountB) {
+  if (!accountA || !accountB) return false;
+  const codeA = String(resolveSunriseOwnerCode(accountA) || "").trim().toUpperCase();
+  const codeB = String(resolveSunriseOwnerCode(accountB) || "").trim().toUpperCase();
+  if (codeA && codeB) return codeA === codeB;
+  const a = `${String(accountA.firstName || "").trim().toLowerCase()}|${String(accountA.lastName || "").trim().toLowerCase()}`;
+  const b = `${String(accountB.firstName || "").trim().toLowerCase()}|${String(accountB.lastName || "").trim().toLowerCase()}`;
+  return !!a && a === b;
+}
+
+function blockSunriseOwnerBreachAttempt() {
+  const warning = "NOTOS Critical Warning - Sunrise Owner Access attempts are prohibited from your VVS platform. Please notify the Owner about the credentials breach immediately and return to Log In Page";
+  if (sunriseInfo) sunriseInfo.textContent = warning;
+  if (sunriseOwnerAlertText) sunriseOwnerAlertText.textContent = warning;
+  if (sunriseOwnerAlertOverlay) sunriseOwnerAlertOverlay.hidden = false;
+}
+
+function allowedSunriseRoutesForAccount(account) {
+  const meta = sunriseAccessMeta(account);
+  if (!account) return new Set(["sunrise"]);
+  if (isOwnerAccount(account) || meta.code === "OW") return new Set(["sunrise", ...sunriseModuleRoutes]);
+  const seeded = sunriseAccessRouteDefaults[meta.code] || sunriseAccessRouteDefaults.SA;
+  const set = new Set(seeded);
+  const accessText = String(meta.access || "").toLowerCase();
+  if (accessText.includes("full") || accessText.includes("all")) {
+    sunriseModuleRoutes.forEach((route) => set.add(route));
+  } else {
+    Object.entries(sunriseAccessKeywordRoutes).forEach(([keyword, routes]) => {
+      if (accessText.includes(keyword)) routes.forEach((route) => set.add(route));
+    });
+  }
+  set.add("sunrise");
+  return set;
+}
+
+function canAccessSunriseRoute(account, route, shortcutToken = "") {
+  const normalizedRoute = String(route || "").trim();
+  if (!normalizedRoute || normalizedRoute === "sunrise") return true;
+  if (!sunriseModuleRoutes.includes(normalizedRoute)) return true;
+  if (!account || !hasSunriseAccess(account)) return false;
+  if (isOwnerAccount(account)) return true;
+  const token = String(shortcutToken || "").trim().toLowerCase();
+  if ((token === "ws" || token === "wr") && !isOwnerAccount(account)) return false;
+  const allowed = allowedSunriseRoutesForAccount(account);
+  return allowed.has(normalizedRoute);
+}
+
+function sunriseAccessCodesList() {
+  const levels = Array.isArray(sunriseControlState?.accessLevels) ? sunriseControlState.accessLevels : [];
+  const fromLevels = levels.map((row) => String(row?.code || "").trim().toUpperCase()).filter(Boolean);
+  const merged = Array.from(new Set(["STA", "SA", "SS", "SM", "DA", "CA", "OW", ...fromLevels]));
+  return merged;
+}
+
+function suggestedAccessForShortcut(code, route) {
+  const c = String(code || "").toLowerCase();
+  const r = String(route || "").toLowerCase();
+  if (c === "ws" || c === "wr") return "OW";
+  if (c === "amp" || c === "alp" || c === "mcc") return "SM,DA,CA,OW";
+  if (c === "lcs" || c === "notos" || r === "sunrise-lcs") return "SS,SM,DA,CA,OW";
+  if (r === "sunrise-soc" || r === "sunrise-soc-details" || r === "sunrise-ecs") return "SS,SM,DA,CA,OW";
+  return "SA,SS,SM,DA,CA,OW";
+}
+
+function defaultShortcutCodeRegistry() {
+  const entries = [];
+  Object.entries(sunriseShortcutRouteMap).forEach(([code, route]) => {
+    entries.push({
+      code: String(code).toUpperCase(),
+      route: String(route || "").trim(),
+      title: String(sunriseShortcutDescriptions[code] || route || "").trim(),
+      access: suggestedAccessForShortcut(code, route)
+    });
+  });
+  if (!entries.find((row) => row.code === "WS")) {
+    entries.push({ code: "WS", route: "", title: String(sunriseShortcutDescriptions.ws || "Website shutdown"), access: "OW" });
+  }
+  if (!entries.find((row) => row.code === "WR")) {
+    entries.push({ code: "WR", route: "", title: String(sunriseShortcutDescriptions.wr || "Website restore"), access: "OW" });
+  }
+  return entries;
+}
+
+function normalizeCodeAccessList(value) {
+  return String(value || "")
+    .split(/[,\s/]+/)
+    .map((part) => part.trim().toUpperCase())
+    .filter(Boolean);
+}
+
+function ensureShortcutCodeRegistry() {
+  if (!sunriseControlState) return [];
+  if (!Array.isArray(sunriseControlState.shortcutCodes) || !sunriseControlState.shortcutCodes.length) {
+    sunriseControlState.shortcutCodes = defaultShortcutCodeRegistry();
+  }
+  sunriseControlState.shortcutCodes = sunriseControlState.shortcutCodes.map((row) => ({
+    code: String(row?.code || "").trim().toUpperCase(),
+    route: String(row?.route || "").trim(),
+    title: String(row?.title || "").trim(),
+    access: String(row?.access || "").trim().toUpperCase() || "OW"
+  })).filter((row) => !!row.code);
+  return sunriseControlState.shortcutCodes;
+}
+
+function findShortcutEntry(shortcutToken) {
+  const token = String(shortcutToken || "").trim().toUpperCase();
+  if (!token) return null;
+  const list = ensureShortcutCodeRegistry();
+  return list.find((row) => row.code === token) || null;
+}
+
+function canUseShortcutCode(account, shortcutToken) {
+  const entry = findShortcutEntry(shortcutToken);
+  if (!entry) return false;
+  if (isOwnerAccount(account)) return true;
+  const granted = normalizeCodeAccessList(entry.access);
+  const level = String(account?.sunriseAccessLevel || "").trim().toUpperCase();
+  return !!(level && granted.includes(level));
+}
+
 function showRoute(route, pushHash = true) {
   let target = route || "home";
+  if (target === "profile" && !activeAccount) {
+    target = "account";
+  }
   if (isWebsiteShutdownActive() && !canAccessDuringShutdown(target)) {
     target = "shutdown-404";
   }
@@ -2544,12 +2958,27 @@ function showRoute(route, pushHash = true) {
     if (!allowed) target = activeAccount ? "profile" : "home";
   }
   if (target === "sunrise" || isSunriseModuleRoute) {
-    const allowed = isOwnerAccount(activeAccount);
+    const allowed = hasSunriseAccess(activeAccount);
     if (!allowed) {
       target = activeAccount ? "profile" : "home";
     } else if (isSunriseModuleRoute && !sunriseState.unlocked) {
       target = "sunrise";
+    } else if (isSunriseModuleRoute && !canAccessSunriseRoute(getCurrentSunriseOperator(), target)) {
+      target = "sunrise";
     }
+  }
+  if (shouldBlockRouteForUnsavedSunriseChanges(target)) {
+    openSunriseUnsavedModal((action) => {
+      if (action === "save") {
+        commitSunriseChanges();
+        showRoute(target, pushHash);
+      } else if (action === "discard") {
+        sunriseHasUnsavedChanges = false;
+        updateSunriseSaveButtonsState();
+        showRoute(target, pushHash);
+      }
+    });
+    return;
   }
   const pages = Array.from(document.querySelectorAll(".routePage"));
   const next = pages.find((page) => page.getAttribute("data-page") === target);
@@ -2572,9 +3001,11 @@ function showRoute(route, pushHash = true) {
       setActiveNav(target);
       updateSunriseShortcutDock(target);
       appendSunrisePathTrace(target);
+      updateSunriseSessionBar();
       window.scrollTo({ top: 0, behavior: "auto" });
       if (target === "account") resetAuthState();
       if (target === "sunrise") updateSunriseAccessView();
+      if (target === "sunrise" || sunriseModuleRoutes.includes(target)) renderCustomSunriseControlPages();
       if (target === "contact") applyContactAccountPrefill();
       if (activeSiteLanguage && activeSiteLanguage !== "en") {
         queueTranslation(activeSiteLanguage);
@@ -2587,6 +3018,19 @@ function showRoute(route, pushHash = true) {
 function forceShowRoute(route, pushHash = true) {
   const target = route || "home";
   const normalizedTarget = (isWebsiteShutdownActive() && !canAccessDuringShutdown(target)) ? "shutdown-404" : target;
+  if (shouldBlockRouteForUnsavedSunriseChanges(normalizedTarget)) {
+    openSunriseUnsavedModal((action) => {
+      if (action === "save") {
+        commitSunriseChanges();
+        forceShowRoute(normalizedTarget, pushHash);
+      } else if (action === "discard") {
+        sunriseHasUnsavedChanges = false;
+        updateSunriseSaveButtonsState();
+        forceShowRoute(normalizedTarget, pushHash);
+      }
+    });
+    return;
+  }
   const pages = Array.from(document.querySelectorAll(".routePage"));
   const next = pages.find((page) => page.getAttribute("data-page") === normalizedTarget);
   if (!next) return;
@@ -2598,9 +3042,11 @@ function forceShowRoute(route, pushHash = true) {
   setActiveNav(normalizedTarget);
   updateSunriseShortcutDock(normalizedTarget);
   appendSunrisePathTrace(normalizedTarget);
+  updateSunriseSessionBar();
   window.scrollTo({ top: 0, behavior: "auto" });
   if (normalizedTarget === "account") resetAuthState();
   if (normalizedTarget === "sunrise") updateSunriseAccessView();
+  if (normalizedTarget === "sunrise" || sunriseModuleRoutes.includes(normalizedTarget)) renderCustomSunriseControlPages();
   if (normalizedTarget === "contact") applyContactAccountPrefill();
   if (activeSiteLanguage && activeSiteLanguage !== "en") queueTranslation(activeSiteLanguage);
   if (pushHash) window.location.hash = normalizedTarget;
@@ -2641,75 +3087,316 @@ function setupServiceButtons() {
 function setupSunriseShortcutMenu() {
   const forms = Array.from(document.querySelectorAll(".sunriseShortcutForm"));
   if (!forms.length) return;
+  const helpToggle = document.getElementById("sunrise-shortcut-help-toggle");
+  const helpBox = document.getElementById("sunrise-code-help");
+  const renderShortcutHelp = () => {
+    if (!helpBox) return;
+    const registry = ensureShortcutCodeRegistry();
+    if (registry.length) {
+      helpBox.innerHTML = registry
+        .map((entry) => {
+          const code = String(entry.code || "").toUpperCase();
+          const title = String(entry.title || entry.route || "Shortcut").trim();
+          const route = String(entry.route || "").trim();
+          const access = normalizeCodeAccessList(entry.access).join(", ") || "OW";
+          return `<b>${code}</b><p>${title}${route ? ` • ${route}` : ""}<br><small>Access: ${access}</small></p>`;
+        })
+        .join("");
+      return;
+    }
+    helpBox.innerHTML = Object.entries(sunriseShortcutDescriptions)
+      .map(([code, text]) => `<b>${code.toUpperCase()}</b><p>${text}</p>`)
+      .join("");
+  };
+  if (helpBox) {
+    renderShortcutHelp();
+  }
+  if (helpToggle && helpBox && helpToggle.dataset.boundHelp !== "1") {
+    helpToggle.addEventListener("click", () => {
+      renderShortcutHelp();
+      helpBox.hidden = !helpBox.hidden;
+    });
+    helpToggle.dataset.boundHelp = "1";
+  }
+
+  const normalizeShortcutToken = (rawValue) => {
+    const token = String(rawValue || "").trim().split(/[\s,;]+/)[0] || "";
+    return token.toLowerCase().replace(/[^a-z0-9-]/g, "");
+  };
 
   const resolveShortcutRoute = (rawValue) => {
-    const raw = String(rawValue || "").trim().toLowerCase().replace(/\s+/g, "");
+    const raw = normalizeShortcutToken(rawValue);
     if (!raw) return "";
+    const entry = findShortcutEntry(raw);
+    if (entry && entry.route) return entry.route;
     return sunriseShortcutRouteMap[raw] || (sunriseModuleRoutes.includes(raw) ? raw : "");
   };
 
+  const isShortcutAccessReady = () => {
+    if (sunriseState.unlocked) return true;
+    return !!activeAccount && hasSunriseAccess(activeAccount);
+  };
+
   forms.forEach((form) => {
+    if (form.id === "sunrise-shortcut-dock-form") return;
     const input = form.querySelector("input");
     const infoTarget = String(form.getAttribute("data-info-target") || "").trim();
     const info = infoTarget ? document.getElementById(infoTarget) : null;
     if (!input || !info) return;
     if (form.dataset.shortcutBound === "1") return;
 
-    form.addEventListener("submit", (event) => {
-      event.preventDefault();
+    const runShortcut = () => {
       const raw = String(input.value || "").trim();
       if (!raw) {
         info.textContent = "Enter a module code, for example REV1 or SLS1.";
-        return;
+        return false;
       }
-      if (!sunriseState.unlocked) {
+      if (!isShortcutAccessReady()) {
         info.textContent = "Unlock Sunrise first to use shortcut routing.";
-        return;
+        return false;
       }
 
-      const normalized = raw.toLowerCase().replace(/\s+/g, "");
+      const normalized = normalizeShortcutToken(raw);
+      const operator = getCurrentSunriseOperator();
+      if (normalized && findShortcutEntry(normalized) && !canUseShortcutCode(operator, normalized)) {
+        info.textContent = `Access denied for code ${normalized.toUpperCase()}.`;
+        return false;
+      }
       if (normalized === "ws") {
+        if (!isOwnerAccount(getCurrentSunriseOperator())) {
+          info.textContent = "Access denied for WS command.";
+          return false;
+        }
         setWebsiteShutdownActive(true);
         info.textContent = "Website shutdown activated. Public access is now frozen to 404.";
         const nextRoute = canAccessDuringShutdown(currentVisibleRoute()) ? currentVisibleRoute() : "shutdown-404";
         showRoute(nextRoute);
-        return;
+        return true;
       }
       if (normalized === "wr") {
+        if (!isOwnerAccount(getCurrentSunriseOperator())) {
+          info.textContent = "Access denied for WR command.";
+          return false;
+        }
         setWebsiteShutdownActive(false);
         info.textContent = "Website restore completed. All access has been unfrozen.";
         showRoute("sunrise");
-        return;
+        return true;
       }
 
       const route = resolveShortcutRoute(raw);
       if (!route) {
-        if (/^[a-z]\d{7}$/i.test(normalized)) {
-          const serviceId = normalized.toUpperCase();
+        const cleanServiceToken = normalized.replace(/[^a-z0-9]/g, "");
+        if (/^[a-z]\d{7}$/i.test(cleanServiceToken)) {
+          const serviceId = cleanServiceToken.toUpperCase();
           const serviceFocus = findServiceById(serviceId);
           if (!serviceFocus) {
             info.textContent = `Service ${serviceId} not found in current/past/deleted lists.`;
-            return;
+            return false;
           }
           sunriseControlState.socSelectedServiceId = serviceId;
-          saveSunriseControlState();
+          saveSunriseControlState({ markDirty: false });
           renderSOCDetailsPage();
           showRoute("sunrise-soc-details");
           info.textContent = "";
           input.value = "";
-          return;
+          return true;
         }
-        info.textContent = "Unknown selection code. Use one of the codes shown on the module cards.";
-        return;
+        info.textContent = "Unknown selection code. Open Codes for the full command list.";
+        return false;
       }
       info.textContent = "";
       input.value = "";
+      if (!canAccessSunriseRoute(operator, route, normalized)) {
+        info.textContent = `Access denied for code ${normalized.toUpperCase()}.`;
+        return false;
+      }
       showRoute(route);
+      return true;
+    };
+
+    form.addEventListener("submit", (event) => {
+      event.preventDefault();
+      runShortcut();
     });
+
+    const openBtn = form.querySelector('button[type="submit"]');
+    if (openBtn && openBtn.dataset.shortcutClickBound !== "1") {
+      openBtn.addEventListener("click", (event) => {
+        event.preventDefault();
+        runShortcut();
+      });
+      openBtn.dataset.shortcutClickBound = "1";
+    }
+
+    if (input.dataset.shortcutEnterBound !== "1") {
+      input.addEventListener("keydown", (event) => {
+        if (event.key === "Enter") {
+          event.preventDefault();
+          runShortcut();
+        }
+      });
+      input.dataset.shortcutEnterBound = "1";
+    }
 
     form.dataset.shortcutBound = "1";
   });
+
+  const dockForm = document.getElementById("sunrise-shortcut-dock-form");
+  const dockInput = document.getElementById("sunrise-shortcut-dock-input");
+  if (dockForm instanceof HTMLFormElement && dockForm.dataset.shortcutBound !== "1") {
+    dockForm.addEventListener("submit", (event) => {
+      event.preventDefault();
+      runSunriseDockShortcut();
+    });
+    dockForm.dataset.shortcutBound = "1";
+  }
+  if (dockInput instanceof HTMLInputElement && dockInput.dataset.shortcutEnterBound !== "1") {
+    dockInput.addEventListener("keydown", (event) => {
+      if (event.key !== "Enter") return;
+      event.preventDefault();
+      runSunriseDockShortcut();
+    });
+    dockInput.dataset.shortcutEnterBound = "1";
+  }
+
+  const launchButtons = Array.from(document.querySelectorAll("[data-shortcut][data-route]"));
+  launchButtons.forEach((btn) => {
+    if (btn.dataset.shortcutLaunchBound === "1") return;
+    btn.addEventListener("click", (event) => {
+      event.preventDefault();
+      const route = String(btn.getAttribute("data-route") || "").trim();
+      if (!route) return;
+      if (!isShortcutAccessReady()) {
+        const dockInfo = document.getElementById("sunrise-shortcut-dock-info");
+        if (dockInfo) dockInfo.textContent = "Unlock Sunrise first to use shortcut routing.";
+        return;
+      }
+      const operator = getCurrentSunriseOperator();
+      if (!canAccessSunriseRoute(operator, route)) {
+        const dockInfo = document.getElementById("sunrise-shortcut-dock-info");
+        if (dockInfo) dockInfo.textContent = "Access denied for this module.";
+        return;
+      }
+      showRoute(route);
+    });
+    btn.dataset.shortcutLaunchBound = "1";
+  });
+
 }
+
+function normalizeSunriseShortcutToken(rawValue) {
+  const token = String(rawValue || "").trim().split(/[\s,;]+/)[0] || "";
+  return token.toLowerCase().replace(/[^a-z0-9-]/g, "");
+}
+
+function resolveSunriseShortcutRoute(rawValue) {
+  const raw = normalizeSunriseShortcutToken(rawValue);
+  if (!raw) return "";
+  const entry = findShortcutEntry(raw);
+  if (entry && entry.route) return entry.route;
+  return sunriseShortcutRouteMap[raw] || (sunriseModuleRoutes.includes(raw) ? raw : "");
+}
+
+function runSunriseDockShortcut() {
+  const input = document.getElementById("sunrise-shortcut-dock-input");
+  const info = document.getElementById("sunrise-shortcut-dock-info");
+  if (!(input instanceof HTMLInputElement) || !(info instanceof HTMLElement)) return false;
+  const raw = String(input.value || "").trim();
+  if (!raw) {
+    info.textContent = "Enter a module code, for example REV1 or SLS1.";
+    return false;
+  }
+  if (!sunriseState.unlocked && !(activeAccount && hasSunriseAccess(activeAccount))) {
+    info.textContent = "Unlock Sunrise first to use shortcut routing.";
+    return false;
+  }
+  const normalized = normalizeSunriseShortcutToken(raw);
+  const operator = getCurrentSunriseOperator();
+  if (normalized && findShortcutEntry(normalized) && !canUseShortcutCode(operator, normalized)) {
+    info.textContent = `Access denied for code ${normalized.toUpperCase()}.`;
+    return false;
+  }
+  if (normalized === "ws") {
+    if (!isOwnerAccount(operator)) {
+      info.textContent = "Access denied for WS command.";
+      return false;
+    }
+    setWebsiteShutdownActive(true);
+    info.textContent = "Website shutdown activated. Public access is now frozen to 404.";
+    const nextRoute = canAccessDuringShutdown(currentVisibleRoute()) ? currentVisibleRoute() : "shutdown-404";
+    showRoute(nextRoute);
+    input.value = "";
+    return true;
+  }
+  if (normalized === "wr") {
+    if (!isOwnerAccount(operator)) {
+      info.textContent = "Access denied for WR command.";
+      return false;
+    }
+    setWebsiteShutdownActive(false);
+    info.textContent = "Website restore completed. All access has been unfrozen.";
+    showRoute("sunrise");
+    input.value = "";
+    return true;
+  }
+  const route = resolveSunriseShortcutRoute(raw);
+  if (!route) {
+    const cleanServiceToken = normalized.replace(/[^a-z0-9]/g, "");
+    if (/^[a-z]\d{7}$/i.test(cleanServiceToken)) {
+      const serviceId = cleanServiceToken.toUpperCase();
+      const serviceFocus = findServiceById(serviceId);
+      if (!serviceFocus) {
+        info.textContent = `Service ${serviceId} not found in current/past/deleted lists.`;
+        return false;
+      }
+      sunriseControlState.socSelectedServiceId = serviceId;
+      saveSunriseControlState({ markDirty: false });
+      renderSOCDetailsPage();
+      showRoute("sunrise-soc-details");
+      info.textContent = "";
+      input.value = "";
+      return true;
+    }
+    info.textContent = "Unknown selection code. Open Codes for the full command list.";
+    return false;
+  }
+  if (!canAccessSunriseRoute(operator, route, normalized)) {
+    info.textContent = `Access denied for code ${normalized.toUpperCase()}.`;
+    return false;
+  }
+  info.textContent = "";
+  input.value = "";
+  showRoute(route);
+  return true;
+}
+
+function toggleSunriseDockCodes() {
+  const helpBox = document.getElementById("sunrise-code-help");
+  if (!(helpBox instanceof HTMLElement)) return false;
+  const registry = ensureShortcutCodeRegistry();
+  helpBox.innerHTML = (registry.length ? registry : Object.entries(sunriseShortcutDescriptions).map(([code, text]) => ({
+    code: String(code || "").toUpperCase(),
+    title: String(text || ""),
+    route: "",
+    access: ""
+  })))
+    .map((entry) => {
+      const code = String(entry.code || "").toUpperCase();
+      const title = String(entry.title || entry.route || "Shortcut").trim();
+      const route = String(entry.route || "").trim();
+      const access = normalizeCodeAccessList(entry.access).join(", ") || "OW";
+      return `<b>${code}</b><p>${title}${route ? ` • ${route}` : ""}<br><small>Access: ${access}</small></p>`;
+    })
+    .join("");
+  const willShow = helpBox.hidden;
+  helpBox.hidden = !willShow;
+  helpBox.style.display = willShow ? "block" : "none";
+  return true;
+}
+
+window.sunriseDockSubmitShortcut = runSunriseDockShortcut;
+window.sunriseDockToggleCodes = toggleSunriseDockCodes;
 
 function ensureSunriseInboxTopButtons() {
   const targets = ["sunrise", ...sunriseModuleRoutes];
@@ -2741,8 +3428,18 @@ function updateSunriseShortcutDock(route = currentVisibleRoute()) {
   if (!dock) return;
   const normalizedRoute = String(route || "").trim();
   const isSunriseRoute = normalizedRoute === "sunrise" || sunriseModuleRoutes.includes(normalizedRoute);
-  const shouldShow = isSunriseRoute && !!activeAccount && isOwnerAccount(activeAccount) && !!sunriseState.unlocked;
+  const shouldShow = isSunriseRoute && !!activeAccount && hasSunriseAccess(activeAccount) && !!sunriseState.unlocked;
   dock.hidden = !shouldShow;
+  dock.style.position = "fixed";
+  dock.style.left = "50%";
+  dock.style.right = "auto";
+  dock.style.top = "auto";
+  dock.style.bottom = "12px";
+  dock.style.transform = "translateX(-50%)";
+  dock.style.width = "min(920px, calc(100% - 24px))";
+  dock.style.maxWidth = "min(920px, calc(100% - 24px))";
+  dock.style.display = shouldShow ? "block" : "none";
+  document.body.classList.toggle("sunrise-dock-visible", shouldShow);
 }
 
 function initRouteFromHash() {
@@ -2752,13 +3449,15 @@ function initRouteFromHash() {
   const route = (baseRoutes.includes(routeBase) || sunriseModuleRoutes.includes(routeBase)) ? routeBase : "home";
   const ambassadorAllowed = activeAccount && String(activeAccount.membership || "").toLowerCase() === "voyager red";
   const controlAllowed = isVoyagerControlUser(activeAccount);
-  const sunriseAllowed = isOwnerAccount(activeAccount);
+  const sunriseAllowed = hasSunriseAccess(activeAccount);
   const sunriseModuleAllowed = !sunriseModuleRoutes.includes(route) || sunriseState.unlocked;
   let safeRoute = route;
+  if (route === "profile" && !activeAccount) safeRoute = "account";
   if (route === "ambassador" && !ambassadorAllowed) safeRoute = activeAccount ? "profile" : "home";
   if (route === "voyager-control" && !controlAllowed) safeRoute = activeAccount ? "profile" : "home";
   if (route === "sunrise" && !sunriseAllowed) safeRoute = activeAccount ? "profile" : "home";
   if (sunriseModuleRoutes.includes(route) && (!sunriseAllowed || !sunriseModuleAllowed)) safeRoute = sunriseAllowed ? "sunrise" : (activeAccount ? "profile" : "home");
+  if (sunriseModuleRoutes.includes(safeRoute) && !canAccessSunriseRoute(getCurrentSunriseOperator(), safeRoute)) safeRoute = "sunrise";
   if (isWebsiteShutdownActive() && !canAccessDuringShutdown(safeRoute)) safeRoute = "shutdown-404";
 
   document.querySelectorAll(".routePage").forEach((page) => {
@@ -2771,7 +3470,9 @@ function initRouteFromHash() {
   setActiveNav(safeRoute);
   updateSunriseShortcutDock(safeRoute);
   appendSunrisePathTrace(safeRoute);
+  updateSunriseSessionBar();
   if (safeRoute === "sunrise") updateSunriseAccessView();
+  if (safeRoute === "sunrise" || sunriseModuleRoutes.includes(safeRoute)) renderCustomSunriseControlPages();
   if (safeRoute === "contact") applyContactAccountPrefill();
   window.scrollTo({ top: 0, behavior: "auto" });
   if (route === "contact" && query) {
@@ -2876,25 +3577,40 @@ const tierData = {
   }
 };
 
+function populateAllTierBacks() {
+  Object.keys(tierData).forEach((key) => renderTier(key));
+}
+
 function renderTier(tierKey) {
   const tier = tierData[tierKey];
   if (!tier) return;
-
-  const name = document.getElementById("tier-name");
-  const validity = document.getElementById("tier-validity");
-  const achievement = document.getElementById("tier-achievement");
-  const benefits = document.getElementById("tier-benefits");
-
-  if (!name || !validity || !achievement || !benefits) return;
-
-  name.textContent = tier.name;
-  validity.textContent = tier.validity;
-  achievement.textContent = tier.achievement;
-  benefits.innerHTML = tier.benefits.map((item) => `<li>${item}</li>`).join("");
+  const back = document.querySelector(`[data-tier-back="${tierKey}"]`);
+  if (back) {
+    const shortName = String(tier.name || "").replace(/^Voyager\s+/i, "").trim() || tier.name;
+    back.innerHTML = `<div class="tierBackCard"><h3 class="tierBackTitle">${shortName}</h3><div class="tierBackText"><p><strong>${tier.validity}.</strong> ${tier.achievement}</p><ul>${tier.benefits.map((item) => `<li>${item}</li>`).join("")}</ul></div></div>`;
+  }
   refreshActiveLanguageIfNeeded();
 }
 
 document.addEventListener("click", (e) => {
+  const instagramLink = e.target.closest("[data-instagram-link]");
+  if (instagramLink) {
+    e.preventDefault();
+    const url = String(instagramLink.getAttribute("href") || "https://www.instagram.com/venturevs/").trim();
+    try {
+      window.open(url, "_blank", "noopener,noreferrer");
+    } catch (_) {
+      window.location.href = url;
+    }
+    return;
+  }
+  const conciergePick = e.target.closest("[data-concierge-pick]");
+  if (conciergePick) {
+    e.preventDefault();
+    pendingPreferredConcierge = String(conciergePick.getAttribute("data-concierge-pick") || "").trim();
+    showRoute("contact");
+    return;
+  }
   const routeLink = e.target.closest("[data-route]");
   if (routeLink) {
     e.preventDefault();
@@ -2916,16 +3632,24 @@ document.addEventListener("click", (e) => {
 });
 
 window.addEventListener("hashchange", initRouteFromHash);
-renderTier("cuprum");
-initHeroLocator();
-populateSignupCountries();
-populateIssuedServiceCountries();
-populateNavLanguageCountries();
-setupNavLanguageSelector();
-setupSignupCountryPhoneAutofill();
-setupContactIssuedCountryPhoneAutofill();
-setupServiceButtons();
-setupSunriseShortcutMenu();
+const safeStartupCall = (name, fn) => {
+  try {
+    fn();
+  } catch (err) {
+    console.error(`Startup call failed: ${name}`, err);
+  }
+};
+
+safeStartupCall("populateAllTierBacks", populateAllTierBacks);
+safeStartupCall("initHeroLocator", initHeroLocator);
+safeStartupCall("populateSignupCountries", populateSignupCountries);
+safeStartupCall("populateIssuedServiceCountries", populateIssuedServiceCountries);
+safeStartupCall("populateNavLanguageCountries", populateNavLanguageCountries);
+safeStartupCall("setupNavLanguageSelector", setupNavLanguageSelector);
+safeStartupCall("setupSignupCountryPhoneAutofill", setupSignupCountryPhoneAutofill);
+safeStartupCall("setupContactIssuedCountryPhoneAutofill", setupContactIssuedCountryPhoneAutofill);
+safeStartupCall("setupServiceButtons", setupServiceButtons);
+safeStartupCall("setupSunriseShortcutMenu", setupSunriseShortcutMenu);
 
 queueMicrotask(() => {
   try {
@@ -3015,6 +3739,11 @@ function applyContactAccountPrefill() {
   if (title) title.value = finalData.title;
   if (phone) phone.value = finalData.phone;
   if (email) email.value = finalData.email;
+  if (pendingPreferredConcierge && contactError) {
+    contactError.textContent = `Preferred concierge pre-assigned: ${pendingPreferredConcierge}.`;
+  } else if (contactError) {
+    contactError.textContent = "";
+  }
   saveContactPrefillDraft();
 }
 
@@ -3037,6 +3766,335 @@ if (executionSelect && instantWarning) {
 }
 
 bindContactPrefillPersistence();
+
+const sunriseStaffAliasKeywords = [
+  "house",
+  "team",
+  "department.red",
+  "department",
+  "management",
+  "executives",
+  "directorate",
+  "operations",
+  "ops",
+  "concierge",
+  "staff",
+  "red"
+];
+
+const sunriseOwnerAliasKeywords = [
+  "owner",
+  "owners",
+  "ceo",
+  "coo",
+  "founder",
+  "founders",
+  "chairman",
+  "executive-owner"
+];
+
+const sunriseOwnerAddressKeywords = [
+  "aleks",
+  "totev",
+  "mikhail",
+  "kovalev",
+  "ceo",
+  "coo",
+  "owner",
+  "founder",
+  "chairman"
+];
+
+function normalizeEmailAddress(value = "") {
+  return String(value || "").trim().toLowerCase();
+}
+
+function parseEmailRecipients(value = "") {
+  return String(value || "")
+    .split(/[,;\n]+/)
+    .map((token) => String(token || "").trim())
+    .map((token) => {
+      const m = token.match(/[A-Z0-9._%+-]+@[A-Z0-9.-]+\.[A-Z]{2,}/i);
+      return m ? normalizeEmailAddress(m[0]) : "";
+    })
+    .filter(Boolean);
+}
+
+function resolveSunriseMailboxForAccount(account) {
+  if (!account) return "";
+  const rawEmail = normalizeEmailAddress(account.email || "");
+  if (!rawEmail) return "";
+  if (account.sunriseCredential) return rawEmail;
+  if (!hasSunriseAccess(account)) return "";
+  const linkedMailbox = Object.entries(accounts).find(([key, row]) => {
+    const linked = normalizeEmailAddress(row?.sunriseLinkedEmail || "");
+    return !!row?.sunriseCredential && linked && (linked === rawEmail || linked === normalizeEmailAddress(account.email));
+  });
+  if (linkedMailbox && linkedMailbox[0]) return normalizeEmailAddress(linkedMailbox[0]);
+  if (isOwnerAccount(account)) {
+    if (rawEmail.includes("aleks")) return "aleks.sunrise@vvs.com";
+    if (rawEmail.includes("mikhail")) return "mikhail.sunrise@vvs.com";
+  }
+  return rawEmail;
+}
+
+function ownerSunriseMailboxes() {
+  const set = new Set();
+  Object.values(accounts).forEach((account) => {
+    if (!account || !isOwnerAccount(account)) return;
+    const mailbox = resolveSunriseMailboxForAccount(account);
+    if (mailbox) set.add(mailbox);
+  });
+  if (!set.size) {
+    set.add("aleks.sunrise@vvs.com");
+    set.add("mikhail.sunrise@vvs.com");
+  }
+  return Array.from(set);
+}
+
+function staffSunriseMailboxes() {
+  const set = new Set();
+  Object.values(accounts).forEach((account) => {
+    if (!account || isOwnerAccount(account)) return;
+    const membership = String(account.membership || "").trim().toLowerCase();
+    if (membership !== "staff") return;
+    const mailbox = resolveSunriseMailboxForAccount(account);
+    if (mailbox) set.add(mailbox);
+  });
+  return Array.from(set);
+}
+
+function isStaffDistributionAlias(email = "") {
+  const value = normalizeEmailAddress(email);
+  const [localPart = "", domain = ""] = value.split("@");
+  if (domain !== "venture-voyagers.com" || !localPart) return false;
+  return sunriseStaffAliasKeywords.some((keyword) => {
+    const k = String(keyword || "").toLowerCase();
+    return localPart === k
+      || localPart.startsWith(`${k}.`)
+      || localPart.startsWith(`${k}-`)
+      || localPart.endsWith(`.${k}`)
+      || localPart.includes(`${k}_`);
+  });
+}
+
+function isOwnerDistributionAlias(email = "") {
+  const value = normalizeEmailAddress(email);
+  const [localPart = "", domain = ""] = value.split("@");
+  if (domain !== "venture-voyagers.com" || !localPart) return false;
+  return sunriseOwnerAliasKeywords.some((keyword) => {
+    const k = String(keyword || "").toLowerCase();
+    return localPart === k
+      || localPart.startsWith(`${k}.`)
+      || localPart.startsWith(`${k}-`)
+      || localPart.endsWith(`.${k}`)
+      || localPart.includes(`${k}_`);
+  });
+}
+
+function isOwnerAddressLike(email = "") {
+  const value = normalizeEmailAddress(email);
+  if (!value || !value.includes("@")) return false;
+  const [localPart = "", domain = ""] = value.split("@");
+  if (!localPart) return false;
+  const ownerDomain = domain === "vvs.com" || domain === "venture-voyagers.com";
+  if (!ownerDomain) return false;
+  return sunriseOwnerAddressKeywords.some((keyword) => localPart.includes(String(keyword || "").toLowerCase()));
+}
+
+function resolveSunriseRecipientMailboxes(to = "", cc = "", bcc = "") {
+  const targets = new Set();
+  const recipients = [...parseEmailRecipients(to), ...parseEmailRecipients(cc), ...parseEmailRecipients(bcc)];
+  recipients.forEach((email) => {
+    const [localPart = "", domain = ""] = email.split("@");
+    if (isOwnerDistributionAlias(email) || isOwnerAddressLike(email)) {
+      ownerSunriseMailboxes().forEach((mailbox) => targets.add(mailbox));
+      return;
+    }
+    if (isStaffDistributionAlias(email)) {
+      staffSunriseMailboxes().forEach((mailbox) => targets.add(mailbox));
+      return;
+    }
+    if (email === "owner@venture-voyagers.com") {
+      ownerSunriseMailboxes().forEach((mailbox) => targets.add(mailbox));
+      return;
+    }
+    const account = findAccountByEmail(email);
+    if (account && hasSunriseAccess(account)) {
+      if (isOwnerAccount(account)) {
+        ownerSunriseMailboxes().forEach((mailbox) => targets.add(mailbox));
+      } else {
+        const mailbox = resolveSunriseMailboxForAccount(account);
+        if (mailbox) targets.add(mailbox);
+      }
+      return;
+    }
+    if (domain === "venture-voyagers.com" && localPart && !isOwnerAddressLike(email)) {
+      // For shared operational aliases (including future prefixes), distribute to staff.
+      staffSunriseMailboxes().forEach((mailbox) => targets.add(mailbox));
+      return;
+    }
+    if (email.endsWith(".sunrise@vvs.com")) {
+      targets.add(email);
+    }
+  });
+  return Array.from(targets);
+}
+
+function routeSunriseInboundCopies({
+  senderMailbox = "",
+  from = "",
+  to = "",
+  cc = "",
+  bcc = "",
+  subject = "",
+  bodyHtml = "",
+  priority = "Normal",
+  attachments = []
+} = {}) {
+  const sender = normalizeEmailAddress(senderMailbox);
+  const recipientMailboxes = resolveSunriseRecipientMailboxes(to, cc, bcc);
+  recipientMailboxes.forEach((mailbox) => {
+    const key = normalizeEmailAddress(mailbox);
+    if (!key || (sender && key === sender)) return;
+    pushInboxMessage({
+      mailbox: key,
+      folder: "inbox",
+      from,
+      to,
+      cc,
+      bcc,
+      subject,
+      bodyHtml,
+      priority,
+      attachments
+    });
+  });
+}
+
+function activeSunriseMailbox() {
+  const account = sunriseState?.account || activeAccount || null;
+  const mailbox = resolveSunriseMailboxForAccount(account);
+  if (mailbox) return mailbox;
+  return ownerSunriseMailboxes()[0] || "aleks.sunrise@vvs.com";
+}
+
+function sunriseInboxProfile() {
+  const sessionAccount = sunriseState?.account || activeAccount || null;
+  if (!sessionAccount) return { name: "Sunrise Operator", position: "Authenticated Session" };
+  const linkedEmail = normalizeEmailAddress(sessionAccount.sunriseLinkedEmail || "");
+  const resolvedAccount = linkedEmail && accounts[linkedEmail] ? accounts[linkedEmail] : sessionAccount;
+  const prefix = String(resolvedAccount.prefix || "").trim();
+  const first = String(resolvedAccount.firstName || "").trim();
+  const last = String(resolvedAccount.lastName || "").trim();
+  const nameCore = `${first} ${last}`.trim();
+  const name = `${prefix} ${nameCore}`.replace(/\s+/g, " ").trim() || String(resolvedAccount.email || sessionAccount.email || "Sunrise Operator");
+  const meta = sunriseAccessMeta(resolvedAccount);
+  const position = String(resolvedAccount.roleTitle || sessionAccount.roleTitle || meta.title || "Sunrise Operator").trim();
+  return { name, position };
+}
+
+let sunriseComposeDraftBaseline = null;
+
+function getSunriseComposeSnapshot() {
+  const readValue = (id) => String(document.getElementById(id)?.value || "").trim();
+  const readFiles = (id) => {
+    const input = document.getElementById(id);
+    if (!(input instanceof HTMLInputElement) || !input.files) return [];
+    return Array.from(input.files).map((file) => String(file?.name || "").trim()).filter(Boolean).sort();
+  };
+  return {
+    to: readValue("sunrise-mail-to"),
+    cc: readValue("sunrise-mail-cc"),
+    bcc: readValue("sunrise-mail-bcc"),
+    subject: readValue("sunrise-mail-subject"),
+    body: readValue("sunrise-mail-body"),
+    font: readValue("sunrise-mail-font"),
+    fontSize: readValue("sunrise-mail-font-size"),
+    priority: readValue("sunrise-mail-priority"),
+    schedule: readValue("sunrise-mail-schedule"),
+    attachments: readFiles("sunrise-mail-attach")
+  };
+}
+
+function setSunriseComposeDraftBaseline() {
+  sunriseComposeDraftBaseline = getSunriseComposeSnapshot();
+}
+
+function clearSunriseComposeDraftBaseline() {
+  sunriseComposeDraftBaseline = null;
+}
+
+function hasSnapshotContent(snapshot = {}) {
+  return Object.values(snapshot).some((value) => {
+    if (Array.isArray(value)) return value.length > 0;
+    return String(value || "").trim().length > 0;
+  });
+}
+
+function sunriseComposeSnapshotChanged() {
+  const current = getSunriseComposeSnapshot();
+  if (!sunriseComposeDraftBaseline) return hasSnapshotContent(current);
+  const baseline = sunriseComposeDraftBaseline;
+  const keys = ["to", "cc", "bcc", "subject", "body", "font", "fontSize", "priority", "schedule"];
+  const anyFieldChanged = keys.some((key) => String(current[key] || "") !== String(baseline[key] || ""));
+  if (anyFieldChanged) return true;
+  const currentFiles = Array.isArray(current.attachments) ? current.attachments : [];
+  const baselineFiles = Array.isArray(baseline.attachments) ? baseline.attachments : [];
+  if (currentFiles.length !== baselineFiles.length) return true;
+  return currentFiles.some((name, idx) => name !== baselineFiles[idx]);
+}
+
+function hasPendingInboxChanges() {
+  const overlay = document.getElementById("sunrise-email-overlay");
+  if (!(overlay instanceof HTMLElement) || overlay.hidden) return false;
+  return sunriseComposeSnapshotChanged();
+}
+
+function pushInboxMessage(payload = {}) {
+  if (!sunriseControlState) return;
+  const inbox = sunriseControlState.inbox || {};
+  if (!Array.isArray(inbox.messages)) inbox.messages = [];
+  inbox.messages.unshift({
+    id: `MAIL-${Date.now()}-${Math.floor(Math.random() * 1000)}`,
+    folder: payload.folder || "inbox",
+    mailbox: payload.mailbox || "shared",
+    from: payload.from || "concierge@venture-voyagers.com",
+    to: payload.to || "",
+    cc: payload.cc || "",
+    bcc: payload.bcc || "",
+    subject: payload.subject || "(No subject)",
+    bodyHtml: payload.bodyHtml || "<p>No content.</p>",
+    priority: payload.priority || "Normal",
+    scheduledAt: payload.scheduledAt || "",
+    createdAt: new Date().toISOString().replace("T", " ").slice(0, 16) + " UTC",
+    attachments: Array.isArray(payload.attachments) ? payload.attachments : []
+  });
+  sunriseControlState.inbox = inbox;
+  saveSunriseControlState({ markDirty: false });
+}
+
+function submitServiceIntoSOC({ serviceType = "", clientName = "", tier = "Non-Member", desiredExecutionTime = "", details = "", assigned = "" } = {}) {
+  if (!sunriseControlState) return;
+  if (!sunriseControlState.socServices) sunriseControlState.socServices = { current: [], past: [], deleted: [] };
+  if (!Array.isArray(sunriseControlState.socServices.current)) sunriseControlState.socServices.current = [];
+  sunriseControlState.socServices.current.unshift({
+    id: generateServiceId(),
+    title: serviceType || "Service Request",
+    client: clientName || "New Client",
+    tier: tier || "Non-Member",
+    desiredExecutionTime: desiredExecutionTime || "24h",
+    description: details || "",
+    assigned: assigned || "Unassigned",
+    assignedAt: assigned ? formatUtcTimestamp(new Date()) : "",
+    confirmedAt: "",
+    status: "Awaiting Confirmation",
+    stage: "Current",
+    budget: 0,
+    steps: defaultSocSteps()
+  });
+  saveSunriseControlState({ markDirty: false });
+}
 
 if (contactForm) {
   contactForm.addEventListener("submit", (event) => {
@@ -3062,17 +4120,52 @@ if (contactForm) {
 
     const titleInput = document.getElementById("title");
     const lastNameInput = document.getElementById("last-name");
+    const firstNameInput = document.getElementById("first-name");
+    const emailInput = document.getElementById("email");
+    const phoneInput = document.getElementById("phone");
+    const serviceTypeInput = document.getElementById("service-type");
+    const executionTimeInput = document.getElementById("execution-time");
+    const detailsInput = document.getElementById("request-details");
     const title = titleInput && titleInput.value ? titleInput.value.trim() : "Mr.";
+    const firstName = firstNameInput && firstNameInput.value ? firstNameInput.value.trim() : "Client";
     const lastName = lastNameInput && lastNameInput.value ? lastNameInput.value.trim() : "Client";
+    const emailAddr = emailInput && emailInput.value ? emailInput.value.trim() : "";
+    const phoneNum = phoneInput && phoneInput.value ? phoneInput.value.trim() : "";
+    const serviceType = serviceTypeInput && serviceTypeInput.value ? serviceTypeInput.value.trim() : "";
+    const executionTime = executionTimeInput && executionTimeInput.value ? executionTimeInput.value.trim() : "";
+    const details = detailsInput && detailsInput.value ? detailsInput.value.trim() : "";
+    const assignedConcierge = pendingPreferredConcierge || (currentAssignedConcierge ? currentAssignedConcierge.name : (autoAssignConcierge(activeAccount || { country: "United Arab Emirates" })?.name || "Benedict Hale"));
 
     if (contactSuccessMessage) {
       contactSuccessMessage.textContent =
-        `Dear ${title} ${lastName}, Concierge Benedict has been assigned to your request. You will be contacted for service details via your ${methodText}, based on your selected preference. Thank you for choosing VVS.`;
+        `Dear ${title} ${lastName}, Concierge ${assignedConcierge} has been assigned to your request. You will be contacted for service details via your ${methodText}, based on your selected preference. Thank you for choosing VVS.`;
     }
+
+    submitServiceIntoSOC({
+      serviceType: serviceType.replaceAll("_", " ").replace(/\b\w/g, (m) => m.toUpperCase()),
+      clientName: `${firstName} ${lastName}`.trim(),
+      tier: activeAccount ? activeAccount.membership : "Non-Member",
+      desiredExecutionTime: executionTime,
+      details,
+      assigned: assignedConcierge
+    });
+    const intakeSubject = `New Service Submission - ${serviceType || "General Request"}`;
+    const intakeBody = `<p><b>Client:</b> ${title} ${firstName} ${lastName}</p><p><b>Phone:</b> ${phoneNum}</p><p><b>Service:</b> ${serviceType}</p><p><b>Desired:</b> ${executionTime}</p><p><b>Assigned concierge:</b> ${assignedConcierge}</p><p><b>Details:</b> ${details || "N/A"}</p>`;
+    routeSunriseInboundCopies({
+      from: emailAddr || "client@unknown",
+      to: "team@venture-voyagers.com",
+      cc: "management@venture-voyagers.com",
+      bcc: "",
+      subject: intakeSubject,
+      bodyHtml: intakeBody,
+      priority: executionTime === "Instant" ? "Urgent" : "High",
+      attachments: []
+    });
 
     if (contactOverlay) contactOverlay.hidden = false;
     refreshActiveLanguageIfNeeded();
     contactForm.reset();
+    pendingPreferredConcierge = "";
     if (activeAccount) applyContactAccountPrefill();
     if (instantWarning) instantWarning.hidden = true;
   });
@@ -3119,7 +4212,8 @@ const sunriseState = {
   code: "",
   account: null,
   sessionId: "",
-  operatorCode: ""
+  operatorCode: "",
+  pendingAccount: null
 };
 
 const SUNRISE_OWNER_CODES = {
@@ -3144,7 +4238,7 @@ function activateAuthTab(tabKey) {
 
   if (tabKey === "login") {
     if (loginStep1) loginStep1.hidden = false;
-    if (loginStep2) loginStep2.hidden = true;
+    if (loginStep2) loginStep2.hidden = false;
     if (loginInfo) loginInfo.textContent = "";
   }
 
@@ -3212,6 +4306,31 @@ function updateSunriseAccessView() {
   authCard.hidden = sunriseState.unlocked;
   panel.hidden = !sunriseState.unlocked;
   updateSunriseShortcutDock();
+  updateSunriseSessionBar();
+}
+
+function updateSunriseSessionBar() {
+  const bar = document.getElementById("sunrise-session-bar");
+  const text = document.getElementById("sunrise-session-live");
+  if (!bar || !text) return;
+  const route = currentVisibleRoute();
+  const bodyRoute = String(document.body.getAttribute("data-route") || "").trim();
+  const hashRoute = String(window.location.hash || "").replace("#", "").split("?")[0].trim();
+  const visible = sunriseState.unlocked
+    && (route === "sunrise" || sunriseModuleRoutes.includes(route))
+    && (bodyRoute === "sunrise" || sunriseModuleRoutes.includes(bodyRoute))
+    && (hashRoute === "sunrise" || sunriseModuleRoutes.includes(hashRoute));
+  bar.hidden = !visible;
+  bar.classList.toggle("isVisible", visible);
+  bar.style.display = visible ? "flex" : "none";
+  if (!visible) return;
+  const meta = getLcsSessionMetaById(sunriseState.sessionId);
+  if (!meta) {
+    text.textContent = "00hr:00min:00sec";
+    return;
+  }
+  updateNotosSessionDuration(meta.row);
+  text.textContent = meta.row.session || "00hr:00min:00sec";
 }
 
 function resetSunriseState(options = {}) {
@@ -3223,6 +4342,7 @@ function resetSunriseState(options = {}) {
   sunriseState.account = null;
   sunriseState.sessionId = "";
   sunriseState.operatorCode = "";
+  sunriseState.pendingAccount = null;
   if (shouldClearStoredSession) clearSunriseSession();
   const step1 = document.getElementById("sunrise-step1");
   const step2 = document.getElementById("sunrise-step2");
@@ -3232,10 +4352,16 @@ function resetSunriseState(options = {}) {
     step1.reset();
   }
   if (step2) {
-    step2.hidden = true;
+    step2.hidden = false;
     step2.reset();
   }
   if (info) info.textContent = "";
+  if (sunriseOwnerAlertOverlay) sunriseOwnerAlertOverlay.hidden = true;
+  if (sunriseUnsavedOverlay) sunriseUnsavedOverlay.hidden = true;
+  sunriseUnsavedModalPendingAction = null;
+  if (sunriseNotosOverlay) sunriseNotosOverlay.hidden = true;
+  if (sunriseNotosInput) sunriseNotosInput.value = "";
+  if (sunriseNotosInfo) sunriseNotosInfo.textContent = "";
   updateSunriseAccessView();
 }
 
@@ -3252,9 +4378,14 @@ function issueTestEmailCode(email) {
 }
 
 function isSunriseCredentialAccount(account) {
-  if (!account || !isOwnerAccount(account)) return false;
+  if (!account) return false;
   const key = String(account.email || "").trim().toLowerCase();
-  return key === "aleks.sunrise@vvs.com" || key === "mikhail.sunrise@vvs.com";
+  return !!account.sunriseCredential || key.endsWith(".sunrise@vvs.com");
+}
+
+function isVvsCredentialAccount(account) {
+  if (!account) return false;
+  return !isSunriseCredentialAccount(account);
 }
 
 function findAccountByEmail(email) {
@@ -3283,7 +4414,15 @@ function greetingPrefixByCountry(country) {
 
 function tierThemeClass(membership) {
   const value = (membership || "").toLowerCase();
+  const access = (activeAccount?.sunriseAccessLevel || "").toUpperCase();
   if (value.includes("owner")) return "tier-theme-owner";
+  if (value.includes("staff")) {
+    if (access === "STA" || access === "SA") return "tier-theme-sta";
+    if (access === "SS") return "tier-theme-ss";
+    if (access === "SM") return "tier-theme-sm";
+    if (access === "DA") return "tier-theme-da";
+    if (access === "CA") return "tier-theme-ca";
+  }
   if (value.includes("non-member") || value.includes("non member")) return "tier-theme-base";
   if (value.includes("red")) return "tier-theme-red";
   if (value.includes("noir")) return "tier-theme-noir";
@@ -3426,11 +4565,13 @@ function tierProgressInfo(membership, servicesCompleted) {
 }
 
 function updateAuthCta() {
+  const contactCta = document.getElementById("contact-cta");
   if (!authCta) return;
   if (isWebsiteShutdownActive()) {
     authCta.textContent = "Account";
     authCta.setAttribute("href", "#account");
     authCta.setAttribute("data-route", "account");
+    if (contactCta) contactCta.hidden = false;
     updateAmbassadorAccess();
     updateVoyagerControlAccess();
     return;
@@ -3439,13 +4580,25 @@ function updateAuthCta() {
     authCta.textContent = "Account";
     authCta.setAttribute("href", "#profile");
     authCta.setAttribute("data-route", "profile");
+    if (contactCta) contactCta.hidden = true;
   } else {
     authCta.textContent = "Log In / Sign Up";
     authCta.setAttribute("href", "#account");
     authCta.setAttribute("data-route", "account");
+    if (contactCta) contactCta.hidden = false;
   }
   updateAmbassadorAccess();
   updateVoyagerControlAccess();
+  updateContactRouteVisibility();
+}
+
+function updateContactRouteVisibility() {
+  const links = Array.from(document.querySelectorAll('[data-route="contact"]'));
+  links.forEach((link) => {
+    if (!(link instanceof HTMLElement)) return;
+    const keep = link.id === "profile-submit-service-btn" || link.id === "profile-submit-service-top";
+    link.hidden = !!activeAccount && !keep;
+  });
 }
 
 function clearActiveSession() {
@@ -3485,6 +4638,23 @@ function generateGenericNotosSessionId() {
   const letter = String.fromCharCode(65 + Math.floor(Math.random() * 26));
   const digits = String(Math.floor(1000 + Math.random() * 9000));
   return `NTS-${digits}${letter}`;
+}
+
+function buildUniqueNotosSessionRecordId(baseNotosId) {
+  const d = new Date();
+  const yyyy = d.getUTCFullYear();
+  const mm = String(d.getUTCMonth() + 1).padStart(2, "0");
+  const dd = String(d.getUTCDate()).padStart(2, "0");
+  const hh = String(d.getUTCHours()).padStart(2, "0");
+  const mi = String(d.getUTCMinutes()).padStart(2, "0");
+  const ss = String(d.getUTCSeconds()).padStart(2, "0");
+  let candidate = `${baseNotosId}-${yyyy}${mm}${dd}${hh}${mi}${ss}`;
+  if (!sunriseControlState || !Array.isArray(sunriseControlState.lcsSessions)) return candidate;
+  const used = new Set(sunriseControlState.lcsSessions.map((row) => String(row?.id || "")));
+  if (!used.has(candidate)) return candidate;
+  let attempt = 1;
+  while (used.has(`${candidate}-${attempt}`)) attempt += 1;
+  return `${candidate}-${attempt}`;
 }
 
 function formatUtcTimestamp(date = new Date()) {
@@ -3538,7 +4708,7 @@ function appendSunrisePathTrace(route) {
   timeline.push({ route, at: now });
   meta.row.path = buildPathPreview(timeline);
   updateNotosSessionDuration(meta.row);
-  saveSunriseControlState();
+  saveSunriseControlState({ markDirty: false });
   if (currentVisibleRoute() === "sunrise-lcs") renderLCSPage();
 }
 
@@ -3546,16 +4716,18 @@ function startNotosSession(account) {
   if (!sunriseControlState || !account) return;
   const now = new Date();
   const operatorCode = resolveSunriseOwnerCode(account);
-  const sessionId = operatorCode === "AO1"
+  const owner = isOwnerAccount(account);
+  const notosId = owner && operatorCode === "AO1"
     ? "NTS-A01"
-    : (operatorCode === "MO1" ? "NTS-M01" : generateGenericNotosSessionId());
+    : (owner && operatorCode === "MO1" ? "NTS-M01" : String(account.notosId || generateGenericNotosSessionId()).toUpperCase());
+  const sessionId = buildUniqueNotosSessionRecordId(notosId);
   sunriseState.sessionId = sessionId;
   sunriseState.operatorCode = operatorCode;
   const loginStamp = formatUtcTimestamp(now);
   const row = {
     id: sessionId,
-    code: operatorCode,
-    employee: "Notos EA (Executive Admin)",
+    code: owner ? operatorCode : String(account.sunriseAccessLevel || "SA").toUpperCase(),
+    employee: owner ? "Notos EA (Executive Admin)" : `${account.firstName || ""} ${account.lastName || ""}`.trim(),
     loginAt: loginStamp,
     logoutAt: "Active",
     loginTs: now.getTime(),
@@ -3563,11 +4735,10 @@ function startNotosSession(account) {
     session: "00hr:00min:00sec",
     path: "",
     pathTimeline: [],
-    permission: "Owner"
+    permission: owner ? "Owner" : String(account.sunriseAccessLevel || "SA").toUpperCase(),
+    notosId
   };
   const list = Array.isArray(sunriseControlState.lcsSessions) ? sunriseControlState.lcsSessions : [];
-  const existingIdx = list.findIndex((item) => String(item.id || "") === sessionId);
-  if (existingIdx >= 0) list.splice(existingIdx, 1);
   sunriseControlState.lcsSessions = list;
   sunriseControlState.lcsSessions.unshift(row);
   appendSunrisePathTrace("sunrise");
@@ -3581,11 +4752,11 @@ function closeNotosSession() {
   meta.row.logoutAt = formatUtcTimestamp(now);
   meta.row.logoutTs = now.getTime();
   updateNotosSessionDuration(meta.row);
-  saveSunriseControlState();
+  saveSunriseControlState({ immediate: true, markDirty: false });
 }
 
 function persistSunriseSession(account) {
-  if (!account || !isSunriseCredentialAccount(account)) {
+  if (!account || !hasSunriseAccess(account)) {
     clearSunriseSession();
     return;
   }
@@ -3600,7 +4771,7 @@ function persistSunriseSession(account) {
 }
 
 function restoreSunriseSession(account) {
-  if (!account || !isSunriseCredentialAccount(account)) {
+  if (!account || !hasSunriseAccess(account)) {
     clearSunriseSession();
     return;
   }
@@ -3643,6 +4814,7 @@ function restoreActiveSession() {
         const snapshot = JSON.parse(snapshotRaw);
         if (snapshot && snapshot.email && String(snapshot.email).trim().toLowerCase() === savedEmail) {
           accounts[savedEmail] = snapshot;
+          persistAccountsData();
           account = accounts[savedEmail];
         }
       }
@@ -3659,6 +4831,29 @@ function restoreActiveSession() {
   } catch (_) {
     clearActiveSession();
   }
+}
+
+function finalizeSunriseUnlock(account) {
+  const targetAccount = account || sunriseState.account || null;
+  if (!targetAccount) return;
+  if (isAleksRestrictedFromMikhailSunrise(targetAccount)) {
+    if (sunriseInfo) sunriseInfo.textContent = "Access restricted: Aleks Sunrise profile cannot open Mikhail Sunrise credentials.";
+    sunriseState.pendingAccount = null;
+    return;
+  }
+  const operatorAccount = isOwnerAccount(activeAccount) ? activeAccount : targetAccount;
+  sunriseState.unlocked = true;
+  sunriseState.account = targetAccount;
+  sunriseState.email = String(targetAccount.email || "").trim().toLowerCase();
+  sunriseState.pendingAccount = null;
+  startNotosSession(operatorAccount);
+  persistSunriseSession(operatorAccount);
+  if (sunriseInfo) sunriseInfo.textContent = "Sunrise access granted.";
+  if (sunriseNotosOverlay) sunriseNotosOverlay.hidden = true;
+  if (sunriseNotosInput) sunriseNotosInput.value = "";
+  if (sunriseNotosInfo) sunriseNotosInfo.textContent = "";
+  updateSunriseAccessView();
+  renderSunrise(activeAccount || targetAccount);
 }
 
 function ensureSunriseSessionRecord() {
@@ -3688,6 +4883,84 @@ function isVoyagerControlUser(account) {
 
 function isOwnerAccount(account) {
   return !!(account && String(account.membership || "").trim().toLowerCase() === "owner");
+}
+
+function isAleksOwnerAccount(account) {
+  if (!isOwnerAccount(account)) return false;
+  return resolveSunriseOwnerCode(account) === "AO1"
+    || String(account?.firstName || "").trim().toLowerCase() === "aleks";
+}
+
+function isMikhailOwnerAccount(account) {
+  if (!isOwnerAccount(account)) return false;
+  return resolveSunriseOwnerCode(account) === "MO1"
+    || String(account?.firstName || "").trim().toLowerCase() === "mikhail";
+}
+
+function isAleksSunriseOperator() {
+  if (!activeAccount || !isOwnerAccount(activeAccount)) return false;
+  const sessionCode = String(sunriseState?.operatorCode || "").trim().toUpperCase();
+  if (sessionCode) return sessionCode === "AO1";
+  return isAleksOwnerAccount(activeAccount);
+}
+
+function isMikhailCredentialAccount(accountOrKey) {
+  const key = typeof accountOrKey === "string" ? resolveAccountKey(accountOrKey) : "";
+  const account = typeof accountOrKey === "string" ? accounts[key] : accountOrKey;
+  if (!account) return false;
+  if (isMikhailOwnerAccount(account)) return true;
+  const protectedEmails = new Set([
+    "mikhail.kovalev@vvs.com",
+    "mikhail.sunrise@vvs.com",
+    "coo@vvs.com"
+  ]);
+  const email = String(account.email || key || "").trim().toLowerCase();
+  const linked = String(account.sunriseLinkedEmail || "").trim().toLowerCase();
+  const keyLower = String(key || "").trim().toLowerCase();
+  const first = String(account.firstName || "").trim().toLowerCase();
+  const last = String(account.lastName || "").trim().toLowerCase();
+
+  if (protectedEmails.has(email) || protectedEmails.has(linked) || protectedEmails.has(keyLower)) return true;
+  if (email.includes("mikhail") || linked.includes("mikhail") || keyLower.includes("mikhail")) return true;
+  if (first === "mikhail" || last === "kovalev" || `${first} ${last}`.trim() === "mikhail kovalev") return true;
+  if (linked && accounts[linked] && isMikhailOwnerAccount(accounts[linked])) return true;
+  return false;
+}
+
+function isAleksAmpRestrictedKey(rawKey = "") {
+  if (!isAleksSunriseOperator()) return false;
+  const key = resolveAccountKey(rawKey);
+  if (!key || !accounts[key]) return false;
+  return isMikhailCredentialAccount(accounts[key]);
+}
+
+function isAleksRestrictedFromMikhailSunrise(targetAccount) {
+  if (!isAleksOwnerAccount(activeAccount)) return false;
+  return isMikhailCredentialAccount(targetAccount);
+}
+
+function isAleksAlpRestrictedAccessRow(row = null) {
+  if (!isAleksSunriseOperator() || !row || typeof row !== "object") return false;
+  const code = String(row.code || "").trim().toUpperCase();
+  const title = String(row.title || "").trim().toLowerCase();
+  const access = String(row.access || "").trim().toLowerCase();
+  if (code === "MO1") return true;
+  if (title.includes("mikhail") || access.includes("mikhail")) return true;
+  return false;
+}
+
+function isAleksAmpRestrictedDeletedRow(row = null) {
+  if (!isAleksSunriseOperator() || !row || typeof row !== "object") return false;
+  const rowAccount = row.account && typeof row.account === "object" ? row.account : null;
+  if (rowAccount && isMikhailCredentialAccount(rowAccount)) return true;
+  const rowKey = resolveAccountKey(row.email || row.key || (rowAccount ? rowAccount.email : ""));
+  if (rowKey && isMikhailCredentialAccount(rowKey)) return true;
+  return false;
+}
+
+function hasSunriseAccess(account) {
+  if (!account) return false;
+  return isOwnerAccount(account) || !!String(account.sunriseAccessLevel || "").trim();
 }
 
 function updateVoyagerControlAccess() {
@@ -3872,22 +5145,172 @@ function renderVoyagerControl(account) {
 }
 
 function renderSunrise(account) {
-  if (!isOwnerAccount(account)) return;
+  if (!hasSunriseAccess(account)) return;
   const greetingEl = document.getElementById("sunrise-greeting");
+  const subtitleEl = document.getElementById("sunrise-subtitle");
+  const panel = document.getElementById("sunrise-panel");
+  const meta = sunriseAccessMeta(account);
+  const controlAccount = sunriseState.account;
+  const isOwnerControllingOther = !!(
+    isOwnerAccount(account)
+    && controlAccount
+    && !isSameOwnerIdentity(account, controlAccount)
+  );
   if (greetingEl) {
-    greetingEl.textContent = `${dayPartGreetingForAccount(account)}, ${account.prefix} ${account.lastName} - Welcome to Sunrise, Access Level - Owner`;
+    if (isOwnerControllingOther) {
+      const controlledName = `${controlAccount.prefix || "Mr."} ${controlAccount.firstName || ""} ${controlAccount.lastName || ""}`.replace(/\s+/g, " ").trim();
+      const controlledRole = String(controlAccount.roleTitle || "Sunrise Operator").trim();
+      greetingEl.textContent = `${dayPartGreetingForAccount(account)}, ${account.prefix} ${account.lastName} - Session Overview: ${controlledName}, ${controlledRole}`;
+    } else {
+      const accessLevel = isOwnerAccount(account) ? "Owner" : meta.code;
+      greetingEl.textContent = `${dayPartGreetingForAccount(account)}, ${account.prefix} ${account.lastName} - Welcome to Sunrise, Access Level - ${accessLevel}`;
+    }
+  }
+  if (subtitleEl) {
+    if (isOwnerControllingOther) {
+      subtitleEl.textContent = `Executive session mirror for ${controlAccount.firstName || ""} ${controlAccount.lastName || ""} (${controlAccount.roleTitle || "Sunrise Operator"}).`;
+    } else if (isOwnerAccount(account)) {
+      subtitleEl.textContent = "Owner command modules for strategic control of VVS operations.";
+    } else {
+      const role = String(account.roleTitle || meta.title || "Sunrise Associate").trim();
+      const accessSummary = String(meta.access || "Operational dashboard access.").trim();
+      subtitleEl.textContent = `${role} modules active. Access profile (${meta.code}): ${accessSummary}.`;
+    }
+  }
+  if (panel) {
+    const summary = panel.querySelector("#sunrise-ops-summary");
+    const cards = Array.from(panel.querySelectorAll(".sunriseCategoryCard"));
+    const launchButtons = Array.from(panel.querySelectorAll("[data-shortcut][data-route]"));
+    const ownerView = isOwnerAccount(account);
+    if (summary) summary.hidden = !ownerView;
+
+    launchButtons.forEach((btn) => {
+      const route = String(btn.getAttribute("data-route") || "").trim();
+      const isExecutiveOnly = route === "sunrise-performance";
+      const allowed = ownerView
+        ? true
+        : (!isExecutiveOnly && canAccessSunriseRoute(account, route));
+      btn.hidden = !allowed;
+    });
+
+    cards.forEach((card) => {
+      const anyVisible = Array.from(card.querySelectorAll("[data-shortcut][data-route]"))
+        .some((btn) => !btn.hidden);
+      card.hidden = !anyVisible;
+    });
   }
   updateSunriseAccessView();
+}
+
+const sunriseStaffRouteLabels = {
+  "sunrise-inbox": "Inbox",
+  "sunrise-services": "Services Dashboard",
+  "sunrise-performance": "Performance Overview",
+  "sunrise-sales": "Sales Performance",
+  "sunrise-marketing": "Marketing",
+  "sunrise-locations": "Locations",
+  "sunrise-maintenance": "Maintenance",
+  "sunrise-employees": "Employees Dashboard",
+  "sunrise-legality": "Legality Follow Ups",
+  "sunrise-expenses": "Expenses Management",
+  "sunrise-income": "Income Management",
+  "sunrise-surveys": "Customer Surveys",
+  "sunrise-events": "Events Planning",
+  "sunrise-dts": "Documents To Submit",
+  "sunrise-eam": "Expenses Adjusting Menu",
+  "sunrise-ifs": "Income Flow Spreader",
+  "sunrise-ecs": "Employees Control System",
+  "sunrise-smca": "Sales & Marketing Commissions",
+  "sunrise-rim": "Red Inviting Menu",
+  "sunrise-soc": "Services & Operations Control",
+  "sunrise-soc-details": "Service Detail Control",
+  "sunrise-lcs": "Notos Login Control System",
+  "sunrise-amp": "Account Management Page",
+  "sunrise-alp": "Access Levels Page",
+  "sunrise-mcc": "Manage & Create Codes"
+};
+
+function sunriseStaffRouteLabel(route = "") {
+  const key = String(route || "").trim().toLowerCase();
+  if (sunriseStaffRouteLabels[key]) return sunriseStaffRouteLabels[key];
+  if (!key) return "Sunrise Module";
+  return key
+    .replace(/^sunrise-/, "")
+    .split("-")
+    .map((part) => part.charAt(0).toUpperCase() + part.slice(1))
+    .join(" ");
+}
+
+function staffDutyByAccess(accessCode = "", roleTitle = "") {
+  const code = String(accessCode || "").trim().toUpperCase();
+  const role = String(roleTitle || "").trim();
+  const byLevel = {
+    STA: "Track assigned workflows, keep queue hygiene, and escalate blockers immediately.",
+    SA: "Maintain active operations routing, response timing, and daily service throughput.",
+    SS: "Supervise service quality, verify escalations, and close execution gaps before SLA breach.",
+    SM: "Coordinate cross-functional execution with finance, operations, and staffing controls.",
+    DA: "Oversee directorate-level strategic delivery, high-risk escalations, and governance alignment.",
+    CA: "Execute chairman-level command control across critical service and operational nodes."
+  };
+  return role
+    ? `${role}: ${byLevel[code] || "Maintain command discipline, service quality, and incident visibility."}`
+    : (byLevel[code] || "Maintain command discipline, service quality, and incident visibility.");
+}
+
+function buildStaffProfileDashboard(account) {
+  const accessMeta = sunriseAccessMeta(account);
+  const allowedRoutes = Array.from(allowedSunriseRoutesForAccount(account))
+    .filter((route) => route !== "sunrise")
+    .sort();
+  const mailbox = normalizeEmailAddress(resolveSunriseMailboxForAccount(account));
+  const inboxMessages = Array.isArray(sunriseControlState?.inbox?.messages)
+    ? sunriseControlState.inbox.messages.filter((msg) => normalizeEmailAddress(msg.mailbox || "") === mailbox)
+    : [];
+  const inboxQueue = inboxMessages.filter((msg) => String(msg.folder || "inbox") === "inbox").length;
+  const socCurrent = Array.isArray(sunriseControlState?.socServices?.current) ? sunriseControlState.socServices.current : [];
+  const awaiting = socCurrent.filter((row) => {
+    const status = String(row?.status || "").trim().toLowerCase();
+    return status === "assigned" || status.includes("awaiting");
+  }).length;
+  const activeNotos = Array.isArray(sunriseControlState?.lcsSessions)
+    ? sunriseControlState.lcsSessions.filter((row) => {
+      const permission = String(row?.permission || "").trim().toUpperCase();
+      const level = String(account.sunriseAccessLevel || "").trim().toUpperCase();
+      return permission === level && String(row?.logoutAt || "").trim().toLowerCase() === "active";
+    }).length
+    : 0;
+  return {
+    accessMeta,
+    metrics: [
+      { label: "Position", value: String(account.roleTitle || accessMeta.title || "Staff") },
+      { label: "Access Level", value: `${accessMeta.code} • ${accessMeta.title}` },
+      { label: "Sunrise Modules", value: String(allowedRoutes.length) },
+      { label: "Inbox Queue", value: String(inboxQueue) },
+      { label: "Awaiting Confirmations", value: String(awaiting) },
+      { label: "NOTOS ID", value: String(account.notosId || "N/A").toUpperCase() },
+      { label: "Active Sessions", value: String(activeNotos) },
+      { label: "Primary Mailbox", value: mailbox || "N/A" }
+    ],
+    modules: allowedRoutes.map((route) => sunriseStaffRouteLabel(route)),
+    focus: staffDutyByAccess(accessMeta.code, account.roleTitle),
+    scope: String(accessMeta.access || "Operational dashboards")
+  };
 }
 
 function renderProfile(account) {
   if (!account) return;
   const displayCountry = countryDisplayName(account.country);
   const greeting = greetingPrefixByCountry(account.country);
+  const membershipValue = String(account.membership || "").trim();
+  const membershipLower = membershipValue.toLowerCase();
+  const isRed = membershipLower === "voyager red";
+  const isOwner = membershipLower === "owner";
+  const isEmployee = membershipLower === "staff";
   const greetEl = document.getElementById("profile-greeting");
   const summaryEl = document.getElementById("profile-summary");
   const tierEl = document.getElementById("profile-tier");
   const completedEl = document.getElementById("profile-services-completed");
+  const profileStatusNoteLabel = document.getElementById("profile-status-note-label");
   const pastTitleEl = document.getElementById("profile-past-title");
   const pastDetailsEl = document.getElementById("profile-past-details");
   const upcomingTitleEl = document.getElementById("profile-upcoming-title");
@@ -3906,19 +5329,55 @@ function renderProfile(account) {
   const ownerExecutiveTag = document.getElementById("owner-executive-tag");
   const profileAmbassadorBtn = document.getElementById("profile-ambassador-btn");
   const profileSunriseBtn = document.getElementById("profile-sunrise-btn");
+  const profileServiceToolbar = document.getElementById("profile-service-toolbar");
+  const staffDashboard = document.getElementById("profile-staff-dashboard");
+  const staffMetrics = document.getElementById("profile-staff-metrics");
+  const staffModules = document.getElementById("profile-staff-modules");
+  const conciergeCardLabel = document.getElementById("profile-concierge-card-label");
+  const tipsLabel = document.getElementById("profile-tips-label");
+  const staffDashboardData = isEmployee ? buildStaffProfileDashboard(account) : null;
 
   if (greetEl) greetEl.textContent = `${greeting} ${account.prefix} ${account.lastName}`;
   if (summaryEl) {
-    const roleLine = account.roleTitle ? `${account.roleTitle} | ` : "";
-    summaryEl.textContent = `${roleLine}${account.firstName} ${account.lastName} - ${displayCountry} - ${account.membership}.`;
+    if (isEmployee && staffDashboardData) {
+      summaryEl.textContent = `${staffDashboardData.accessMeta.title} | ${account.firstName} ${account.lastName} - ${displayCountry} - Staff Access ${staffDashboardData.accessMeta.code}.`;
+    } else {
+      const roleLine = account.roleTitle ? `${account.roleTitle} | ` : "";
+      summaryEl.textContent = `${roleLine}${account.firstName} ${account.lastName} - ${displayCountry} - ${account.membership}.`;
+    }
   }
-  if (tierEl) tierEl.textContent = account.membership;
-  if (completedEl) completedEl.textContent = String(account.servicesCompleted);
-  if (profileStatusLabel) profileStatusLabel.textContent = account.membership.toLowerCase() === "owner" ? "Status" : "Membership";
-  if (pastTitleEl) pastTitleEl.textContent = account.pastService.title;
-  if (pastDetailsEl) pastDetailsEl.textContent = `${account.pastService.details} Ended: ${account.pastService.endedAt}.`;
-  if (upcomingTitleEl) upcomingTitleEl.textContent = account.upcomingService.title;
-  if (upcomingDetailsEl) upcomingDetailsEl.textContent = `${account.upcomingService.details} Scheduled: ${account.upcomingService.startsAt}.`;
+  if (profileStatusLabel) {
+    profileStatusLabel.textContent = isOwner ? "Status" : (isEmployee ? "Access Level" : "Membership");
+  }
+  if (profileStatusNoteLabel) {
+    profileStatusNoteLabel.textContent = isEmployee ? "Modules enabled" : "Services completed";
+  }
+  if (tierEl) {
+    tierEl.textContent = isEmployee && staffDashboardData
+      ? `${staffDashboardData.accessMeta.code} • ${staffDashboardData.accessMeta.title}`
+      : account.membership;
+  }
+  if (completedEl) {
+    completedEl.textContent = isEmployee && staffDashboardData
+      ? String(staffDashboardData.metrics.find((row) => row.label === "Sunrise Modules")?.value || "0")
+      : String(account.servicesCompleted);
+  }
+  if (pastTitleEl) {
+    pastTitleEl.textContent = isEmployee ? "Operational Scope" : account.pastService.title;
+  }
+  if (pastDetailsEl) {
+    pastDetailsEl.textContent = isEmployee && staffDashboardData
+      ? `${staffDashboardData.scope}. Position focus: ${String(account.roleTitle || staffDashboardData.accessMeta.title)}.`
+      : `${account.pastService.details} Ended: ${account.pastService.endedAt}.`;
+  }
+  if (upcomingTitleEl) {
+    upcomingTitleEl.textContent = isEmployee ? "Current Duty Focus" : account.upcomingService.title;
+  }
+  if (upcomingDetailsEl) {
+    upcomingDetailsEl.textContent = isEmployee && staffDashboardData
+      ? staffDashboardData.focus
+      : `${account.upcomingService.details} Scheduled: ${account.upcomingService.startsAt}.`;
+  }
 
   if (tipsEl) {
     tipsEl.innerHTML = (account.tips || []).map((tip) => `<li>${tip}</li>`).join("");
@@ -3935,22 +5394,30 @@ function renderProfile(account) {
       "tier-theme-aurum",
       "tier-theme-argentum",
       "tier-theme-cuprum",
-      "tier-theme-gold"
+      "tier-theme-gold",
+      "tier-theme-sta",
+      "tier-theme-ss",
+      "tier-theme-sm",
+      "tier-theme-da",
+      "tier-theme-ca"
     );
     profileShell.classList.add(tierThemeClass(account.membership));
   }
 
-  const isRed = account.membership.toLowerCase() === "voyager red";
-  const isOwner = account.membership.toLowerCase() === "owner";
   if (profileAmbassadorBtn) profileAmbassadorBtn.hidden = !isRed;
-  if (profileSunriseBtn) profileSunriseBtn.hidden = !isOwner;
+  if (profileSunriseBtn) profileSunriseBtn.hidden = !hasSunriseAccess(account);
   if (ownerExecutiveTag) ownerExecutiveTag.hidden = !isOwner;
   if (ownerMetricsWrap) ownerMetricsWrap.hidden = !isOwner;
-  if (conciergeDeskCard) conciergeDeskCard.hidden = isOwner;
-  if (tipsCard) tipsCard.hidden = isOwner;
+  if (conciergeDeskCard) conciergeDeskCard.hidden = isOwner || isEmployee;
+  if (tipsCard) tipsCard.hidden = isOwner || isEmployee;
   if (redTeamWrap) redTeamWrap.hidden = !isRed;
-  if (standardSupport) standardSupport.hidden = isRed || isOwner;
-  if (progressWrap) progressWrap.hidden = isRed || isOwner;
+  if (standardSupport) standardSupport.hidden = isRed || isOwner || isEmployee;
+  if (progressWrap) progressWrap.hidden = isRed || isOwner || isEmployee;
+  if (staffDashboard) staffDashboard.hidden = !isEmployee;
+  if (profileServiceToolbar) profileServiceToolbar.hidden = isOwner || isEmployee;
+  if (profileSubmitServiceTopBtn) profileSubmitServiceTopBtn.hidden = isOwner || isEmployee;
+  if (conciergeCardLabel) conciergeCardLabel.textContent = "Available Concierge Desk";
+  if (tipsLabel) tipsLabel.textContent = "Trip & Safety Tips";
 
   if (isOwner && account.ownerMetrics) {
     const m = account.ownerMetrics;
@@ -3973,7 +5440,20 @@ function renderProfile(account) {
     if (selectedList) selectedList.innerHTML = (m.topSelected || []).map((item) => `<li>${item}</li>`).join("");
   }
 
-  if (isRed && account.assignedTeam) {
+  if (isEmployee && staffDashboardData) {
+    currentAssignedConcierge = null;
+    if (staffMetrics) {
+      staffMetrics.innerHTML = staffDashboardData.metrics
+        .map((row) => `<div class="teamItem"><b>${row.label}</b><span>${row.value}</span></div>`)
+        .join("");
+    }
+    if (staffModules) {
+      const items = staffDashboardData.modules.slice(0, 10);
+      staffModules.innerHTML = items.length
+        ? items.map((item) => `<li>${item}</li>`).join("")
+        : "<li>No Sunrise modules currently assigned.</li>";
+    }
+  } else if (isRed && account.assignedTeam) {
     const pilot = document.getElementById("team-pilot");
     const driver = document.getElementById("team-driver");
     const concierge = document.getElementById("team-concierge");
@@ -4005,11 +5485,13 @@ function renderProfile(account) {
     if (progressText) progressText.textContent = progress.text;
   }
 
-  if (conciergeList) {
+  if (conciergeList && !isOwner && !isEmployee) {
     const desk = randomConciergeDesk(8);
     conciergeList.innerHTML = desk.map((person) => (
-      `<div class="teamItem"><b>${person.role}</b><span>${person.name}<br>${person.email}<br>${localizePhone(person.localPhone, account.country)}</span></div>`
+      `<button class="teamItem conciergePick" type="button" data-concierge-pick="${person.name}"><b>${person.role}</b><span>${person.name}<br>${person.email}<br>${localizePhone(person.localPhone, account.country)}</span></button>`
     )).join("");
+  } else if (conciergeList && isEmployee) {
+    conciergeList.innerHTML = "";
   }
   renderAmbassadorLounge(account);
   renderVoyagerControl(account);
@@ -4031,13 +5513,18 @@ document.querySelectorAll("[data-open-password-tab]").forEach((btn) => {
 if (loginStep1) {
   loginStep1.addEventListener("submit", (event) => {
     event.preventDefault();
-    if (!loginStep1.reportValidity()) return;
 
     const email = document.getElementById("login-email");
     const password = document.getElementById("login-password");
     authState.loginEmail = email ? email.value.trim() : "";
+    const emailValue = authState.loginEmail;
+    const passwordValue = password ? password.value.trim() : "";
+    if (!emailValue || !passwordValue) {
+      if (loginInfo) loginInfo.textContent = "Enter your email address and password.";
+      return;
+    }
     const account = findAccountByEmail(authState.loginEmail);
-    const enteredPassword = password ? password.value.trim() : "";
+    const enteredPassword = passwordValue;
     const allPasswords = account
       ? [String(account.password), ...((account.altPasswords || []).map((item) => String(item)))]
       : [];
@@ -4045,7 +5532,7 @@ if (loginStep1) {
       enteredPassword === stored || enteredPassword.toLowerCase() === stored.toLowerCase()
     );
 
-    if (!account || !passOk) {
+    if (!account || !passOk || !isVvsCredentialAccount(account)) {
       if (loginInfo) loginInfo.textContent = "Log in failed. Check your email address or password.";
       return;
     }
@@ -4057,7 +5544,7 @@ if (loginStep1) {
     authState.loginAccount = account;
     authState.loginCode = issueTestEmailCode(authState.loginEmail);
 
-    loginStep1.hidden = true;
+    loginStep1.hidden = false;
     if (loginStep2) loginStep2.hidden = false;
     if (loginInfo) {
       loginInfo.textContent = `VVS email confirmation sent from concierge@venture-voyagers.com to ${authState.loginEmail} (Subject: VVS email confirmation). Test code: ${authState.loginCode}.`;
@@ -4068,13 +5555,18 @@ if (loginStep1) {
 if (loginStep2) {
   loginStep2.addEventListener("submit", (event) => {
     event.preventDefault();
-    if (!loginStep2.reportValidity()) return;
 
     const phrase = document.getElementById("login-phrase");
     const code = document.getElementById("login-code");
+    const phraseValue = phrase ? phrase.value.trim() : "";
+    const codeValue = code ? code.value.trim() : "";
+    if (!phraseValue || !codeValue) {
+      if (loginInfo) loginInfo.textContent = "Enter your secret phrase and email confirmation code.";
+      return;
+    }
     const account = authState.loginAccount || findAccountByEmail(authState.loginEmail);
-    const phraseOk = phrase && account && phrase.value.trim().toLowerCase() === account.secretPhrase.toLowerCase();
-    const codeOk = code && code.value.trim() === authState.loginCode;
+    const phraseOk = !!(account && phraseValue.toLowerCase() === String(account.secretPhrase || "").toLowerCase());
+    const codeOk = codeValue === authState.loginCode;
 
     if (!phraseOk || !codeOk) {
       if (loginInfo) loginInfo.textContent = "Verification failed. Confirm your secret phrase and enter the correct email confirmation code.";
@@ -4147,12 +5639,13 @@ if (signupStep1) {
         "Use verified transport and avoid posting live itinerary information."
       ]
     };
+    persistAccountsData();
     authState.signupCode = issueTestEmailCode(authState.signupEmail);
 
     signupStep1.hidden = true;
     if (signupStep2) signupStep2.hidden = false;
     if (signupInfo) {
-      signupInfo.textContent = `VVS email confirmation sent from concierge@venture-voyagers.com to ${authState.signupEmail} (Subject: VVS email confirmation). Test code: ${authState.signupCode}.`;
+      signupInfo.textContent = `VVS email confirmation sent from concierge@venture-voyagers.com to ${authState.signupEmail} (Subject: VVS email confirmation). Test code: ${authState.signupCode}. Secret phrase can be entered only once and cannot be changed.`;
     }
   });
 }
@@ -4218,6 +5711,7 @@ if (pwOldForm) {
 
     account.password = newPassword;
     account.altPasswords = [];
+    persistAccountsData();
     if (activeAccount && String(activeAccount.email || "").trim().toLowerCase() === String(account.email || "").trim().toLowerCase()) {
       activeAccount.password = newPassword;
       activeAccount.altPasswords = [];
@@ -4292,6 +5786,7 @@ if (pwRecoveryStep2) {
 
     account.password = newPassword;
     account.altPasswords = [];
+    persistAccountsData();
     if (activeAccount && String(activeAccount.email || "").trim().toLowerCase() === String(account.email || "").trim().toLowerCase()) {
       activeAccount.password = newPassword;
       activeAccount.altPasswords = [];
@@ -4310,11 +5805,24 @@ if (pwRecoveryStep2) {
 
 const sameConciergeBtn = document.getElementById("same-concierge-btn");
 const sameConciergeResult = document.getElementById("same-concierge-result");
+const profileSubmitServiceBtn = document.getElementById("profile-submit-service-btn");
+const profileSubmitServiceTopBtn = document.getElementById("profile-submit-service-top");
 const sunriseStep1 = document.getElementById("sunrise-step1");
 const sunriseStep2 = document.getElementById("sunrise-step2");
 const sunriseInfo = document.getElementById("sunrise-info");
+const sunriseOwnerAlertOverlay = document.getElementById("sunrise-owner-alert-overlay");
+const sunriseOwnerAlertText = document.getElementById("sunrise-owner-alert-text");
+const sunriseOwnerAlertBtn = document.getElementById("sunrise-owner-alert-btn");
 const sunriseLogoutBtn = document.getElementById("sunrise-logout-btn");
 const sunriseRouteLogoutBtns = Array.from(document.querySelectorAll("[data-sunrise-logout]"));
+const sunriseNotosOverlay = document.getElementById("sunrise-notos-overlay");
+const sunriseNotosInput = document.getElementById("sunrise-notos-id-popup");
+const sunriseNotosInfo = document.getElementById("sunrise-notos-info");
+const sunriseNotosSubmit = document.getElementById("sunrise-notos-submit");
+const sunriseUnsavedOverlay = document.getElementById("sunrise-unsaved-overlay");
+const sunriseUnsavedSaveBtn = document.getElementById("sunrise-unsaved-save");
+const sunriseUnsavedDiscardBtn = document.getElementById("sunrise-unsaved-discard");
+const sunriseUnsavedStayBtn = document.getElementById("sunrise-unsaved-stay");
 const logoutBtn = document.getElementById("logout-btn");
 
 const sunriseControlDefaults = {
@@ -4385,6 +5893,17 @@ const sunriseControlDefaults = {
       permission: "Tier-3"
     }
   ],
+  accessLevels: [
+    { code: "STA", title: "Sunrise Trainee Associate", access: "Read-only baseline dashboards" },
+    { code: "SA", title: "Sunrise Associate", access: "Operational dashboards + inbox + SOC read" },
+    { code: "SS", title: "Sunrise Supervisor", access: "Team controls + SOC write + LCS read" },
+    { code: "SM", title: "Sunrise Management", access: "Department controls + approvals + SOC/LCS write" },
+    { code: "DA", title: "Directorate Access", access: "Cross-department control + strategic actions" },
+    { code: "CA", title: "Chairman Access", access: "Executive oversight + system critical actions" },
+    { code: "OW", title: "Owner", access: "Full Sunrise command and shutdown/restore authority" }
+  ],
+  deletedAccounts: [],
+  shortcutCodes: [],
   inbox: {
     activeFolder: "inbox",
     selectedMessageId: "",
@@ -4404,6 +5923,7 @@ const sunriseControlDefaults = {
       {
         id: "MAIL-1001",
         folder: "inbox",
+        mailbox: "shared",
         from: "legal.ops@venture-voyagers.com",
         to: "owner@venture-voyagers.com",
         cc: "",
@@ -4418,6 +5938,7 @@ const sunriseControlDefaults = {
       {
         id: "MAIL-1002",
         folder: "sent",
+        mailbox: "shared",
         from: "owner@venture-voyagers.com",
         to: "fleet.control@venture-voyagers.com",
         cc: "ops@venture-voyagers.com",
@@ -4531,6 +6052,7 @@ function loadSunriseControlState() {
         ? parsedInbox.messages.map((msg, idx) => ({
             id: String(msg?.id || `MAIL-${String(idx + 1000).padStart(4, "0")}`),
             folder: String(msg?.folder || "inbox"),
+            mailbox: String(msg?.mailbox || "shared"),
             from: String(msg?.from || ""),
             to: String(msg?.to || ""),
             cc: String(msg?.cc || ""),
@@ -4544,12 +6066,26 @@ function loadSunriseControlState() {
           }))
         : fallback.inbox.messages
     };
+    const deletedAccounts = Array.isArray(parsed.deletedAccounts)
+      ? parsed.deletedAccounts.map((row) => ({
+          kind: String(row?.kind || "customer"),
+          key: String(row?.key || ""),
+          email: String(row?.email || ""),
+          name: String(row?.name || ""),
+          membership: String(row?.membership || ""),
+          sunriseAccessLevel: String(row?.sunriseAccessLevel || ""),
+          notosId: String(row?.notosId || ""),
+          account: row?.account && typeof row.account === "object" ? row.account : {},
+          deletedAt: String(row?.deletedAt || "")
+        }))
+      : fallback.deletedAccounts;
     return {
       ...fallback,
       ...parsed,
       ecsEmployees,
       socServices,
       lcsSessions,
+      deletedAccounts,
       inbox
     };
   } catch (_) {
@@ -4557,12 +6093,174 @@ function loadSunriseControlState() {
   }
 }
 
-function saveSunriseControlState() {
+let sunrisePersistTimer = 0;
+let sunrisePersistQueued = false;
+const SUNRISE_PERSIST_DEBOUNCE_MS = 140;
+let sunriseHasUnsavedChanges = false;
+let sunriseUnsavedModalPendingAction = null;
+let sunriseCommittedStateHash = "";
+
+function snapshotSunriseControlState() {
+  try {
+    return JSON.stringify(sunriseControlState || {});
+  } catch (_) {
+    return "";
+  }
+}
+
+function refreshSunriseDirtyFlag() {
+  sunriseHasUnsavedChanges = snapshotSunriseControlState() !== sunriseCommittedStateHash;
+  return sunriseHasUnsavedChanges;
+}
+
+function flushSunriseControlState() {
   if (!sunriseControlState) return;
+  if (sunrisePersistTimer) {
+    window.clearTimeout(sunrisePersistTimer);
+    sunrisePersistTimer = 0;
+  }
+  sunrisePersistQueued = false;
   try {
     localStorage.setItem(SUNRISE_CONTROL_DATA_KEY, JSON.stringify(sunriseControlState));
   } catch (_) {}
+  persistAccountsData();
+}
+
+function queueSunriseControlStatePersist() {
+  if (!sunriseControlState) return;
+  sunrisePersistQueued = true;
+  if (sunrisePersistTimer) return;
+  sunrisePersistTimer = window.setTimeout(() => {
+    sunrisePersistTimer = 0;
+    if (!sunrisePersistQueued) return;
+    flushSunriseControlState();
+  }, SUNRISE_PERSIST_DEBOUNCE_MS);
+}
+
+function saveSunriseControlState(options = {}) {
+  if (!sunriseControlState) return;
+  const markDirty = options?.markDirty !== false;
+  if (markDirty) {
+    refreshSunriseDirtyFlag();
+  } else {
+    sunriseCommittedStateHash = snapshotSunriseControlState();
+    sunriseHasUnsavedChanges = false;
+  }
+  if (options && options.immediate) {
+    flushSunriseControlState();
+    if (!markDirty) {
+      sunriseCommittedStateHash = snapshotSunriseControlState();
+      sunriseHasUnsavedChanges = false;
+    } else {
+      refreshSunriseDirtyFlag();
+    }
+  } else {
+    queueSunriseControlStatePersist();
+  }
   renderSunriseControlSummary();
+  updateSunriseSaveButtonsState();
+}
+
+function commitSunriseChanges() {
+  saveSunriseControlState({ immediate: true, markDirty: false });
+}
+
+function updateSunriseSaveButtonsState() {
+  const buttons = document.querySelectorAll("[data-sunrise-save-changes]");
+  buttons.forEach((btn) => {
+    if (!(btn instanceof HTMLButtonElement)) return;
+    btn.disabled = !sunriseHasUnsavedChanges;
+    btn.textContent = sunriseHasUnsavedChanges ? "Save Changes" : "Saved";
+  });
+}
+
+function ensureSunriseSaveButtons() {
+  const sunriseMainPage = document.querySelector('.routePage[data-page="sunrise"]');
+  if (sunriseMainPage) {
+    sunriseMainPage.querySelectorAll("[data-sunrise-save-changes]").forEach((btn) => btn.remove());
+  }
+  const routes = [
+    "sunrise-dts",
+    "sunrise-eam",
+    "sunrise-ifs",
+    "sunrise-ecs",
+    "sunrise-smca",
+    "sunrise-rim",
+    "sunrise-soc",
+    "sunrise-soc-details",
+    "sunrise-inbox",
+    "sunrise-lcs",
+    "sunrise-amp",
+    "sunrise-alp",
+    "sunrise-mcc"
+  ];
+  routes.forEach((route) => {
+    const page = document.querySelector(`.routePage[data-page="${route}"]`);
+    if (!page) return;
+    const actions = page.querySelector(".viewTop .viewActions");
+    if (!actions) return;
+    if (actions.querySelector("[data-sunrise-save-changes]")) return;
+    const saveBtn = document.createElement("button");
+    saveBtn.type = "button";
+    saveBtn.className = "btn";
+    saveBtn.setAttribute("data-sunrise-save-changes", "1");
+    saveBtn.textContent = "Saved";
+    actions.prepend(saveBtn);
+  });
+  updateSunriseSaveButtonsState();
+}
+
+function parseSunriseScheduleInput(rawValue = "") {
+  const value = String(rawValue || "").trim();
+  if (!value) return { ok: true, formatted: "" };
+  const m = value.match(/^(\d{2})\/(\d{2})\/(\d{4})\s+(\d{2})\/(\d{2})\/(\d{2})$/);
+  if (!m) return { ok: false, formatted: "" };
+  const day = Number(m[1]);
+  const month = Number(m[2]);
+  const year = Number(m[3]);
+  const hour = Number(m[4]);
+  const minute = Number(m[5]);
+  const second = Number(m[6]);
+  if (month < 1 || month > 12 || day < 1 || day > 31 || hour > 23 || minute > 59 || second > 59) {
+    return { ok: false, formatted: "" };
+  }
+  return { ok: true, formatted: `${m[1]}/${m[2]}/${m[3]} ${m[4]}/${m[5]}/${m[6]}` };
+}
+
+function shouldBlockRouteForUnsavedSunriseChanges(nextRoute) {
+  const current = currentVisibleRoute();
+  const inSunriseNow = current === "sunrise" || sunriseModuleRoutes.includes(current);
+  if (!inSunriseNow) return false;
+  const normalized = String(nextRoute || "").trim();
+  const stayingInSameRoute = normalized === current;
+  if (current === "sunrise-inbox") {
+    if (!hasPendingInboxChanges()) return false;
+    return !stayingInSameRoute;
+  }
+  if (!sunriseHasUnsavedChanges) return false;
+  if (!refreshSunriseDirtyFlag()) {
+    updateSunriseSaveButtonsState();
+    return false;
+  }
+  return !stayingInSameRoute;
+}
+
+function openSunriseUnsavedModal(onResolve) {
+  const overlay = document.getElementById("sunrise-unsaved-overlay");
+  if (!overlay) {
+    if (typeof onResolve === "function") onResolve("cancel");
+    return;
+  }
+  sunriseUnsavedModalPendingAction = onResolve;
+  overlay.hidden = false;
+}
+
+function resolveSunriseUnsavedModal(action) {
+  const overlay = document.getElementById("sunrise-unsaved-overlay");
+  if (overlay) overlay.hidden = true;
+  const cb = sunriseUnsavedModalPendingAction;
+  sunriseUnsavedModalPendingAction = null;
+  if (typeof cb === "function") cb(action);
 }
 
 function money(value) {
@@ -4637,7 +6335,44 @@ function renderDTSPage() {
   const rows = (sunriseControlState.dtsDocs || []).map((doc, idx) => `
     <tr><td><input class="input" data-dts-id="${idx}" value="${doc.id || ""}"></td><td><input class="input" data-dts-name="${idx}" value="${doc.name || ""}"></td><td><input class="input" data-dts-note="${idx}" value="${doc.note || ""}"></td><td><select class="select" data-dts-status="${idx}"><option ${doc.status==="Pending"?"selected":""}>Pending</option><option ${doc.status==="Submitted"?"selected":""}>Submitted</option><option ${doc.status==="Approved"?"selected":""}>Approved</option></select></td><td><button class="sunriseMiniBtn" type="button" data-dts-del="${idx}">Delete</button></td></tr>
   `).join("");
-  grid.innerHTML = `<article class="sunriseControlCard sunriseDetailWide"><h3>Upload / Edit Documents</h3><input class="input" id="dts-upload" type="file" multiple><table class="sunriseControlTable"><thead><tr><th>ID</th><th>Document</th><th>Note</th><th>Status</th><th>Action</th></tr></thead><tbody>${rows || "<tr><td colspan='5'>No documents yet.</td></tr>"}</tbody></table></article>`;
+  grid.innerHTML = `<article class="sunriseControlCard sunriseDetailWide"><h3>Upload / Edit Documents</h3><input class="input" id="dts-upload" type="file" multiple><table class="sunriseControlTable"><thead><tr><th>ID</th><th>Document</th><th>Note</th><th>Status</th><th>Action</th></tr></thead><tbody>${rows || "<tr><td colspan='5'>No documents yet.</td></tr>"}</tbody></table></article><article class="sunriseControlCard sunriseDetailWide"><h3>Sunrise PDF Redactor (Demo)</h3><div class="sunriseInboxMiniBar"><button class="sunriseMiniBtn" type="button" data-dts-editor-style="title">Title</button><button class="sunriseMiniBtn" type="button" data-dts-editor-style="subtitle">Subtitle</button><button class="sunriseMiniBtn" type="button" data-dts-editor-style="body">Body</button><button class="sunriseMiniBtn" type="button" data-dts-editor-cmd="bold"><b>B</b></button><button class="sunriseMiniBtn" type="button" data-dts-editor-cmd="italic"><i>I</i></button><button class="sunriseMiniBtn" type="button" data-dts-editor-cmd="underline"><u>U</u></button></div><div id="dts-editor" class="sunriseInboxEditor" contenteditable="true"><p>Load document summary and adjust content, notes, and signing blocks here.</p></div><div class="sunriseControlActions"><button class="sunriseMiniBtn" type="button" data-dts-editor-save>Save Notes</button></div><canvas id="dts-signature-pad" width="800" height="170" style="width:100%;border:1px solid rgba(223,167,131,.28);border-radius:12px;background:rgba(8,8,10,.45);"></canvas><div class="sunriseControlActions"><button class="sunriseMiniBtn" type="button" data-dts-sign-clear>Clear Signature</button></div></article>`;
+}
+
+function initDtsSignaturePad() {
+  const canvas = document.getElementById("dts-signature-pad");
+  if (!(canvas instanceof HTMLCanvasElement) || canvas.dataset.boundPad === "1") return;
+  const ctx = canvas.getContext("2d");
+  if (!ctx) return;
+  ctx.strokeStyle = "rgba(238,179,127,.95)";
+  ctx.lineWidth = 2.1;
+  ctx.lineCap = "round";
+  let drawing = false;
+  const point = (event) => {
+    const rect = canvas.getBoundingClientRect();
+    const clientX = event.touches ? event.touches[0].clientX : event.clientX;
+    const clientY = event.touches ? event.touches[0].clientY : event.clientY;
+    return { x: (clientX - rect.left) * (canvas.width / rect.width), y: (clientY - rect.top) * (canvas.height / rect.height) };
+  };
+  const start = (event) => {
+    drawing = true;
+    const p = point(event);
+    ctx.beginPath();
+    ctx.moveTo(p.x, p.y);
+  };
+  const move = (event) => {
+    if (!drawing) return;
+    const p = point(event);
+    ctx.lineTo(p.x, p.y);
+    ctx.stroke();
+  };
+  const end = () => { drawing = false; };
+  canvas.addEventListener("mousedown", start);
+  canvas.addEventListener("mousemove", move);
+  window.addEventListener("mouseup", end);
+  canvas.addEventListener("touchstart", start, { passive: true });
+  canvas.addEventListener("touchmove", move, { passive: true });
+  window.addEventListener("touchend", end, { passive: true });
+  canvas.dataset.boundPad = "1";
 }
 
 function renderMoneyPage(gridId, listKey, title) {
@@ -4696,17 +6431,402 @@ function renderSOCDetailsPage() {
   grid.innerHTML = `<article class="sunriseControlCard sunriseDetailWide"><h3>Core Service Profile</h3><table class="sunriseControlTable"><tbody><tr><th style="width:220px;">Service ID</th><td><input class="input" data-socd-id value="${selected.id || ""}"></td></tr><tr><th>Service Title</th><td><input class="input" data-socd-title value="${selected.title || ""}"></td></tr><tr><th>Client</th><td><input class="input" data-socd-client value="${selected.client || ""}"></td></tr><tr><th>Client Tier</th><td><select class="select" data-socd-tier><option ${selected.tier==="Non-Member"?"selected":""}>Non-Member</option><option ${selected.tier==="Voyager Cuprum"?"selected":""}>Voyager Cuprum</option><option ${selected.tier==="Voyager Argentum"?"selected":""}>Voyager Argentum</option><option ${selected.tier==="Voyager Aurum"?"selected":""}>Voyager Aurum</option><option ${selected.tier==="Voyager Platinum"?"selected":""}>Voyager Platinum</option><option ${selected.tier==="Voyager Diamante"?"selected":""}>Voyager Diamante</option><option ${selected.tier==="Voyager Noir"?"selected":""}>Voyager Noir</option><option ${selected.tier==="Voyager Red"?"selected":""}>Voyager Red</option></select></td></tr><tr><th>Desired Execution Time</th><td><select class="select" data-socd-desired><option ${selected.desiredExecutionTime==="Instant"?"selected":""}>Instant</option><option ${selected.desiredExecutionTime==="24h"?"selected":""}>24h</option><option ${selected.desiredExecutionTime==="48h"?"selected":""}>48h</option><option ${selected.desiredExecutionTime==="72h"?"selected":""}>72h</option><option ${selected.desiredExecutionTime==="Within a week"?"selected":""}>Within a week</option><option ${selected.desiredExecutionTime==="Within a month"?"selected":""}>Within a month</option><option ${selected.desiredExecutionTime==="2 months"?"selected":""}>2 months</option><option ${selected.desiredExecutionTime==="3 months"?"selected":""}>3 months</option><option ${selected.desiredExecutionTime==="6 months"?"selected":""}>6 months</option></select></td></tr><tr><th>Assigned Concierge / Team</th><td><input class="input" data-socd-assigned value="${selected.assigned || ""}"></td></tr><tr><th>Assigned At</th><td><input class="input" data-socd-assigned-at value="${selected.assignedAt || ""}" placeholder="YYYY-MM-DD HH:MM TZ"></td></tr><tr><th>Confirmed At</th><td><input class="input" data-socd-confirmed-at value="${selected.confirmedAt || ""}" placeholder="YYYY-MM-DD HH:MM TZ"></td></tr><tr><th>Status</th><td><select class="select" data-socd-status-main><option ${selected.status==="Assigned"?"selected":""}>Assigned</option><option ${selected.status==="Confirmed"?"selected":""}>Confirmed</option><option ${selected.status==="Closed"?"selected":""}>Closed</option></select></td></tr><tr><th>Service Description</th><td><textarea class="input mailTextarea" data-socd-description>${selected.description || ""}</textarea></td></tr></tbody></table></article><article class="sunriseControlCard sunriseDetailWide"><h3>Step-by-Step Actions</h3><table class="sunriseControlTable"><thead><tr><th>Step</th><th>Action</th><th>Concrete Details</th><th>Status</th><th>Action</th></tr></thead><tbody>${stepRows || "<tr><td colspan='5'>No steps yet.</td></tr>"}</tbody></table><div class="sunriseControlActions"><button class="sunriseMiniBtn" type="button" data-socd-add-step>Add Step</button></div></article>`;
 }
 
-function renderLCSPage() {
+function renderLCSPage(filter = "") {
   const grid = document.getElementById("sunrise-lcs-grid");
   if (!grid || !sunriseControlState) return;
   (sunriseControlState.lcsSessions || []).forEach((row) => {
     if (Number(row?.loginTs || 0) > 0 && !Number(row?.logoutTs || 0)) updateNotosSessionDuration(row);
   });
-  const rows = (sunriseControlState.lcsSessions || []).map((row, idx) => {
+  const rows = (sunriseControlState.lcsSessions || []).map((row, originalIdx) => ({ row, originalIdx })).filter(({ row }) => matchesSearch([
+    row.id, row.code, row.employee, row.loginAt, row.logoutAt, row.session, row.path, row.permission
+  ], filter)).map(({ row, originalIdx }) => {
     const timelineCount = Array.isArray(row.pathTimeline) ? row.pathTimeline.length : 0;
-    return `<tr><td><input class="input" data-lcs-id="${idx}" value="${row.id || ""}"></td><td><input class="input" data-lcs-code="${idx}" value="${row.code || ""}"></td><td><input class="input" data-lcs-employee="${idx}" value="${row.employee || ""}"></td><td><input class="input" data-lcs-login="${idx}" value="${row.loginAt || ""}"></td><td><input class="input" data-lcs-logout="${idx}" value="${row.logoutAt || ""}"></td><td><input class="input" data-lcs-session="${idx}" value="${row.session || ""}"></td><td><button class="sunriseMiniBtn" type="button" data-lcs-path-open="${idx}">${timelineCount} path steps</button></td><td><input class="input" data-lcs-permission="${idx}" value="${row.permission || ""}"></td><td><button class="sunriseMiniBtn" type="button" data-lcs-del="${idx}">Delete</button></td></tr>`;
+    return `<tr><td><input class="input" data-lcs-id="${originalIdx}" value="${row.id || ""}"></td><td><input class="input" data-lcs-code="${originalIdx}" value="${row.code || ""}"></td><td><input class="input" data-lcs-employee="${originalIdx}" value="${row.employee || ""}"></td><td><input class="input" data-lcs-login="${originalIdx}" value="${row.loginAt || ""}"></td><td><input class="input" data-lcs-logout="${originalIdx}" value="${row.logoutAt || ""}"></td><td><input class="input" data-lcs-session="${originalIdx}" value="${row.session || ""}"></td><td><input class="input" data-lcs-path="${originalIdx}" value="${row.path || ""}"><button class="sunriseMiniBtn" type="button" data-lcs-path-open="${originalIdx}">${timelineCount} steps</button></td><td><input class="input" data-lcs-permission="${originalIdx}" value="${row.permission || ""}"></td><td><button class="sunriseMiniBtn" type="button" data-lcs-del="${originalIdx}">Delete</button></td></tr>`;
   }).join("");
-  grid.innerHTML = `<article class="sunriseControlCard sunriseDetailWide"><h3>Notos Login Control System</h3><table class="sunriseControlTable"><thead><tr><th>ID</th><th>Code</th><th>Employee</th><th>Login</th><th>Logout</th><th>Session</th><th>Path</th><th>Permission</th><th>Action</th></tr></thead><tbody>${rows}</tbody></table><div class="sunriseControlActions"><button class="sunriseMiniBtn" type="button" data-lcs-add>Add Session</button></div></article>`;
+  grid.innerHTML = `<article class="sunriseControlCard sunriseDetailWide"><h3>Notos Login Control System</h3><div class="sunriseControlActions"><input class="input" id="lcs-search" placeholder="Search any value, use / to narrow" value="${filter.replace(/"/g, "&quot;")}"><button class="sunriseMiniBtn" type="button" data-lcs-search>Search</button><button class="sunriseMiniBtn" type="button" data-lcs-add>Add Session</button></div><table class="sunriseControlTable"><thead><tr><th>ID</th><th>Code</th><th>Employee</th><th>Login</th><th>Logout</th><th>Session</th><th>Path</th><th>Permission</th><th>Action</th></tr></thead><tbody>${rows}</tbody></table></article>`;
+}
+
+function searchTokens(query = "") {
+  return String(query || "").toLowerCase().split("/").map((part) => part.trim()).filter(Boolean);
+}
+
+function matchesSearch(rowValues = [], query = "") {
+  const tokens = searchTokens(query);
+  if (!tokens.length) return true;
+  const hay = rowValues.map((v) => String(v || "").toLowerCase()).join(" | ");
+  return tokens.every((token) => hay.includes(token));
+}
+
+const sunriseAdminViewState = {
+  ampSection: "customers",
+  alpSection: "customers"
+};
+
+let sunriseAdminRenderQueued = false;
+
+function scheduleSunriseAdminRenders() {
+  if (sunriseAdminRenderQueued) return;
+  sunriseAdminRenderQueued = true;
+  window.setTimeout(() => {
+    sunriseAdminRenderQueued = false;
+    const ampQuery = String(document.getElementById("amp-search")?.value || "").trim();
+    const alpQuery = String(document.getElementById("alp-search")?.value || "").trim();
+    const mccQuery = String(document.getElementById("mcc-search")?.value || "").trim();
+    renderAMPPage(ampQuery);
+    renderALPPage(alpQuery);
+    renderMCCPage(mccQuery);
+  }, 60);
+}
+
+function normalizeAdminSection(value) {
+  const v = String(value || "").trim().toLowerCase();
+  if (v === "staff") return "staff";
+  if (v === "deleted") return "deleted";
+  return "customers";
+}
+
+function resolveAccountKey(raw = "") {
+  const direct = String(raw || "").trim().toLowerCase();
+  if (direct && accounts[direct]) return direct;
+  const byEmail = Object.keys(accounts).find((key) => {
+    const email = String(accounts[key]?.email || "").trim().toLowerCase();
+    return !!direct && email === direct;
+  });
+  return byEmail || direct;
+}
+
+function isStaffAccountForAdmin(account) {
+  if (!account) return false;
+  if (isOwnerAccount(account)) return true;
+  const membership = String(account.membership || "").trim().toLowerCase();
+  if (membership === "staff" || membership === "owner") return true;
+  return !!String(account.sunriseAccessLevel || "").trim();
+}
+
+function sunriseHierarchyOrder() {
+  return ["OW", "CA", "DA", "SM", "SS", "SA", "STA"];
+}
+
+function hierarchySortIndex(code = "") {
+  const idx = sunriseHierarchyOrder().indexOf(String(code || "").trim().toUpperCase());
+  return idx >= 0 ? idx : 999;
+}
+
+function staffAccessCode(account) {
+  if (isOwnerAccount(account)) return "OW";
+  return String(account?.sunriseAccessLevel || "STA").trim().toUpperCase();
+}
+
+function renderAMPPage(filter = "") {
+  const grid = document.getElementById("sunrise-amp-grid");
+  if (!grid) return;
+  ensureAmpDeletedAccountsStore();
+  const section = normalizeAdminSection(sunriseAdminViewState.ampSection);
+  sunriseAdminViewState.ampSection = section;
+  const accessCodes = Array.isArray(sunriseControlState?.accessLevels)
+    ? sunriseControlState.accessLevels.map((row) => String(row?.code || "").trim().toUpperCase()).filter(Boolean)
+    : [];
+  const accessOptions = Array.from(new Set(["", ...accessCodes]));
+  const tierOptions = ["Non-Member", "Voyager Cuprum", "Voyager Argentum", "Voyager Aurum", "Voyager Platinum", "Voyager Diamante", "Voyager Noir", "Voyager Red", "Owner", "Staff"];
+  const accountEntries = Object.entries(accounts)
+    .filter(([, account]) => matchesSearch([
+      account.email,
+      account.firstName,
+      account.lastName,
+      account.membership,
+      account.sunriseAccessLevel,
+      account.notosId,
+      account.country
+    ], filter));
+
+  const renderCustomerRows = (entries) => entries.map(([key, account]) => {
+      const selectedTier = String(account.membership || "").trim();
+      const tierList = tierOptions.includes(selectedTier) ? tierOptions : [...tierOptions, selectedTier];
+      const ownerRestricted = isOwnerAccount(account);
+      const lockedForAleks = isAleksAmpRestrictedKey(key);
+      const passwordDisplay = ownerRestricted ? "RESTRICTED" : String(account.password || "");
+      const readOnly = lockedForAleks ? "readonly" : "";
+      const disabled = lockedForAleks ? "disabled" : "";
+      const deleteCell = lockedForAleks
+        ? `<span class="profileNote">Restricted</span>`
+        : `<button class="sunriseMiniBtn" type="button" data-amp-del="${key}">Delete</button>`;
+      return `<tr>
+      <td><input class="input" data-amp-key="${key}" value="${key}" ${readOnly}></td>
+      <td><input class="input" data-amp-email="${key}" value="${account.email || ""}" ${readOnly}></td>
+      <td><input class="input" data-amp-password="${key}" value="${passwordDisplay}" ${(ownerRestricted || lockedForAleks) ? "readonly" : ""}></td>
+      <td><input class="input" data-amp-name="${key}" value="${(account.firstName || "") + " " + (account.lastName || "")}" ${readOnly}></td>
+      <td><select class="select" data-amp-tier="${key}" ${disabled}>${tierList.map((tier) => `<option ${tier === selectedTier ? "selected" : ""}>${tier}</option>`).join("")}</select></td>
+      <td>${deleteCell}</td>
+    </tr>`;
+    }).join("");
+
+  const renderStaffRows = (entries) => entries.map(([key, account]) => {
+      const selectedAccess = String(account.sunriseAccessLevel || "").trim().toUpperCase();
+      const selectedTier = String(account.membership || "").trim();
+      const accessList = accessOptions.includes(selectedAccess) ? accessOptions : [...accessOptions, selectedAccess];
+      const tierList = tierOptions.includes(selectedTier) ? tierOptions : [...tierOptions, selectedTier];
+      const ownerRestricted = isOwnerAccount(account);
+      const lockedForAleks = isAleksAmpRestrictedKey(key);
+      const passwordDisplay = ownerRestricted ? "RESTRICTED" : String(account.password || "");
+      const readOnly = lockedForAleks ? "readonly" : "";
+      const disabled = lockedForAleks ? "disabled" : "";
+      const deleteCell = lockedForAleks
+        ? `<span class="profileNote">Restricted</span>`
+        : `<button class="sunriseMiniBtn" type="button" data-amp-del="${key}">Delete</button>`;
+      return `<tr>
+      <td><input class="input" data-amp-key="${key}" value="${key}" ${readOnly}></td>
+      <td><input class="input" data-amp-email="${key}" value="${account.email || ""}" ${readOnly}></td>
+      <td><input class="input" data-amp-password="${key}" value="${passwordDisplay}" ${(ownerRestricted || lockedForAleks) ? "readonly" : ""}></td>
+      <td><input class="input" data-amp-name="${key}" value="${(account.firstName || "") + " " + (account.lastName || "")}" ${readOnly}></td>
+      <td><select class="select" data-amp-tier="${key}" ${disabled}>${tierList.map((tier) => `<option ${tier === selectedTier ? "selected" : ""}>${tier}</option>`).join("")}</select></td>
+      <td><select class="select" data-amp-access="${key}" ${disabled}>${accessList.map((code) => `<option value="${code}" ${code === selectedAccess ? "selected" : ""}>${code || "None"}</option>`).join("")}</select></td>
+      <td><input class="input" data-amp-notos="${key}" value="${account.notosId || ""}" ${readOnly}></td>
+      <td>${deleteCell}</td>
+    </tr>`;
+    }).join("");
+
+  const customerEntries = accountEntries.filter(([, account]) => !isStaffAccountForAdmin(account));
+  const staffEntries = accountEntries.filter(([, account]) => isStaffAccountForAdmin(account));
+  const customersHtml = `<article class="sunriseControlCard sunriseDetailWide"><h3>Customers List</h3><table class="sunriseControlTable"><thead><tr><th>Code</th><th>Email</th><th>Password</th><th>Name</th><th>Tier/Status</th><th>Action</th></tr></thead><tbody>${renderCustomerRows(customerEntries) || "<tr><td colspan='6'>No customer accounts found.</td></tr>"}</tbody></table></article>`;
+
+  const hierarchyCodes = sunriseHierarchyOrder();
+  const levelTitleByCode = new Map((sunriseControlState?.accessLevels || []).map((row) => [String(row.code || "").toUpperCase(), String(row.title || "").trim()]));
+  const groupedStaff = new Map();
+  hierarchyCodes.forEach((code) => groupedStaff.set(code, []));
+  staffEntries
+    .sort((a, b) => hierarchySortIndex(staffAccessCode(a[1])) - hierarchySortIndex(staffAccessCode(b[1])))
+    .forEach((entry) => {
+      const code = staffAccessCode(entry[1]);
+      if (!groupedStaff.has(code)) groupedStaff.set(code, []);
+      groupedStaff.get(code).push(entry);
+    });
+  const staffGroupsHtml = Array.from(groupedStaff.entries())
+    .filter(([, entries]) => entries.length)
+    .map(([code, entries]) => `<article class="sunriseControlCard sunriseDetailWide"><h3>${code} · ${levelTitleByCode.get(code) || "Staff Level"}</h3><table class="sunriseControlTable"><thead><tr><th>Code</th><th>Email</th><th>Password</th><th>Name</th><th>Tier/Status</th><th>Sunrise Access</th><th>NOTOS ID</th><th>Action</th></tr></thead><tbody>${renderStaffRows(entries)}</tbody></table></article>`)
+    .join("");
+  const staffHtml = staffGroupsHtml || `<article class="sunriseControlCard sunriseDetailWide"><h3>Staff Hierarchy</h3><p class="profileNote">No staff accounts found.</p></article>`;
+  const deletedRows = (Array.isArray(sunriseControlState?.deletedAccounts) ? sunriseControlState.deletedAccounts : [])
+    .filter((row) => matchesSearch([row.email, row.name, row.role, row.membership, row.sunriseAccessLevel, row.notosId], filter))
+    .map((row, idx) => {
+      const lockedForAleks = isAleksAmpRestrictedDeletedRow(row);
+      const actionCell = lockedForAleks
+        ? `<span class="profileNote">Restricted</span>`
+        : `<button class="sunriseMiniBtn" type="button" data-amp-restore="${idx}">Restore</button><button class="sunriseMiniBtn" type="button" data-amp-purge="${idx}">Delete Permanently</button>`;
+      return `<tr>
+      <td>${row.kind || "-"}</td>
+      <td>${row.email || "-"}</td>
+      <td>${row.name || "-"}</td>
+      <td>${row.membership || "-"}</td>
+      <td>${row.sunriseAccessLevel || "-"}</td>
+      <td>${row.deletedAt || "-"}</td>
+      <td>${actionCell}</td>
+    </tr>`;
+    }).join("");
+  const deletedHtml = `<article class="sunriseControlCard sunriseDetailWide"><h3>Deleted Accounts</h3><table class="sunriseControlTable"><thead><tr><th>Type</th><th>Email</th><th>Name</th><th>Membership</th><th>Access</th><th>Deleted At</th><th>Action</th></tr></thead><tbody>${deletedRows || "<tr><td colspan='7'>No deleted accounts.</td></tr>"}</tbody></table></article>`;
+
+  grid.innerHTML = `<article class="sunriseControlCard sunriseDetailWide"><h3>Account Management Page</h3><div class="sunriseControlActions"><input class="input" id="amp-search" placeholder="Search any value, use / to narrow (e.g. mikhail/owner)" value="${filter.replace(/"/g, "&quot;")}"><button class="sunriseMiniBtn" type="button" data-amp-search>Search</button><button class="sunriseMiniBtn" type="button" data-amp-add>Add Empty Account</button></div><div class="sunriseSectionTabs"><button class="sunriseMiniBtn ${section === "customers" ? "isActive" : ""}" type="button" data-amp-section="customers">Customers</button><button class="sunriseMiniBtn ${section === "staff" ? "isActive" : ""}" type="button" data-amp-section="staff">Staff</button><button class="sunriseMiniBtn ${section === "deleted" ? "isActive" : ""}" type="button" data-amp-section="deleted">Deleted Accounts</button></div></article>${section === "staff" ? staffHtml : (section === "deleted" ? deletedHtml : customersHtml)}`;
+}
+
+function ensureAmpDeletedAccountsStore() {
+  if (!sunriseControlState) return;
+  if (!Array.isArray(sunriseControlState.deletedAccounts)) sunriseControlState.deletedAccounts = [];
+  sunriseControlState.deletedAccounts = sunriseControlState.deletedAccounts.filter((row) => {
+    const name = `${String(row?.name || "").trim()}`.toLowerCase();
+    return !name.includes("roman novikov");
+  });
+}
+
+function deletedAccountSnapshot(account, key = "") {
+  const email = String(account?.email || key || "").trim().toLowerCase();
+  const kind = String(account?.membership || "").trim().toLowerCase() === "staff" || String(account?.sunriseAccessLevel || "").trim()
+    ? "staff"
+    : "customer";
+  return {
+    kind,
+    key: String(key || email || "").trim().toLowerCase(),
+    email,
+    name: `${String(account?.firstName || "").trim()} ${String(account?.lastName || "").trim()}`.trim(),
+    membership: String(account?.membership || "").trim() || "Non-Member",
+    sunriseAccessLevel: String(account?.sunriseAccessLevel || "").trim().toUpperCase(),
+    notosId: String(account?.notosId || "").trim().toUpperCase(),
+    account: JSON.parse(JSON.stringify(account || {})),
+    deletedAt: formatUtcTimestamp(new Date())
+  };
+}
+
+function relatedAccountKeysForDelete(rawKey = "") {
+  const primary = resolveAccountKey(rawKey);
+  const keys = new Set();
+  if (!primary || !accounts[primary]) return [];
+  keys.add(primary);
+  const account = accounts[primary];
+  if (account?.sunriseCredential) {
+    const linked = String(account.sunriseLinkedEmail || "").trim().toLowerCase();
+    if (linked && accounts[linked]) keys.add(linked);
+  } else {
+    Object.keys(accounts).forEach((k) => {
+      const a = accounts[k];
+      if (!a?.sunriseCredential) return;
+      const linked = String(a.sunriseLinkedEmail || "").trim().toLowerCase();
+      if (linked === primary) keys.add(k);
+    });
+  }
+  return Array.from(keys);
+}
+
+function moveAccountsToDeletedBucket(rawKey = "") {
+  ensureAmpDeletedAccountsStore();
+  const targets = relatedAccountKeysForDelete(rawKey);
+  targets.forEach((key) => {
+    if (!accounts[key]) return;
+    sunriseControlState.deletedAccounts.unshift(deletedAccountSnapshot(accounts[key], key));
+    delete accounts[key];
+    if (activeAccount && String(activeAccount.email || "").trim().toLowerCase() === key) {
+      activeAccount = null;
+      clearActiveSession();
+      updateAuthCta();
+    }
+    if (sunriseState?.active && String(sunriseState.email || "").trim().toLowerCase() === key) {
+      clearSunriseSession();
+    }
+  });
+}
+
+function keepSingleStaffPerAccessLevel() {
+  const levels = ["STA", "SA", "SS", "SM", "DA", "CA"];
+  const keptBaseByLevel = new Map();
+  const toDelete = [];
+  const entries = Object.entries(accounts);
+  entries.forEach(([key, account]) => {
+    if (!account || typeof account !== "object") return;
+    if (isOwnerAccount(account)) return;
+    const membership = String(account.membership || "").trim().toLowerCase();
+    if (membership !== "staff") return;
+    if (account.sunriseCredential) return;
+    const level = String(account.sunriseAccessLevel || "").trim().toUpperCase();
+    if (!levels.includes(level)) return;
+    if (!keptBaseByLevel.has(level)) {
+      keptBaseByLevel.set(level, key);
+      return;
+    }
+    toDelete.push(key);
+  });
+  toDelete.forEach((baseKey) => {
+    const base = accounts[baseKey];
+    if (!base) return;
+    const level = String(base.sunriseAccessLevel || "").trim().toUpperCase();
+    const sunriseKey = Object.keys(accounts).find((k) => {
+      const a = accounts[k];
+      return !!a?.sunriseCredential && String(a.sunriseLinkedEmail || "").trim().toLowerCase() === String(baseKey).trim().toLowerCase();
+    });
+    delete accounts[baseKey];
+    if (sunriseKey && accounts[sunriseKey]) delete accounts[sunriseKey];
+    if (activeAccount && String(activeAccount.email || "").trim().toLowerCase() === String(baseKey).trim().toLowerCase()) {
+      activeAccount = null;
+      clearActiveSession();
+      updateAuthCta();
+    }
+    if (sunriseState?.active && String(sunriseState.email || "").trim().toLowerCase() === String(baseKey).trim().toLowerCase()) {
+      clearSunriseSession();
+    }
+    const keptBase = keptBaseByLevel.get(level);
+    if (keptBase && accounts[keptBase]) ensureSunriseCredentials();
+  });
+
+  const allowedBaseSet = new Set(Array.from(keptBaseByLevel.values()).map((v) => String(v).trim().toLowerCase()));
+  const sunriseKeepByBase = new Set();
+  Object.keys(accounts).forEach((key) => {
+    const account = accounts[key];
+    if (!account || typeof account !== "object") return;
+    if (!account.sunriseCredential || isOwnerAccount(account)) return;
+    const linked = String(account.sunriseLinkedEmail || "").trim().toLowerCase();
+    const level = String(account.sunriseAccessLevel || "").trim().toUpperCase();
+    if (!levels.includes(level)) return;
+    if (!linked || !allowedBaseSet.has(linked)) {
+      delete accounts[key];
+      return;
+    }
+    if (sunriseKeepByBase.has(linked)) {
+      delete accounts[key];
+      return;
+    }
+    sunriseKeepByBase.add(linked);
+  });
+}
+
+function renderALPPage(filter = "") {
+  const grid = document.getElementById("sunrise-alp-grid");
+  if (!grid || !sunriseControlState) return;
+  const section = normalizeAdminSection(sunriseAdminViewState.alpSection);
+  sunriseAdminViewState.alpSection = section;
+  if (!Array.isArray(sunriseControlState.accessLevels)) sunriseControlState.accessLevels = [];
+  const renderAccessRow = (row, originalIdx) => {
+    const lockedForAleks = isAleksAlpRestrictedAccessRow(row);
+    const lockAttrs = lockedForAleks ? "readonly aria-disabled=\"true\"" : "";
+    const deleteAction = lockedForAleks
+      ? "<span class=\"profileNote\">Restricted</span>"
+      : `<button class="sunriseMiniBtn" type="button" data-alp-del="${originalIdx}">Delete</button>`;
+    return `<tr>
+      <td><input class="input" data-alp-code="${originalIdx}" value="${row.code || ""}" ${lockAttrs}></td>
+      <td><input class="input" data-alp-title="${originalIdx}" value="${row.title || ""}" ${lockAttrs}></td>
+      <td><input class="input" data-alp-access="${originalIdx}" value="${row.access || ""}" ${lockAttrs}></td>
+      <td>${deleteAction}</td>
+    </tr>`;
+  };
+
+  const customerPolicyRows = [
+    ["Non-Member", "Public site + account dashboard + contact submission"],
+    ["Voyager Cuprum", "All customer access + Cuprum benefit visibility"],
+    ["Voyager Argentum", "All customer access + Argentum benefits"],
+    ["Voyager Aurum", "All customer access + Aurum benefits"],
+    ["Voyager Platinum", "All customer access + Platinum benefits"],
+    ["Voyager Diamante", "All customer access + Diamante benefits"],
+    ["Voyager Noir", "All customer access + Noir benefits"],
+    ["Voyager Red", "All customer access + Red Lounge + Ambassador features"]
+  ].filter(([tier, access]) => matchesSearch([tier, access], filter))
+    .map(([tier, access]) => `<tr><td>${tier}</td><td>${access}</td></tr>`)
+    .join("");
+
+  const hierarchyBands = [
+    { label: "Executive", codes: ["OW", "CA", "DA"] },
+    { label: "Management", codes: ["SM", "SS"] },
+    { label: "Associate", codes: ["SA", "STA"] }
+  ];
+  const staffHierarchyHtml = hierarchyBands.map((band) => {
+    const bandRows = sunriseControlState.accessLevels
+      .map((row, originalIdx) => ({ row, originalIdx }))
+      .filter(({ row }) => band.codes.includes(String(row.code || "").toUpperCase()))
+      .filter(({ row }) => matchesSearch([row.code, row.title, row.access], filter))
+      .sort((a, b) => hierarchySortIndex(String(a.row.code || "")) - hierarchySortIndex(String(b.row.code || "")))
+      .map(({ row, originalIdx }) => renderAccessRow(row, originalIdx))
+      .join("");
+    return `<article class="sunriseControlCard sunriseDetailWide"><h3>${band.label} Hierarchy</h3><table class="sunriseControlTable"><thead><tr><th>Code</th><th>Level</th><th>Access Detail</th><th>Action</th></tr></thead><tbody>${bandRows || "<tr><td colspan='4'>No levels in this hierarchy band.</td></tr>"}</tbody></table></article>`;
+  }).join("");
+
+  const sectionBody = section === "staff"
+    ? `${staffHierarchyHtml}<article class="sunriseControlCard sunriseDetailWide"><div class="sunriseControlActions"><button class="sunriseMiniBtn" type="button" data-alp-add>Add Level</button></div></article>`
+    : `<article class="sunriseControlCard sunriseDetailWide"><h3>Customers Access Policies</h3><table class="sunriseControlTable"><thead><tr><th>Tier</th><th>Platform Access</th></tr></thead><tbody>${customerPolicyRows || "<tr><td colspan='2'>No customer policy rows found.</td></tr>"}</tbody></table></article>`;
+
+  grid.innerHTML = `<article class="sunriseControlCard sunriseDetailWide"><h3>Access Levels Page</h3><div class="sunriseControlActions"><input class="input" id="alp-search" placeholder="Search any value, use / to narrow" value="${filter.replace(/"/g, "&quot;")}"><button class="sunriseMiniBtn" type="button" data-alp-search>Search</button></div><div class="sunriseSectionTabs"><button class="sunriseMiniBtn ${section === "customers" ? "isActive" : ""}" type="button" data-alp-section="customers">Customers</button><button class="sunriseMiniBtn ${section === "staff" ? "isActive" : ""}" type="button" data-alp-section="staff">Staff</button></div></article>${sectionBody}`;
+}
+
+function renderShortcutCodeAdminCard(context = "MCC", filter = "", searchId = "mcc-search", searchAttr = "data-mcc-search", addAttr = "data-mcc-add") {
+  const allAccess = sunriseAccessCodesList();
+  const rows = ensureShortcutCodeRegistry()
+    .map((row, originalIdx) => ({ row, originalIdx }))
+    .filter(({ row }) => matchesSearch([row.code, row.title, row.route, row.access], filter))
+    .map(({ row, originalIdx }) => {
+      const selected = normalizeCodeAccessList(row.access);
+      const accessOptions = allAccess.map((code) => `<option value="${code}" ${selected.includes(code) ? "selected" : ""}>${code}</option>`).join("");
+      return `<tr><td><input class="input" data-code-key="${originalIdx}" value="${row.code || ""}"></td><td><input class="input" data-code-title="${originalIdx}" value="${row.title || ""}"></td><td><input class="input" data-code-route="${originalIdx}" value="${row.route || ""}" placeholder="sunrise-... route"></td><td><select class="select" multiple size="4" data-code-access="${originalIdx}">${accessOptions}</select></td><td><button class="sunriseMiniBtn" type="button" data-code-del="${originalIdx}">Delete</button></td></tr>`;
+    }).join("");
+  return `<article class="sunriseControlCard sunriseDetailWide"><h3>Shortcut Codes Access (${context})</h3><div class="sunriseControlActions"><input class="input" id="${searchId}" placeholder="Search code/title/route/access, use / to narrow" value="${String(filter || "").replace(/"/g, "&quot;")}"><button class="sunriseMiniBtn" type="button" ${searchAttr}>Search</button><button class="sunriseMiniBtn" type="button" ${addAttr}>Add Code</button><a class="sunriseMiniBtn" href="#sunrise-mcc" data-route="sunrise-mcc">Open MCC</a></div><table class="sunriseControlTable"><thead><tr><th>Code</th><th>Title</th><th>Route</th><th>Allowed Access</th><th>Action</th></tr></thead><tbody>${rows || "<tr><td colspan='5'>No shortcut codes found.</td></tr>"}</tbody></table></article>`;
+}
+
+function renderMCCPage(filter = "") {
+  const grid = document.getElementById("sunrise-mcc-grid");
+  if (!grid) return;
+  grid.innerHTML = renderShortcutCodeAdminCard("MCC", filter, "mcc-search", "data-mcc-search", "data-mcc-add");
 }
 
 function inboxFolderCount(inbox, folder) {
@@ -4726,7 +6846,20 @@ function renderSunriseInboxPage() {
   const selectedMessageId = String(inbox.selectedMessageId || "");
   const composeOpen = !!inbox.composeOpen;
   const customFolders = Array.isArray(inbox.customFolders) ? inbox.customFolders : [];
-  const messages = Array.isArray(inbox.messages) ? inbox.messages : [];
+  const mailboxKey = activeSunriseMailbox();
+  const viewerAccount = sunriseState?.account || activeAccount || null;
+  const viewerIsOwner = isOwnerAccount(viewerAccount);
+  const viewerProfile = sunriseInboxProfile();
+  const messages = (Array.isArray(inbox.messages) ? inbox.messages : []).filter((msg) => {
+    const box = normalizeEmailAddress(msg.mailbox || "");
+    const sender = normalizeEmailAddress(msg.from || "");
+    const subject = String(msg.subject || "");
+    if (!viewerIsOwner && (sender === "notos.alert@venture-voyagers.com" || /notos critical warning/i.test(subject))) {
+      return false;
+    }
+    if (!box || box === "shared") return viewerIsOwner;
+    return box === normalizeEmailAddress(mailboxKey);
+  });
   const signatures = Array.isArray(inbox.signatures) ? inbox.signatures : [];
   const defaultSignatureId = String(inbox.defaultSignatureId || "");
   const customSet = new Set(customFolders.map((name) => String(name)));
@@ -4736,6 +6869,11 @@ function renderSunriseInboxPage() {
     return folder === activeFolder;
   });
   const selectedMessage = messages.find((msg) => String(msg.id || "") === selectedMessageId) || null;
+  const standardMoveFolders = ["inbox", "archive", "sent", "drafts", "spam", "trash", "sending"];
+  const moveFolderOptions = [...standardMoveFolders, ...customFolders]
+    .filter((name, idx, arr) => arr.indexOf(name) === idx)
+    .map((name) => `<option value="${name}">${name === "sending" ? "Sending" : String(name).charAt(0).toUpperCase() + String(name).slice(1)}</option>`)
+    .join("");
 
   const folderBtn = (folderKey, label) => {
     const active = activeFolder === folderKey ? " isActive" : "";
@@ -4772,10 +6910,14 @@ function renderSunriseInboxPage() {
   }).join("");
 
   const detailHtml = selectedMessage
-    ? `<article class="sunriseControlCard sunriseDetailWide"><div class="sunriseInboxTop"><h3>Email Details</h3><div class="sunriseControlActions"><button class="sunriseMiniBtn" type="button" data-inbox-archive="${selectedMessage.id}">Archive</button><select class="select" id="inbox-move-target"><option value="">Move to...</option><option value="inbox">Inbox</option><option value="archive">Archive</option><option value="sent">Sent</option><option value="spam">Spam</option><option value="trash">Trash</option>${customFolders.map((name) => `<option value="${name}">${name}</option>`).join("")}</select><button class="sunriseMiniBtn" type="button" data-inbox-move="${selectedMessage.id}">Move</button><button class="sunriseMiniBtn" type="button" data-inbox-delete="${selectedMessage.id}">Delete to Trash</button></div></div><div class="sunriseInboxDetailGrid"><p><b>From:</b> ${selectedMessage.from || "-"}</p><p><b>To:</b> ${selectedMessage.to || "-"}</p><p><b>CC:</b> ${selectedMessage.cc || "-"}</p><p><b>BCC:</b> ${selectedMessage.bcc || "-"}</p><p><b>Subject:</b> ${selectedMessage.subject || "-"}</p><p><b>Priority:</b> ${selectedMessage.priority || "Normal"}</p><p><b>Created:</b> ${selectedMessage.createdAt || "-"}</p><p><b>Scheduled:</b> ${selectedMessage.scheduledAt || "-"}</p></div><div class="sunriseInboxAttachList">${(selectedMessage.attachments || []).length ? `Attachments: ${(selectedMessage.attachments || []).join(", ")}` : "Attachments: none"}</div><div class="sunriseInboxDetailBody">${selectedMessage.bodyHtml || "<p>No content.</p>"}</div></article>`
+    ? `<article class="sunriseControlCard sunriseDetailWide"><div class="sunriseInboxTop"><h3>Email Details</h3><div class="sunriseControlActions"><button class="sunriseMiniBtn" type="button" data-inbox-archive="${selectedMessage.id}">Archive</button><select class="select" id="inbox-move-target"><option value="">Move to...</option>${moveFolderOptions}</select><button class="sunriseMiniBtn" type="button" data-inbox-move="${selectedMessage.id}">Move</button><button class="sunriseMiniBtn" type="button" data-inbox-delete="${selectedMessage.id}">Delete to Trash</button></div></div><div class="sunriseInboxDetailGrid"><p><b>From:</b> ${selectedMessage.from || "-"}</p><p><b>To:</b> ${selectedMessage.to || "-"}</p><p><b>CC:</b> ${selectedMessage.cc || "-"}</p><p><b>BCC:</b> ${selectedMessage.bcc || "-"}</p><p><b>Subject:</b> ${selectedMessage.subject || "-"}</p><p><b>Priority:</b> ${selectedMessage.priority || "Normal"}</p><p><b>Created:</b> ${selectedMessage.createdAt || "-"}</p><p><b>Scheduled:</b> ${selectedMessage.scheduledAt || "-"}</p></div><div class="sunriseInboxAttachList">${(selectedMessage.attachments || []).length ? `Attachments: ${(selectedMessage.attachments || []).join(", ")}` : "Attachments: none"}</div><div class="sunriseInboxDetailBody">${selectedMessage.bodyHtml || "<p>No content.</p>"}</div></article>`
     : `<article class="sunriseControlCard sunriseDetailWide"><p class="profileNote">Select an email to view details.</p></article>`;
 
-  root.innerHTML = `<div class="sunriseInboxShell"><aside class="sunriseInboxSidebar"><div class="sunriseInboxFolders"><p class="sunriseCategoryTitle">Mailboxes</p>${folderBtn("inbox", "Inbox")}${folderBtn("archive", "Archive")}${folderBtn("folders", "Folders")}${folderBtn("sent", "Sent")}${folderBtn("spam", "Spam")}${folderBtn("trash", "Trash")}${folderBtn("sending", "Sending")}</div><div class="sunriseInboxFolders"><p class="sunriseCategoryTitle">Custom Folders</p>${customFolderBtns || "<p class='profileNote'>No custom folders yet.</p>"}<div class="sunriseControlActions"><input class="input" id="inbox-new-folder" placeholder="New folder name"><button class="sunriseMiniBtn" type="button" data-inbox-folder-add>Create</button></div></div><div class="sunriseInboxSettings"><p class="sunriseCategoryTitle">Inbox Signatures</p>${signatureRows || "<p class='profileNote'>No signatures yet.</p>"}<div class="sunriseControlActions"><input class="input" id="inbox-new-signature-name" placeholder="Signature name"><button class="sunriseMiniBtn" type="button" data-inbox-signature-add>Add Signature</button></div></div></aside><section class="sunriseInboxMain"><article class="sunriseControlCard sunriseDetailWide"><div class="sunriseInboxTop"><h3>Folder: ${activeFolder}</h3><button class="sunriseMiniBtn" type="button" data-inbox-new-compose>${composeOpen ? "Close Compose" : "Compose"}</button></div><div class="sunriseInboxList">${rows || "<p class='profileNote'>No emails in this folder.</p>"}</div></article>${detailHtml}<article class="sunriseControlCard sunriseDetailWide${composeOpen ? "" : " isHidden"}" id="inbox-compose-card"><h3>Compose Email</h3><div class="sunriseInboxComposeGrid compact"><div class="field"><label>To</label><input class="input" id="inbox-to" type="email" placeholder="recipient@domain.com"></div><div class="field"><label>Subject</label><input class="input" id="inbox-subject" type="text" placeholder="Email subject"></div><div class="field"><label>CC</label><input class="input" id="inbox-cc" type="email" placeholder="cc@domain.com"></div><div class="field"><label>BCC</label><input class="input" id="inbox-bcc" type="email" placeholder="bcc@domain.com"></div></div><div class="sunriseInboxMiniBar"><button class="sunriseMiniBtn" type="button" data-inbox-toggle-mini="style">Style</button><button class="sunriseMiniBtn" type="button" data-inbox-toggle-mini="font">Font</button><button class="sunriseMiniBtn" type="button" data-inbox-toggle-mini="files">Files</button><button class="sunriseMiniBtn" type="button" data-inbox-toggle-mini="delivery">Delivery</button><button class="sunriseMiniBtn" type="button" data-inbox-toggle-mini="signature">Signature</button></div><div class="sunriseInboxMiniPanelWrap"><div class="sunriseInboxMiniPanel isActive" data-mini-panel="style"><button class="sunriseMiniBtn" type="button" data-inbox-style-preset="title">Title</button><button class="sunriseMiniBtn" type="button" data-inbox-style-preset="subtitle">Subtitle</button><button class="sunriseMiniBtn" type="button" data-inbox-style-preset="body">Body</button><button class="sunriseMiniBtn" type="button" data-inbox-style-preset="quote">Quote</button><button class="sunriseMiniBtn" type="button" data-inbox-editor-cmd="bold"><b>B</b></button><button class="sunriseMiniBtn" type="button" data-inbox-editor-cmd="italic"><i>I</i></button><button class="sunriseMiniBtn" type="button" data-inbox-editor-cmd="underline"><u>U</u></button></div><div class="sunriseInboxMiniPanel" data-mini-panel="font"><select class="select" id="inbox-font-family"><option value="Arial, sans-serif">Arial</option><option value="'Times New Roman', serif">Times New Roman</option><option value="'Courier New', monospace">Courier New</option><option value="Georgia, serif">Georgia</option></select><select class="select" id="inbox-font-size"><option value="2">Small</option><option value="3" selected>Normal</option><option value="4">Large</option><option value="5">XL</option></select></div><div class="sunriseInboxMiniPanel" data-mini-panel="files"><input class="input miniFileInput" id="inbox-attach" type="file" multiple></div><div class="sunriseInboxMiniPanel" data-mini-panel="delivery"><select class="select" id="inbox-priority"><option>Low</option><option selected>Normal</option><option>High</option><option>Urgent</option></select><input class="input" id="inbox-schedule" type="datetime-local"></div><div class="sunriseInboxMiniPanel" data-mini-panel="signature"><select class="select" id="inbox-signature-select">${signatureOptions}</select><button class="sunriseMiniBtn" type="button" data-inbox-apply-signature>Apply</button></div></div><div class="sunriseInboxEditorWrap"><div id="inbox-editor" class="sunriseInboxEditor" contenteditable="true"></div></div><div class="sunriseInboxAttachList" id="inbox-attachments-list"></div><div class="sunriseControlActions"><button class="sunriseMiniBtn" type="button" data-inbox-send>Send</button></div><p class="authInfo" id="inbox-info">${inbox.lastInfo || ""}</p></article></section></div>`;
+  const trashAction = activeFolder === "trash"
+    ? `<button class="sunriseMiniBtn" type="button" data-inbox-clear-trash>Clear Trash</button>`
+    : "";
+
+  root.innerHTML = `<div class="sunriseInboxShell"><aside class="sunriseInboxSidebar"><div class="sunriseInboxFolders"><p class="sunriseCategoryTitle">Mailbox</p><p class="profileNote">${mailboxKey}</p>${folderBtn("inbox", "Inbox")}${folderBtn("archive", "Archive")}${folderBtn("folders", "Folders")}${folderBtn("sent", "Sent")}${folderBtn("drafts", "Drafts")}${folderBtn("spam", "Spam")}${folderBtn("trash", "Trash")}${folderBtn("sending", "Sending")}</div><div class="sunriseInboxFolders"><p class="sunriseCategoryTitle">Custom Folders</p>${customFolderBtns || "<p class='profileNote'>No custom folders yet.</p>"}<div class="sunriseControlActions"><input class="input" id="inbox-new-folder" placeholder="New folder name"><button class="sunriseMiniBtn" type="button" data-inbox-folder-add>Create</button></div></div><div class="sunriseInboxSettings"><p class="sunriseCategoryTitle">Inbox Signatures</p><p class="profileNote">${signatures.length} saved signature presets.</p><div class="sunriseControlActions"><button class="sunriseMiniBtn" type="button" data-inbox-signature-manager-open>Manage Signatures</button></div></div></aside><section class="sunriseInboxMain"><article class="sunriseControlCard sunriseDetailWide"><h3>${viewerProfile.name}</h3><p class="profileNote">${viewerProfile.position}</p></article><article class="sunriseControlCard sunriseDetailWide"><div class="sunriseInboxTop"><h3>Folder: ${activeFolder}</h3><div class="sunriseControlActions"><button class="sunriseMiniBtn" type="button" data-inbox-new-compose>Compose</button>${trashAction}</div></div><div class="sunriseInboxList">${rows || "<p class='profileNote'>No emails in this folder.</p>"}</div></article>${detailHtml}</section></div>`;
 
   const editor = document.getElementById("inbox-editor");
   const signatureSelect = document.getElementById("inbox-signature-select");
@@ -4787,6 +6929,23 @@ function renderSunriseInboxPage() {
       editor.innerHTML = `${sigText}${sigImage}`;
     }
   }
+  enhanceFilePickers(root);
+}
+
+function renderSignatureManager() {
+  if (!sunriseControlState) return;
+  const wrap = document.getElementById("inbox-signature-manager");
+  if (!wrap) return;
+  const inbox = sunriseControlState.inbox || {};
+  const signatures = Array.isArray(inbox.signatures) ? inbox.signatures : [];
+  const defaultId = String(inbox.defaultSignatureId || "");
+  const rows = signatures.map((sig, idx) => {
+    const id = String(sig.id || "");
+    const checked = id === defaultId ? "checked" : "";
+    return `<article class="sunriseInboxSignatureItem"><div class="sunriseInboxSignatureHead"><input class="input" data-inbox-signature-name="${idx}" value="${sig.name || ""}" placeholder="Signature name"><label class="choice"><input type="radio" name="inbox-default-signature" data-inbox-signature-default="${id}" ${checked}/> Default</label><button class="sunriseMiniBtn" type="button" data-inbox-signature-del="${idx}">Delete</button></div><textarea class="input sunriseInboxSignatureArea" data-inbox-signature-text="${idx}" placeholder="Signature text">${sig.text || ""}</textarea><div class="sunriseControlActions"><input class="input" data-inbox-signature-image="${idx}" value="${sig.imageName || ""}" placeholder="Signature image name (optional)"><input class="input" type="file" accept="image/*" data-inbox-signature-image-file="${idx}"></div></article>`;
+  }).join("");
+  wrap.innerHTML = `${rows || "<p class='profileNote'>No signatures yet.</p>"}<div class="sunriseControlActions"><input class="input" id="inbox-new-signature-name" placeholder="Signature name"><button class="sunriseMiniBtn" type="button" data-inbox-signature-add>Add Signature</button></div>`;
+  enhanceFilePickers(wrap);
 }
 
 function renderSMCAPage() {
@@ -4806,17 +6965,59 @@ function renderSMCAPage() {
 }
 
 function renderCustomSunriseControlPages() {
+  ensureSunriseSaveButtons();
   renderSunriseControlSummary();
-  renderDTSPage();
-  renderMoneyPage("sunrise-eam-grid", "eamExpenses", "Expenses Adjustment");
-  renderMoneyPage("sunrise-ifs-grid", "ifsIncome", "Income Flow Allocation");
-  renderSMCAPage();
-  renderECSPage();
-  renderRIMPage();
-  renderSOCPage();
-  renderSOCDetailsPage();
-  renderSunriseInboxPage();
-  renderLCSPage();
+  const route = currentVisibleRoute();
+  if (!(route === "sunrise" || sunriseModuleRoutes.includes(route))) return;
+
+  if (route === "sunrise-dts") {
+    renderDTSPage();
+    initDtsSignaturePad();
+    enhanceFilePickers(document.getElementById("sunrise-dts-grid"));
+    return;
+  }
+  if (route === "sunrise-eam") {
+    renderMoneyPage("sunrise-eam-grid", "eamExpenses", "Expenses Adjustment");
+    return;
+  }
+  if (route === "sunrise-ifs") {
+    renderMoneyPage("sunrise-ifs-grid", "ifsIncome", "Income Flow Allocation");
+    return;
+  }
+  if (route === "sunrise-ecs") {
+    syncEcsWithStaffAccounts();
+    renderECSPage();
+    return;
+  }
+  if (route === "sunrise-smca") {
+    renderSMCAPage();
+    return;
+  }
+  if (route === "sunrise-rim") {
+    renderRIMPage();
+    return;
+  }
+  if (route === "sunrise-soc") {
+    renderSOCPage();
+    return;
+  }
+  if (route === "sunrise-soc-details") {
+    renderSOCDetailsPage();
+    return;
+  }
+  if (route === "sunrise-inbox") {
+    renderSunriseInboxPage();
+    enhanceFilePickers(document.getElementById("sunrise-inbox-grid"));
+    return;
+  }
+  if (route === "sunrise-lcs") {
+    renderLCSPage();
+    return;
+  }
+  if (route === "sunrise-amp" || route === "sunrise-alp" || route === "sunrise-mcc") {
+    scheduleSunriseAdminRenders();
+    return;
+  }
 }
 
 function bindSunriseControlInteractions() {
@@ -4824,9 +7025,19 @@ function bindSunriseControlInteractions() {
   document.body.dataset.sunriseControlBound = "1";
   const sunriseEmailOverlay = document.getElementById("sunrise-email-overlay");
   const sunriseMailTo = document.getElementById("sunrise-mail-to");
+  const sunriseMailCc = document.getElementById("sunrise-mail-cc");
+  const sunriseMailBcc = document.getElementById("sunrise-mail-bcc");
   const sunriseMailSubject = document.getElementById("sunrise-mail-subject");
   const sunriseMailBody = document.getElementById("sunrise-mail-body");
+  const sunriseMailFont = document.getElementById("sunrise-mail-font");
+  const sunriseMailFontSize = document.getElementById("sunrise-mail-font-size");
+  const sunriseMailPriority = document.getElementById("sunrise-mail-priority");
+  const sunriseMailSchedule = document.getElementById("sunrise-mail-schedule");
+  const sunriseMailAttach = document.getElementById("sunrise-mail-attach");
   const sunriseMailInfo = document.getElementById("sunrise-mail-info");
+  const signatureOverlay = document.getElementById("inbox-signature-overlay");
+  const signatureClose = document.getElementById("inbox-signature-close");
+  const signatureInfo = document.getElementById("inbox-signature-manager-info");
   const notosPathOverlay = document.getElementById("notos-path-overlay");
   const notosPathClose = document.getElementById("notos-path-close");
   if (notosPathClose && notosPathClose.dataset.boundNotosClose !== "1") {
@@ -4835,19 +7046,144 @@ function bindSunriseControlInteractions() {
     });
     notosPathClose.dataset.boundNotosClose = "1";
   }
+  if (signatureClose && signatureClose.dataset.boundSigClose !== "1") {
+    signatureClose.addEventListener("click", () => {
+      if (signatureOverlay) signatureOverlay.hidden = true;
+      if (signatureInfo) signatureInfo.textContent = "";
+    });
+    signatureClose.dataset.boundSigClose = "1";
+  }
+
+  const resetSunriseComposerViewport = () => {
+    if (!sunriseEmailOverlay) return;
+    const windowEl = sunriseEmailOverlay.querySelector(".sunriseMailWindow");
+    const formEl = sunriseEmailOverlay.querySelector(".mailFormGrid");
+    const resetNode = (node) => {
+      if (!(node instanceof HTMLElement)) return;
+      node.scrollTop = 0;
+      node.scrollLeft = 0;
+    };
+    resetNode(sunriseEmailOverlay);
+    resetNode(windowEl);
+    resetNode(formEl);
+    window.requestAnimationFrame(() => {
+      resetNode(sunriseEmailOverlay);
+      resetNode(windowEl);
+      resetNode(formEl);
+      window.requestAnimationFrame(() => {
+        resetNode(sunriseEmailOverlay);
+        resetNode(windowEl);
+        resetNode(formEl);
+      });
+    });
+  };
+
+  const forceSunriseComposeTop = () => {
+    if (!sunriseEmailOverlay) return;
+    const windowEl = sunriseEmailOverlay.querySelector(".sunriseMailWindow");
+    const formEl = sunriseEmailOverlay.querySelector(".mailFormGrid");
+    const toLabel = sunriseEmailOverlay.querySelector('label[for="sunrise-mail-to"]');
+    const run = () => {
+      window.scrollTo({ top: 0, left: 0, behavior: "auto" });
+      if (sunriseEmailOverlay instanceof HTMLElement) {
+        sunriseEmailOverlay.scrollTop = 0;
+        sunriseEmailOverlay.scrollLeft = 0;
+        sunriseEmailOverlay.style.overflowAnchor = "none";
+      }
+      if (windowEl instanceof HTMLElement) {
+        windowEl.scrollTop = 0;
+        windowEl.scrollLeft = 0;
+        windowEl.style.overflowAnchor = "none";
+      }
+      if (formEl instanceof HTMLElement) {
+        formEl.scrollTop = 0;
+        formEl.scrollLeft = 0;
+      }
+      if (toLabel instanceof HTMLElement) {
+        toLabel.scrollIntoView({ block: "start", inline: "nearest" });
+      }
+      if (sunriseMailTo instanceof HTMLElement) {
+        sunriseMailTo.focus({ preventScroll: true });
+        sunriseMailTo.scrollIntoView({ block: "start", inline: "nearest" });
+      }
+    };
+    run();
+    window.requestAnimationFrame(run);
+    window.setTimeout(run, 30);
+    window.setTimeout(run, 120);
+  };
+
+  const openSunriseComposeOverlay = () => {
+    if (!sunriseEmailOverlay) return;
+    const windowEl = sunriseEmailOverlay.querySelector(".sunriseMailWindow");
+    const formEl = sunriseEmailOverlay.querySelector(".mailFormGrid");
+    enhanceFilePickers(sunriseEmailOverlay);
+    sunriseEmailOverlay.hidden = false;
+    if (sunriseEmailOverlay instanceof HTMLElement) {
+      sunriseEmailOverlay.style.placeItems = "start center";
+    }
+    if (sunriseEmailOverlay instanceof HTMLElement) {
+      sunriseEmailOverlay.scrollTop = 0;
+      sunriseEmailOverlay.scrollLeft = 0;
+    }
+    if (windowEl instanceof HTMLElement) {
+      windowEl.scrollTop = 0;
+      windowEl.scrollLeft = 0;
+    }
+    if (formEl instanceof HTMLElement) {
+      formEl.scrollTop = 0;
+      formEl.scrollLeft = 0;
+    }
+    resetSunriseComposerViewport();
+    forceSunriseComposeTop();
+    window.setTimeout(() => {
+      resetSunriseComposerViewport();
+      forceSunriseComposeTop();
+      setSunriseComposeDraftBaseline();
+    }, 60);
+    setSunriseComposeDraftBaseline();
+  };
 
   const openSunriseEmailComposer = (user) => {
     if (!sunriseEmailOverlay) return;
     const userName = String(user?.name || "Employee").trim();
     if (sunriseMailTo) sunriseMailTo.value = String(user?.email || "").trim();
+    if (sunriseMailCc) sunriseMailCc.value = "";
+    if (sunriseMailBcc) sunriseMailBcc.value = "";
     if (sunriseMailSubject) sunriseMailSubject.value = `VVS Operations Notice - ${userName}`;
     if (sunriseMailBody) sunriseMailBody.value = `Dear ${userName},\n\nPlease review the latest operational update.\n\nRegards,\nVVS Command`;
+    if (sunriseMailFont) sunriseMailFont.value = "Arial, sans-serif";
+    if (sunriseMailFontSize) sunriseMailFontSize.value = "14";
+    if (sunriseMailPriority) sunriseMailPriority.value = "Normal";
+    if (sunriseMailSchedule) sunriseMailSchedule.value = "";
+    if (sunriseMailAttach) sunriseMailAttach.value = "";
     if (sunriseMailInfo) sunriseMailInfo.textContent = "";
-    sunriseEmailOverlay.hidden = false;
+    openSunriseComposeOverlay();
+  };
+
+  const resetSunriseEmailComposer = () => {
+    if (sunriseMailTo) sunriseMailTo.value = "";
+    if (sunriseMailCc) sunriseMailCc.value = "";
+    if (sunriseMailBcc) sunriseMailBcc.value = "";
+    if (sunriseMailSubject) sunriseMailSubject.value = "";
+    if (sunriseMailBody) {
+      sunriseMailBody.value = "";
+      sunriseMailBody.style.fontWeight = "400";
+      sunriseMailBody.style.fontStyle = "normal";
+      sunriseMailBody.style.textDecoration = "none";
+    }
+    if (sunriseMailFont) sunriseMailFont.value = "Arial, sans-serif";
+    if (sunriseMailFontSize) sunriseMailFontSize.value = "14";
+    if (sunriseMailPriority) sunriseMailPriority.value = "Normal";
+    if (sunriseMailSchedule) sunriseMailSchedule.value = "";
+    if (sunriseMailAttach) sunriseMailAttach.value = "";
+    clearSunriseComposeDraftBaseline();
   };
 
   const closeSunriseEmailComposer = () => {
+    resetSunriseComposerViewport();
     if (sunriseEmailOverlay) sunriseEmailOverlay.hidden = true;
+    clearSunriseComposeDraftBaseline();
   };
 
   const parseKey = (value) => {
@@ -4856,6 +7192,18 @@ function bindSunriseControlInteractions() {
   };
 
   document.addEventListener("click", (event) => {
+    const saveBtn = event.target.closest("[data-sunrise-save-changes]");
+    if (saveBtn) {
+      commitSunriseChanges();
+      return;
+    }
+
+    const deleteClick = event.target.closest("[data-amp-del],[data-alp-del],[data-code-del],[data-dts-del],[data-money-del],[data-ecs-del],[data-rim-del],[data-smca-del],[data-soc-delete],[data-soc-restore],[data-lcs-del]");
+    if (deleteClick) {
+      event.preventDefault();
+      event.stopPropagation();
+    }
+
     const actionBtn = event.target.closest("[data-shortcut-action]");
     if (actionBtn) {
       const action = String(actionBtn.getAttribute("data-shortcut-action") || "").toLowerCase();
@@ -4899,6 +7247,48 @@ function bindSunriseControlInteractions() {
       return;
     }
 
+    const dtsCmd = event.target.closest("[data-dts-editor-cmd]");
+    if (dtsCmd) {
+      const cmd = String(dtsCmd.getAttribute("data-dts-editor-cmd") || "");
+      const editor = document.getElementById("dts-editor");
+      if (editor) editor.focus();
+      if (cmd) document.execCommand(cmd, false);
+      return;
+    }
+
+    const dtsStyle = event.target.closest("[data-dts-editor-style]");
+    if (dtsStyle) {
+      const style = String(dtsStyle.getAttribute("data-dts-editor-style") || "body");
+      const editor = document.getElementById("dts-editor");
+      if (!editor) return;
+      editor.focus();
+      if (style === "title") document.execCommand("formatBlock", false, "h2");
+      else if (style === "subtitle") document.execCommand("formatBlock", false, "h3");
+      else document.execCommand("formatBlock", false, "p");
+      return;
+    }
+
+    const dtsSave = event.target.closest("[data-dts-editor-save]");
+    if (dtsSave && sunriseControlState) {
+      const editor = document.getElementById("dts-editor");
+      const text = String(editor?.innerHTML || "").trim();
+      if (sunriseControlState.dtsDocs && sunriseControlState.dtsDocs[0]) {
+        sunriseControlState.dtsDocs[0].note = text ? "Edited in Sunrise redactor" : sunriseControlState.dtsDocs[0].note;
+      }
+      saveSunriseControlState();
+      return;
+    }
+
+    const dtsSignClear = event.target.closest("[data-dts-sign-clear]");
+    if (dtsSignClear) {
+      const canvas = document.getElementById("dts-signature-pad");
+      if (canvas instanceof HTMLCanvasElement) {
+        const ctx = canvas.getContext("2d");
+        if (ctx) ctx.clearRect(0, 0, canvas.width, canvas.height);
+      }
+      return;
+    }
+
     const ecsAdd = event.target.closest("[data-ecs-add]");
     if (ecsAdd && sunriseControlState) {
       sunriseControlState.ecsEmployees.push({ id: `EMP-${Math.floor(Math.random() * 900 + 100)}`, name: "New Employee", role: "Concierge", position: "Concierge Associate", salary: 0, hours: 0, bonus: 0, commission: 0, status: "Active", email: "", login: "", permission: "Tier-1" });
@@ -4923,8 +7313,16 @@ function bindSunriseControlInteractions() {
       return;
     }
 
+    const sunriseMailBack = event.target.closest("[data-sunrise-mail-back]");
+    if (sunriseMailBack) {
+      closeSunriseEmailComposer();
+      return;
+    }
+
     const sunriseMailClose = event.target.closest("[data-sunrise-mail-close]");
     if (sunriseMailClose) {
+      resetSunriseEmailComposer();
+      if (sunriseMailInfo) sunriseMailInfo.textContent = "Composition canceled.";
       closeSunriseEmailComposer();
       return;
     }
@@ -4932,16 +7330,98 @@ function bindSunriseControlInteractions() {
     const sunriseMailSend = event.target.closest("[data-sunrise-mail-send]");
     if (sunriseMailSend) {
       const to = String(sunriseMailTo?.value || "").trim();
+      const cc = String(sunriseMailCc?.value || "").trim();
+      const bcc = String(sunriseMailBcc?.value || "").trim();
       const subject = String(sunriseMailSubject?.value || "").trim();
       const body = String(sunriseMailBody?.value || "").trim();
+      const font = String(sunriseMailFont?.value || "Arial, sans-serif");
+      const fontSize = String(sunriseMailFontSize?.value || "14");
+      const priority = String(sunriseMailPriority?.value || "Normal");
+      const scheduleRaw = String(sunriseMailSchedule?.value || "");
+      const scheduleParsed = parseSunriseScheduleInput(scheduleRaw);
+      if (!scheduleParsed.ok) {
+        if (sunriseMailInfo) sunriseMailInfo.textContent = "Schedule format must be dd/mm/yyyy hr/min/sec.";
+        return;
+      }
+      const scheduledAt = scheduleParsed.formatted;
+      const attachments = (sunriseMailAttach instanceof HTMLInputElement && sunriseMailAttach.files)
+        ? Array.from(sunriseMailAttach.files).map((file) => file.name)
+        : [];
       if (!to || !subject || !body) {
         if (sunriseMailInfo) sunriseMailInfo.textContent = "Complete To, Subject and Message before sending.";
         return;
       }
-      if (sunriseMailInfo) sunriseMailInfo.textContent = `Message queued to ${to}. API connector will be attached later.`;
+      const recipients = [to, cc, bcc].filter(Boolean).join(", ");
+      const sender = sunriseState.email || (activeAccount?.email || "concierge@venture-voyagers.com");
+      const senderMailbox = activeSunriseMailbox();
+      const folder = scheduledAt ? "sending" : "sent";
+      const html = `<p style="font-family:${font};font-size:${fontSize}px;">${body.replace(/\n/g, "<br>")}</p>`;
+      pushInboxMessage({ mailbox: senderMailbox, folder, from: sender, to, cc, bcc, subject, bodyHtml: html, priority, scheduledAt, attachments });
+      routeSunriseInboundCopies({ senderMailbox, from: sender, to, cc, bcc, subject, bodyHtml: html, priority, attachments });
+      if (sunriseMailInfo) sunriseMailInfo.textContent = `Message sent to ${recipients || to}.`;
+      clearSunriseComposeDraftBaseline();
       window.setTimeout(() => {
         closeSunriseEmailComposer();
       }, 650);
+      return;
+    }
+
+    const sunriseMailDraft = event.target.closest("[data-sunrise-mail-draft]");
+    if (sunriseMailDraft) {
+      const to = String(sunriseMailTo?.value || "").trim();
+      const cc = String(sunriseMailCc?.value || "").trim();
+      const bcc = String(sunriseMailBcc?.value || "").trim();
+      const subject = String(sunriseMailSubject?.value || "").trim() || "Draft";
+      const body = String(sunriseMailBody?.value || "").trim();
+      const font = String(sunriseMailFont?.value || "Arial, sans-serif");
+      const fontSize = String(sunriseMailFontSize?.value || "14");
+      const priority = String(sunriseMailPriority?.value || "Normal");
+      const scheduleRaw = String(sunriseMailSchedule?.value || "");
+      const scheduleParsed = parseSunriseScheduleInput(scheduleRaw);
+      if (!scheduleParsed.ok) {
+        if (sunriseMailInfo) sunriseMailInfo.textContent = "Schedule format must be dd/mm/yyyy hr/min/sec.";
+        return;
+      }
+      const scheduledAt = scheduleParsed.formatted;
+      const attachments = (sunriseMailAttach instanceof HTMLInputElement && sunriseMailAttach.files)
+        ? Array.from(sunriseMailAttach.files).map((file) => file.name)
+        : [];
+      if (!to && !cc && !bcc && !body) {
+        if (sunriseMailInfo) sunriseMailInfo.textContent = "Add at least recipient or message content before saving draft.";
+        return;
+      }
+      const sender = sunriseState.email || (activeAccount?.email || "concierge@venture-voyagers.com");
+      const html = `<p style="font-family:${font};font-size:${fontSize}px;">${body.replace(/\n/g, "<br>")}</p>`;
+      pushInboxMessage({ mailbox: activeSunriseMailbox(), folder: "drafts", from: sender, to, cc, bcc, subject, bodyHtml: html, priority, scheduledAt, attachments });
+      if (sunriseControlState && sunriseControlState.inbox) {
+        sunriseControlState.inbox.activeFolder = "drafts";
+        sunriseControlState.inbox.lastInfo = "Draft saved.";
+        saveSunriseControlState();
+        renderSunriseInboxPage();
+      }
+      if (sunriseMailInfo) sunriseMailInfo.textContent = "Draft saved.";
+      clearSunriseComposeDraftBaseline();
+      window.setTimeout(() => {
+        closeSunriseEmailComposer();
+      }, 350);
+      return;
+    }
+
+    const sunriseMailStyle = event.target.closest("[data-sunrise-mail-style]");
+    if (sunriseMailStyle && sunriseMailBody) {
+      const style = String(sunriseMailStyle.getAttribute("data-sunrise-mail-style") || "body");
+      if (style === "title") sunriseMailBody.style.fontWeight = "700";
+      else if (style === "subtitle") sunriseMailBody.style.fontWeight = "600";
+      else sunriseMailBody.style.fontWeight = "400";
+      return;
+    }
+
+    const sunriseMailCmd = event.target.closest("[data-sunrise-mail-cmd]");
+    if (sunriseMailCmd && sunriseMailBody) {
+      const cmd = String(sunriseMailCmd.getAttribute("data-sunrise-mail-cmd") || "");
+      if (cmd === "bold") sunriseMailBody.style.fontWeight = sunriseMailBody.style.fontWeight === "700" ? "400" : "700";
+      if (cmd === "italic") sunriseMailBody.style.fontStyle = sunriseMailBody.style.fontStyle === "italic" ? "normal" : "italic";
+      if (cmd === "underline") sunriseMailBody.style.textDecoration = sunriseMailBody.style.textDecoration === "underline" ? "none" : "underline";
       return;
     }
 
@@ -5077,14 +7557,31 @@ function bindSunriseControlInteractions() {
 
     const inboxFolderBtn = event.target.closest("[data-inbox-folder]");
     if (inboxFolderBtn && sunriseControlState) {
-      const inbox = sunriseControlState.inbox || {};
-      inbox.activeFolder = String(inboxFolderBtn.getAttribute("data-inbox-folder") || "inbox");
-      inbox.composeOpen = false;
-      inbox.selectedMessageId = "";
-      inbox.lastInfo = "";
-      sunriseControlState.inbox = inbox;
-      saveSunriseControlState();
-      renderSunriseInboxPage();
+      const nextFolder = String(inboxFolderBtn.getAttribute("data-inbox-folder") || "inbox");
+      const applyFolderChange = () => {
+        const inbox = sunriseControlState.inbox || {};
+        inbox.activeFolder = nextFolder;
+        inbox.composeOpen = false;
+        inbox.selectedMessageId = "";
+        inbox.lastInfo = "";
+        sunriseControlState.inbox = inbox;
+        saveSunriseControlState({ markDirty: false });
+        renderSunriseInboxPage();
+      };
+      if (hasPendingInboxChanges()) {
+        openSunriseUnsavedModal((action) => {
+          if (action === "save") {
+            commitSunriseChanges();
+            applyFolderChange();
+          } else if (action === "discard") {
+            sunriseHasUnsavedChanges = false;
+            updateSunriseSaveButtonsState();
+            applyFolderChange();
+          }
+        });
+      } else {
+        applyFolderChange();
+      }
       return;
     }
 
@@ -5116,6 +7613,7 @@ function bindSunriseControlInteractions() {
       sunriseControlState.inbox = inbox;
       saveSunriseControlState();
       renderSunriseInboxPage();
+      renderSignatureManager();
       return;
     }
 
@@ -5132,34 +7630,32 @@ function bindSunriseControlInteractions() {
       sunriseControlState.inbox = inbox;
       saveSunriseControlState();
       renderSunriseInboxPage();
+      renderSignatureManager();
+      return;
+    }
+
+    const inboxSignatureManagerOpen = event.target.closest("[data-inbox-signature-manager-open]");
+    if (inboxSignatureManagerOpen) {
+      renderSignatureManager();
+      if (signatureOverlay) signatureOverlay.hidden = false;
+      if (signatureInfo) signatureInfo.textContent = "";
       return;
     }
 
     const inboxComposeNew = event.target.closest("[data-inbox-new-compose]");
     if (inboxComposeNew && sunriseControlState) {
-      const inbox = sunriseControlState.inbox || {};
-      const shouldOpen = !inbox.composeOpen;
-      inbox.composeOpen = shouldOpen;
-      sunriseControlState.inbox = inbox;
-      saveSunriseControlState();
-      renderSunriseInboxPage();
-      if (!shouldOpen) return;
-      const editor = document.getElementById("inbox-editor");
-      const to = document.getElementById("inbox-to");
-      const cc = document.getElementById("inbox-cc");
-      const bcc = document.getElementById("inbox-bcc");
-      const subject = document.getElementById("inbox-subject");
-      const schedule = document.getElementById("inbox-schedule");
-      const attachList = document.getElementById("inbox-attachments-list");
-      if (to) to.value = "";
-      if (cc) cc.value = "";
-      if (bcc) bcc.value = "";
-      if (subject) subject.value = "";
-      if (schedule) schedule.value = "";
-      if (attachList) attachList.textContent = "";
-      if (editor) editor.innerHTML = "";
-      const applyBtn = document.querySelector("[data-inbox-apply-signature]");
-      if (applyBtn instanceof HTMLElement) applyBtn.click();
+      if (sunriseMailTo) sunriseMailTo.value = "";
+      if (sunriseMailCc) sunriseMailCc.value = "";
+      if (sunriseMailBcc) sunriseMailBcc.value = "";
+      if (sunriseMailSubject) sunriseMailSubject.value = "";
+      if (sunriseMailBody) sunriseMailBody.value = "";
+      if (sunriseMailFont) sunriseMailFont.value = "Arial, sans-serif";
+      if (sunriseMailFontSize) sunriseMailFontSize.value = "14";
+      if (sunriseMailPriority) sunriseMailPriority.value = "Normal";
+      if (sunriseMailSchedule) sunriseMailSchedule.value = "";
+      if (sunriseMailAttach) sunriseMailAttach.value = "";
+      if (sunriseMailInfo) sunriseMailInfo.textContent = "";
+      openSunriseComposeOverlay();
       return;
     }
 
@@ -5235,6 +7731,24 @@ function bindSunriseControlInteractions() {
       return;
     }
 
+    const inboxClearTrash = event.target.closest("[data-inbox-clear-trash]");
+    if (inboxClearTrash && sunriseControlState) {
+      const inbox = sunriseControlState.inbox || {};
+      const allMessages = Array.isArray(inbox.messages) ? inbox.messages : [];
+      inbox.messages = allMessages.filter((msg) => String(msg.folder || "inbox") !== "trash");
+      const selectedId = String(inbox.selectedMessageId || "");
+      if (selectedId) {
+        const stillExists = inbox.messages.some((m) => String(m.id || "") === selectedId);
+        if (!stillExists) inbox.selectedMessageId = "";
+      }
+      inbox.activeFolder = "trash";
+      inbox.lastInfo = "Trash cleared permanently.";
+      sunriseControlState.inbox = inbox;
+      saveSunriseControlState();
+      renderSunriseInboxPage();
+      return;
+    }
+
     const inboxEditorCmd = event.target.closest("[data-inbox-editor-cmd]");
     if (inboxEditorCmd) {
       const cmd = String(inboxEditorCmd.getAttribute("data-inbox-editor-cmd") || "");
@@ -5303,10 +7817,12 @@ function bindSunriseControlInteractions() {
       const now = new Date();
       const scheduleTs = scheduledAt ? new Date(scheduledAt).getTime() : 0;
       const folder = scheduleTs && scheduleTs > now.getTime() ? "sending" : "sent";
-      inbox.messages.unshift({
-        id: `MAIL-${Date.now()}`,
+      const sender = sunriseState.email || (activeAccount?.email || "concierge@venture-voyagers.com");
+      const senderMailbox = activeSunriseMailbox();
+      pushInboxMessage({
+        mailbox: senderMailbox,
         folder,
-        from: sunriseState.email || (activeAccount?.email || "concierge@venture-voyagers.com"),
+        from: sender,
         to,
         cc,
         bcc,
@@ -5314,7 +7830,17 @@ function bindSunriseControlInteractions() {
         bodyHtml,
         priority,
         scheduledAt,
-        createdAt: now.toISOString().replace("T", " ").slice(0, 16) + " UTC",
+        attachments
+      });
+      routeSunriseInboundCopies({
+        senderMailbox,
+        from: sender,
+        to,
+        cc,
+        bcc,
+        subject,
+        bodyHtml,
+        priority,
         attachments
       });
       inbox.activeFolder = folder;
@@ -5330,6 +7856,13 @@ function bindSunriseControlInteractions() {
       sunriseControlState.lcsSessions.push({ id: generateGenericNotosSessionId(), code: "OPS1", employee: "New User", loginAt: "", logoutAt: "", loginTs: 0, logoutTs: 0, session: "00hr:00min:00sec", path: "", pathTimeline: [], permission: "Tier-1" });
       saveSunriseControlState();
       renderCustomSunriseControlPages();
+      return;
+    }
+
+    const lcsSearch = event.target.closest("[data-lcs-search]");
+    if (lcsSearch) {
+      const query = String(document.getElementById("lcs-search")?.value || "").trim();
+      renderLCSPage(query);
       return;
     }
 
@@ -5357,12 +7890,209 @@ function bindSunriseControlInteractions() {
       sunriseControlState.lcsSessions.splice(Number(lcsDel.getAttribute("data-lcs-del")), 1);
       saveSunriseControlState();
       renderCustomSunriseControlPages();
+      return;
+    }
+
+    const ampSearchBtn = event.target.closest("[data-amp-search]");
+    if (ampSearchBtn) {
+      const query = String(document.getElementById("amp-search")?.value || "").trim();
+      renderAMPPage(query);
+      return;
+    }
+
+    const ampSectionBtn = event.target.closest("[data-amp-section]");
+    if (ampSectionBtn) {
+      sunriseAdminViewState.ampSection = normalizeAdminSection(ampSectionBtn.getAttribute("data-amp-section"));
+      const query = String(document.getElementById("amp-search")?.value || "").trim();
+      renderAMPPage(query);
+      return;
+    }
+
+    const ampAdd = event.target.closest("[data-amp-add]");
+    if (ampAdd) {
+      const section = normalizeAdminSection(sunriseAdminViewState.ampSection);
+      let seed = Date.now();
+      let attempt = 0;
+      let key = `manual.${seed}@vvs.com`;
+      while (accounts[key]) {
+        attempt += 1;
+        key = `manual.${seed}.${attempt}@vvs.com`;
+      }
+      const isStaffSection = section === "staff";
+      accounts[key] = {
+        email: key,
+        password: "",
+        secretPhrase: "",
+        prefix: "Mr.",
+        firstName: "",
+        lastName: "",
+        country: "",
+        membership: isStaffSection ? "Staff" : "Non-Member",
+        sunriseAccessLevel: isStaffSection ? "STA" : "",
+        notosId: "",
+        servicesCompleted: 0,
+        pastService: { title: "No completed service yet", details: "No previous service records available.", endedAt: "N/A" },
+        upcomingService: { title: "No upcoming service yet", details: "Book your first VVS service to start your schedule.", startsAt: "N/A" },
+        tips: []
+      };
+      const ampSearch = document.getElementById("amp-search");
+      if (ampSearch) ampSearch.value = "";
+      saveSunriseControlState();
+      renderAMPPage("");
+      return;
+    }
+
+    const ampDel = event.target.closest("[data-amp-del]");
+    if (ampDel) {
+      const targetKey = String(ampDel.getAttribute("data-amp-del") || "");
+      if (isAleksAmpRestrictedKey(targetKey)) {
+        if (sunriseInfo) sunriseInfo.textContent = "Access restricted: Mikhail credentials are protected for Aleks Sunrise access.";
+        renderAMPPage(String(document.getElementById("amp-search")?.value || "").trim());
+        return;
+      }
+      moveAccountsToDeletedBucket(targetKey);
+      saveSunriseControlState();
+      renderAMPPage(String(document.getElementById("amp-search")?.value || "").trim());
+      return;
+    }
+
+    const ampRestore = event.target.closest("[data-amp-restore]");
+    if (ampRestore && sunriseControlState) {
+      ensureAmpDeletedAccountsStore();
+      const idx = Number(ampRestore.getAttribute("data-amp-restore"));
+      if (!Number.isInteger(idx) || idx < 0 || idx >= sunriseControlState.deletedAccounts.length) return;
+      const previewRow = sunriseControlState.deletedAccounts[idx];
+      if (isAleksAmpRestrictedDeletedRow(previewRow)) {
+        if (sunriseInfo) sunriseInfo.textContent = "Access restricted: Mikhail credentials are protected for Aleks Sunrise access.";
+        renderAMPPage(String(document.getElementById("amp-search")?.value || "").trim());
+        return;
+      }
+      const [row] = sunriseControlState.deletedAccounts.splice(idx, 1);
+      if (!row || !row.account || typeof row.account !== "object") return;
+      const key = String(row.email || row.key || "").trim().toLowerCase();
+      if (!key) return;
+      const restoreKey = accounts[key] ? `${key.split("@")[0]}+restored${Date.now()}@${key.split("@")[1] || "vvs.com"}` : key;
+      accounts[restoreKey] = { ...row.account, email: restoreKey };
+      saveSunriseControlState();
+      renderAMPPage(String(document.getElementById("amp-search")?.value || "").trim());
+      return;
+    }
+
+    const ampPurge = event.target.closest("[data-amp-purge]");
+    if (ampPurge && sunriseControlState) {
+      ensureAmpDeletedAccountsStore();
+      const idx = Number(ampPurge.getAttribute("data-amp-purge"));
+      if (!Number.isInteger(idx) || idx < 0 || idx >= sunriseControlState.deletedAccounts.length) return;
+      const previewRow = sunriseControlState.deletedAccounts[idx];
+      if (isAleksAmpRestrictedDeletedRow(previewRow)) {
+        if (sunriseInfo) sunriseInfo.textContent = "Access restricted: Mikhail credentials are protected for Aleks Sunrise access.";
+        renderAMPPage(String(document.getElementById("amp-search")?.value || "").trim());
+        return;
+      }
+      sunriseControlState.deletedAccounts.splice(idx, 1);
+      saveSunriseControlState();
+      renderAMPPage(String(document.getElementById("amp-search")?.value || "").trim());
+      return;
+    }
+
+    const alpSearchBtn = event.target.closest("[data-alp-search]");
+    if (alpSearchBtn) {
+      const query = String(document.getElementById("alp-search")?.value || "").trim();
+      renderALPPage(query);
+      return;
+    }
+
+    const alpSectionBtn = event.target.closest("[data-alp-section]");
+    if (alpSectionBtn) {
+      sunriseAdminViewState.alpSection = normalizeAdminSection(alpSectionBtn.getAttribute("data-alp-section"));
+      const query = String(document.getElementById("alp-search")?.value || "").trim();
+      renderALPPage(query);
+      return;
+    }
+
+    const alpAdd = event.target.closest("[data-alp-add]");
+    if (alpAdd && sunriseControlState) {
+      sunriseControlState.accessLevels.push({ code: "NEW", title: "New Level", access: "Define access rights" });
+      saveSunriseControlState();
+      scheduleSunriseAdminRenders();
+      return;
+    }
+
+    const alpDel = event.target.closest("[data-alp-del]");
+    if (alpDel && sunriseControlState) {
+      const idx = Number(alpDel.getAttribute("data-alp-del"));
+      if (!Number.isInteger(idx) || idx < 0 || idx >= sunriseControlState.accessLevels.length) return;
+      const row = sunriseControlState.accessLevels[idx];
+      if (isAleksAlpRestrictedAccessRow(row)) {
+        if (sunriseInfo) sunriseInfo.textContent = "Access restricted: Mikhail credentials are protected for Aleks Sunrise access.";
+        renderALPPage(String(document.getElementById("alp-search")?.value || "").trim());
+        return;
+      }
+      sunriseControlState.accessLevels.splice(idx, 1);
+      saveSunriseControlState();
+      scheduleSunriseAdminRenders();
+      return;
+    }
+
+    const mccSearchBtn = event.target.closest("[data-mcc-search]");
+    if (mccSearchBtn) {
+      const query = String(document.getElementById("mcc-search")?.value || "").trim();
+      renderMCCPage(query);
+      return;
+    }
+
+    const ampCodeSearchBtn = event.target.closest("[data-amp-code-search]");
+    if (ampCodeSearchBtn) {
+      const query = String(document.getElementById("amp-code-search")?.value || "").trim();
+      renderAMPPage(query);
+      return;
+    }
+
+    const alpCodeSearchBtn = event.target.closest("[data-alp-code-search]");
+    if (alpCodeSearchBtn) {
+      const query = String(document.getElementById("alp-code-search")?.value || "").trim();
+      renderALPPage(query);
+      return;
+    }
+
+    const addCodeBtn = event.target.closest("[data-mcc-add], [data-amp-code-add], [data-alp-code-add]");
+    if (addCodeBtn && sunriseControlState) {
+      ensureShortcutCodeRegistry();
+      sunriseControlState.shortcutCodes.unshift({
+        code: `NEW${Math.floor(Math.random() * 900 + 100)}`,
+        title: "New Shortcut",
+        route: "sunrise",
+        access: "SM,DA,CA,OW"
+      });
+      saveSunriseControlState();
+      scheduleSunriseAdminRenders();
+      return;
+    }
+
+    const delCodeBtn = event.target.closest("[data-code-del]");
+    if (delCodeBtn && sunriseControlState) {
+      ensureShortcutCodeRegistry();
+      const idx = Number(delCodeBtn.getAttribute("data-code-del"));
+      if (!Number.isInteger(idx) || idx < 0 || idx >= sunriseControlState.shortcutCodes.length) return;
+      sunriseControlState.shortcutCodes.splice(idx, 1);
+      saveSunriseControlState();
+      scheduleSunriseAdminRenders();
+      return;
     }
   });
 
   document.addEventListener("change", (event) => {
     const t = event.target;
     if (!(t instanceof HTMLElement) || !sunriseControlState) return;
+
+    if (t.id === "sunrise-mail-font" && sunriseMailBody) {
+      sunriseMailBody.style.fontFamily = String((t instanceof HTMLSelectElement ? t.value : "Arial, sans-serif") || "Arial, sans-serif");
+      return;
+    }
+    if (t.id === "sunrise-mail-font-size" && sunriseMailBody) {
+      sunriseMailBody.style.fontSize = `${String((t instanceof HTMLSelectElement ? t.value : "14") || "14")}px`;
+      return;
+    }
 
     if (t.id === "dts-upload" && t instanceof HTMLInputElement && t.files) {
       Array.from(t.files).forEach((file) => {
@@ -5396,6 +8126,7 @@ function bindSunriseControlInteractions() {
       sunriseControlState.inbox = inbox;
       saveSunriseControlState();
       renderSunriseInboxPage();
+      renderSignatureManager();
       return;
     }
     if (t.id === "inbox-signature-select" && sunriseControlState) {
@@ -5455,6 +8186,7 @@ function bindSunriseControlInteractions() {
       if (!Array.isArray(inbox.signatures)) inbox.signatures = [];
       if (inbox.signatures[idx]) inbox.signatures[idx].name = t.value;
       sunriseControlState.inbox = inbox;
+      renderSignatureManager();
     })) return;
     if (updateField("data-inbox-signature-text", (raw) => {
       const inbox = sunriseControlState.inbox || {};
@@ -5462,6 +8194,7 @@ function bindSunriseControlInteractions() {
       if (!Array.isArray(inbox.signatures)) inbox.signatures = [];
       if (inbox.signatures[idx]) inbox.signatures[idx].text = t.value;
       sunriseControlState.inbox = inbox;
+      renderSignatureManager();
     })) return;
     if (updateField("data-inbox-signature-image", (raw) => {
       const inbox = sunriseControlState.inbox || {};
@@ -5469,6 +8202,7 @@ function bindSunriseControlInteractions() {
       if (!Array.isArray(inbox.signatures)) inbox.signatures = [];
       if (inbox.signatures[idx]) inbox.signatures[idx].imageName = t.value;
       sunriseControlState.inbox = inbox;
+      renderSignatureManager();
     })) return;
     if (updateField("data-inbox-signature-default", (raw) => {
       const inbox = sunriseControlState.inbox || {};
@@ -5476,6 +8210,7 @@ function bindSunriseControlInteractions() {
       inbox.lastInfo = "Default signature preset updated.";
       sunriseControlState.inbox = inbox;
       renderSunriseInboxPage();
+      renderSignatureManager();
     })) return;
 
     if (updateField("data-soc-id", (raw) => {
@@ -5603,7 +8338,233 @@ function bindSunriseControlInteractions() {
     if (updateField("data-lcs-login", (raw) => { sunriseControlState.lcsSessions[Number(raw)].loginAt = t.value; })) return;
     if (updateField("data-lcs-logout", (raw) => { sunriseControlState.lcsSessions[Number(raw)].logoutAt = t.value; })) return;
     if (updateField("data-lcs-session", (raw) => { sunriseControlState.lcsSessions[Number(raw)].session = t.value; })) return;
+    if (updateField("data-lcs-path", (raw) => { sunriseControlState.lcsSessions[Number(raw)].path = t.value; })) return;
     if (updateField("data-lcs-permission", (raw) => { sunriseControlState.lcsSessions[Number(raw)].permission = t.value; })) return;
+
+    const syncUpdatedAccount = (updatedKey) => {
+      const key = String(updatedKey || "").trim().toLowerCase();
+      if (!key || !accounts[key]) return;
+      if (activeAccount && String(activeAccount.email || "").trim().toLowerCase() === key) {
+        activeAccount = accounts[key];
+        persistActiveSession(activeAccount);
+        renderProfile(activeAccount);
+      }
+      updateAuthCta();
+      scheduleSunriseAdminRenders();
+    };
+
+    const updateAccountField = (attr, handler) => {
+      const raw = t.getAttribute(attr);
+      if (raw == null) return false;
+      const key = String(raw).trim().toLowerCase();
+      if (!accounts[key]) return false;
+      if (attr.startsWith("data-amp-") && isAleksAmpRestrictedKey(key)) {
+        if (sunriseInfo) sunriseInfo.textContent = "Access restricted: Mikhail credentials are protected for Aleks Sunrise access.";
+        scheduleSunriseAdminRenders();
+        return true;
+      }
+      const updatedKey = handler(key) || key;
+      syncUpdatedAccount(updatedKey);
+      saveSunriseControlState();
+      return true;
+    };
+    if (updateAccountField("data-amp-key", (key) => {
+      const nextKey = String(t.value || "").trim().toLowerCase();
+      if (!nextKey || nextKey === key || accounts[nextKey]) return key;
+      accounts[nextKey] = accounts[key];
+      delete accounts[key];
+      if (String(accounts[nextKey].email || "").trim().toLowerCase() !== nextKey) {
+        accounts[nextKey].email = nextKey;
+      }
+      return nextKey;
+    })) return;
+    if (updateAccountField("data-amp-email", (key) => {
+      const nextEmail = String(t.value || "").trim().toLowerCase();
+      if (!nextEmail) return key;
+      accounts[key].email = nextEmail;
+      if (nextEmail !== key && !accounts[nextEmail]) {
+        accounts[nextEmail] = accounts[key];
+        delete accounts[key];
+        return nextEmail;
+      }
+      return key;
+    })) return;
+    if (updateAccountField("data-amp-password", (key) => {
+      if (isOwnerAccount(accounts[key])) return;
+      accounts[key].password = t.value;
+    })) return;
+    if (updateAccountField("data-amp-name", (key) => {
+      const [first = "", ...rest] = String(t.value || "").trim().split(/\s+/);
+      accounts[key].firstName = first;
+      accounts[key].lastName = rest.join(" ");
+    })) return;
+    if (updateAccountField("data-amp-tier", (key) => { accounts[key].membership = String(t.value || "").trim() || "Non-Member"; })) return;
+    if (updateAccountField("data-amp-access", (key) => { accounts[key].sunriseAccessLevel = t.value.trim().toUpperCase(); })) return;
+    if (updateAccountField("data-amp-notos", (key) => { accounts[key].notosId = t.value.trim().toUpperCase(); })) return;
+
+    const handleAlpFieldUpdate = (attr, mutator) => {
+      const raw = t.getAttribute(attr);
+      if (raw == null || !sunriseControlState) return false;
+      const idx = Number(raw);
+      if (!Number.isInteger(idx) || idx < 0 || idx >= sunriseControlState.accessLevels.length) return true;
+      const row = sunriseControlState.accessLevels[idx];
+      if (isAleksAlpRestrictedAccessRow(row)) {
+        if (sunriseInfo) sunriseInfo.textContent = "Access restricted: Mikhail credentials are protected for Aleks Sunrise access.";
+        renderALPPage(String(document.getElementById("alp-search")?.value || "").trim());
+        return true;
+      }
+      mutator(row);
+      saveSunriseControlState();
+      scheduleSunriseAdminRenders();
+      return true;
+    };
+
+    if (handleAlpFieldUpdate("data-alp-code", (row) => {
+      row.code = String(t.value || "").trim().toUpperCase();
+    })) return;
+    if (handleAlpFieldUpdate("data-alp-title", (row) => {
+      row.title = t.value;
+    })) return;
+    if (handleAlpFieldUpdate("data-alp-access", (row) => {
+      row.access = t.value;
+    })) return;
+
+    if (updateField("data-code-key", (raw) => {
+      ensureShortcutCodeRegistry();
+      const idx = Number(raw);
+      if (!sunriseControlState.shortcutCodes[idx]) return;
+      sunriseControlState.shortcutCodes[idx].code = String(t.value || "").trim().toUpperCase();
+      scheduleSunriseAdminRenders();
+    })) return;
+    if (updateField("data-code-title", (raw) => {
+      ensureShortcutCodeRegistry();
+      const idx = Number(raw);
+      if (!sunriseControlState.shortcutCodes[idx]) return;
+      sunriseControlState.shortcutCodes[idx].title = String(t.value || "").trim();
+      scheduleSunriseAdminRenders();
+    })) return;
+    if (updateField("data-code-route", (raw) => {
+      ensureShortcutCodeRegistry();
+      const idx = Number(raw);
+      if (!sunriseControlState.shortcutCodes[idx]) return;
+      sunriseControlState.shortcutCodes[idx].route = String(t.value || "").trim();
+      scheduleSunriseAdminRenders();
+    })) return;
+    if (updateField("data-code-access", (raw) => {
+      ensureShortcutCodeRegistry();
+      const idx = Number(raw);
+      if (!sunriseControlState.shortcutCodes[idx]) return;
+      if (t instanceof HTMLSelectElement) {
+        const values = Array.from(t.selectedOptions || []).map((opt) => String(opt.value || "").trim().toUpperCase()).filter(Boolean);
+        sunriseControlState.shortcutCodes[idx].access = values.join(",");
+      } else {
+        sunriseControlState.shortcutCodes[idx].access = String(t.value || "").trim().toUpperCase();
+      }
+      scheduleSunriseAdminRenders();
+    })) return;
+  });
+
+  if (document.body.dataset.filePickerBound !== "1") {
+    document.body.dataset.filePickerBound = "1";
+    document.addEventListener("click", (event) => {
+      const target = event.target;
+      if (!(target instanceof HTMLElement)) return;
+      const trigger = target.closest("[data-file-trigger]");
+      if (!trigger) return;
+      const targetId = String(trigger.getAttribute("data-file-trigger") || "").trim();
+      if (!targetId) return;
+      const input = document.getElementById(targetId);
+      if (!(input instanceof HTMLInputElement) || input.type !== "file") return;
+      try {
+        if (typeof input.showPicker === "function") input.showPicker();
+        else input.click();
+      } catch (_) {
+        try { input.click(); } catch (_) {}
+      }
+    });
+  }
+}
+
+function syncEcsWithStaffAccounts() {
+  if (!sunriseControlState) return;
+  if (!Array.isArray(sunriseControlState.ecsEmployees)) sunriseControlState.ecsEmployees = [];
+  const existingByEmail = new Map(
+    sunriseControlState.ecsEmployees
+      .map((row, idx) => [String(row?.email || "").trim().toLowerCase(), idx])
+      .filter(([email]) => !!email)
+  );
+  let changed = false;
+  Object.entries(accounts).forEach(([key, account]) => {
+    if (!account || typeof account !== "object") return;
+    if (account.sunriseCredential) return;
+    const membership = String(account.membership || "").trim().toLowerCase();
+    if (membership !== "staff") return;
+    const email = String(account.email || key || "").trim().toLowerCase();
+    if (!email) return;
+    const fullName = `${String(account.firstName || "").trim()} ${String(account.lastName || "").trim()}`.trim() || "Staff Member";
+    const position = String(account.roleTitle || "Staff").trim();
+    if (existingByEmail.has(email)) {
+      const row = sunriseControlState.ecsEmployees[existingByEmail.get(email)];
+      if (!row) return;
+      const nextPermission = String(account.sunriseAccessLevel || row.permission || "STA").trim().toUpperCase();
+      if (row.name !== fullName) { row.name = fullName; changed = true; }
+      if (row.position !== position) { row.position = position; changed = true; }
+      if (row.role !== position) { row.role = position; changed = true; }
+      if (row.login !== email) { row.login = email; changed = true; }
+      if (row.permission !== nextPermission) { row.permission = nextPermission; changed = true; }
+      if (!row.status) { row.status = "Active"; changed = true; }
+      if (!row.id) row.id = `EMP-${Math.floor(Math.random() * 900 + 100)}`;
+      return;
+    }
+    sunriseControlState.ecsEmployees.push({
+      id: `EMP-${Math.floor(Math.random() * 900 + 100)}`,
+      name: fullName,
+      role: position,
+      position,
+      salary: 0,
+      hours: 0,
+      bonus: 0,
+      commission: 0,
+      status: "Active",
+      email,
+      login: email,
+      permission: String(account.sunriseAccessLevel || "STA").trim().toUpperCase()
+    });
+    changed = true;
+  });
+  if (changed) saveSunriseControlState({ markDirty: false });
+}
+
+function enhanceFilePickers(root = document) {
+  const scope = (root && typeof root.querySelectorAll === "function") ? root : document;
+  const fileInputs = scope.querySelectorAll("input[type=\"file\"]");
+  fileInputs.forEach((input, idx) => {
+    if (!(input instanceof HTMLInputElement)) return;
+    if (input.dataset.fileEnhanced === "1") return;
+    if (!input.id) input.id = `vvs-file-${Date.now()}-${idx}`;
+    const wrap = document.createElement("div");
+    wrap.className = "filePickerWrap";
+    const btn = document.createElement("button");
+    btn.type = "button";
+    btn.className = "filePickerBtn";
+    btn.setAttribute("data-file-trigger", input.id);
+    btn.textContent = "Choose File";
+    const name = document.createElement("span");
+    name.className = "filePickerName";
+    name.id = `${input.id}-name`;
+    name.textContent = "No file selected";
+    const parent = input.parentElement;
+    if (!parent) return;
+    parent.insertBefore(wrap, input);
+    wrap.appendChild(input);
+    wrap.appendChild(btn);
+    wrap.appendChild(name);
+    input.classList.add("filePickerNative");
+    input.dataset.fileEnhanced = "1";
+    input.addEventListener("change", () => {
+      const files = input.files ? Array.from(input.files).map((f) => f.name) : [];
+      name.textContent = files.length ? files.join(", ") : "No file selected";
+    });
   });
 }
 
@@ -5704,6 +8665,16 @@ function bindSunriseReplyForms() {
       if (!form.reportValidity()) return;
       const email = form.querySelector(".sunrise-client-email");
       const info = form.parentElement ? form.parentElement.querySelector(".sunrise-reply-info") : null;
+      const address = email ? email.value.trim() : "client";
+      pushInboxMessage({
+        mailbox: activeSunriseMailbox(),
+        folder: "sent",
+        from: sunriseState.email || "concierge@venture-voyagers.com",
+        to: address,
+        subject: "VVS Survey Response",
+        bodyHtml: `<p>${String(form.querySelector(".sunrise-client-reply")?.value || "").replace(/\n/g, "<br>")}</p>`,
+        priority: "Normal"
+      });
       if (info) info.textContent = `Reply queued for ${email ? email.value.trim() : "client"} from concierge@venture-voyagers.com. API delivery will be connected later.`;
       form.reset();
     });
@@ -5712,6 +8683,9 @@ function bindSunriseReplyForms() {
 }
 
 sunriseControlState = loadSunriseControlState();
+sunriseCommittedStateHash = snapshotSunriseControlState();
+sunriseHasUnsavedChanges = false;
+ensureShortcutCodeRegistry();
 try {
   ensureSunriseSessionRecord();
   renderSunriseModulePages();
@@ -5723,7 +8697,23 @@ try {
   // Keep auth and verification flows alive even if a Sunrise view block fails.
   console.error("Sunrise init error:", err);
   if (!sunriseControlState) sunriseControlState = cloneDefaultSunriseControlState();
+  sunriseCommittedStateHash = snapshotSunriseControlState();
+  sunriseHasUnsavedChanges = false;
   try { bindSunriseControlInteractions(); } catch (_) {}
+}
+if (document.body.dataset.sunrisePersistFlushBound !== "1") {
+  document.body.dataset.sunrisePersistFlushBound = "1";
+  document.addEventListener("visibilitychange", () => {
+    if (document.visibilityState === "hidden") flushSunriseControlState();
+  });
+  window.addEventListener("pagehide", () => {
+    flushSunriseControlState();
+  });
+}
+if (!sunriseSessionTicker) {
+  sunriseSessionTicker = window.setInterval(() => {
+    updateSunriseSessionBar();
+  }, 1000);
 }
 if (sameConciergeBtn) {
   sameConciergeBtn.addEventListener("click", () => {
@@ -5734,12 +8724,23 @@ if (sameConciergeBtn) {
   });
 }
 
+if (profileSubmitServiceBtn) {
+  profileSubmitServiceBtn.addEventListener("click", () => {
+    showRoute("contact");
+  });
+}
+
+if (profileSubmitServiceTopBtn) {
+  profileSubmitServiceTopBtn.addEventListener("click", () => {
+    showRoute("contact");
+  });
+}
+
 if (sunriseStep1) {
   sunriseStep1.addEventListener("submit", (event) => {
     event.preventDefault();
-    if (!sunriseStep1.reportValidity()) return;
-    if (!isOwnerAccount(activeAccount)) {
-      if (sunriseInfo) sunriseInfo.textContent = "Owner account required.";
+    if (!hasSunriseAccess(activeAccount)) {
+      if (sunriseInfo) sunriseInfo.textContent = "Sunrise-enabled account required.";
       return;
     }
 
@@ -5747,7 +8748,24 @@ if (sunriseStep1) {
     const passwordEl = document.getElementById("sunrise-password");
     const email = emailEl ? emailEl.value.trim() : "";
     const password = passwordEl ? passwordEl.value.trim() : "";
+    if (!email || !password) {
+      if (sunriseInfo) sunriseInfo.textContent = "Enter Sunrise email and password.";
+      return;
+    }
     const account = findAccountByEmail(email);
+    if (isAleksRestrictedFromMikhailSunrise(account)) {
+      if (sunriseInfo) sunriseInfo.textContent = "Access restricted: Aleks Sunrise profile cannot open Mikhail Sunrise credentials.";
+      return;
+    }
+    if (account && isSunriseCredentialAccount(account)) {
+      const activeOwner = !!(activeAccount && isOwnerAccount(activeAccount));
+      const ownerTarget = isOwnerAccount(account);
+      if (!activeOwner && ownerTarget) {
+        resetSunriseState({ clearStoredSession: false });
+        blockSunriseOwnerBreachAttempt();
+        return;
+      }
+    }
     const allPasswords = account
       ? [String(account.password), ...((account.altPasswords || []).map((item) => String(item)))]
       : [];
@@ -5755,7 +8773,7 @@ if (sunriseStep1) {
       password === stored || password.toLowerCase() === stored.toLowerCase()
     );
 
-  if (!account || !passOk || !isSunriseCredentialAccount(account)) {
+    if (!account || !passOk || !isSunriseCredentialAccount(account)) {
       if (sunriseInfo) sunriseInfo.textContent = "Sunrise log in failed. Check your Sunrise email or password.";
       return;
     }
@@ -5764,7 +8782,7 @@ if (sunriseStep1) {
     sunriseState.account = account;
     sunriseState.code = issueTestEmailCode(sunriseState.email);
 
-    sunriseStep1.hidden = true;
+    sunriseStep1.hidden = false;
     if (sunriseStep2) sunriseStep2.hidden = false;
     if (sunriseInfo) {
       sunriseInfo.textContent = `VVS Sunrise email confirmation sent to ${sunriseState.email} from concierge@venture-voyagers.com (Subject: VVS email confirmation). Test code: ${sunriseState.code}.`;
@@ -5775,27 +8793,143 @@ if (sunriseStep1) {
 if (sunriseStep2) {
   sunriseStep2.addEventListener("submit", (event) => {
     event.preventDefault();
-    if (!sunriseStep2.reportValidity()) return;
     const phraseEl = document.getElementById("sunrise-phrase");
     const codeEl = document.getElementById("sunrise-code");
     const phrase = phraseEl ? phraseEl.value.trim().toLowerCase() : "";
     const code = codeEl ? codeEl.value.trim() : "";
+    if (!phrase || !code) {
+      if (sunriseInfo) sunriseInfo.textContent = "Enter secret phrase and email confirmation code.";
+      return;
+    }
     const account = sunriseState.account || findAccountByEmail(sunriseState.email);
+    if (isAleksRestrictedFromMikhailSunrise(account)) {
+      if (sunriseInfo) sunriseInfo.textContent = "Access restricted: Aleks Sunrise profile cannot open Mikhail Sunrise credentials.";
+      sunriseState.pendingAccount = null;
+      return;
+    }
 
     const phraseOk = !!(account && phrase && phrase === String(account.secretPhrase || "").toLowerCase());
     const codeOk = !!(code && code === sunriseState.code);
+    const owner = isOwnerAccount(account);
+    const actingOwner = isOwnerAccount(activeAccount);
     if (!phraseOk || !codeOk) {
       if (sunriseInfo) sunriseInfo.textContent = "Sunrise verification failed. Confirm secret phrase and code.";
       return;
     }
 
-    sunriseState.unlocked = true;
-    startNotosSession(account);
-    persistSunriseSession(account);
-    if (sunriseInfo) sunriseInfo.textContent = "Sunrise access granted.";
-    updateSunriseAccessView();
-    renderSunrise(activeAccount);
+    if (owner || actingOwner) {
+      finalizeSunriseUnlock(account);
+      return;
+    }
+
+    sunriseState.pendingAccount = account;
+    if (sunriseNotosOverlay) sunriseNotosOverlay.hidden = false;
+    if (sunriseNotosInput) sunriseNotosInput.value = "";
+    if (sunriseNotosInfo) sunriseNotosInfo.textContent = "NOTOS Employee ID is required to continue.";
   });
+}
+
+const verifySunriseNotosPopup = () => {
+  const account = sunriseState.pendingAccount || sunriseState.account || findAccountByEmail(sunriseState.email);
+  if (!account) {
+    if (sunriseNotosInfo) sunriseNotosInfo.textContent = "Session expired. Restart Sunrise login.";
+    return;
+  }
+  if (isOwnerAccount(account)) {
+    finalizeSunriseUnlock(account);
+    return;
+  }
+  const enteredId = String(sunriseNotosInput?.value || "").trim().toUpperCase();
+  if (!enteredId) {
+    if (sunriseNotosInfo) sunriseNotosInfo.textContent = "NOTOS Employee ID is required.";
+    return;
+  }
+  let expected = String(account.notosId || "").trim().toUpperCase();
+  if (!expected) {
+    if (!/^NTS-[A-Z0-9]{5,8}$/.test(enteredId)) {
+      if (sunriseNotosInfo) sunriseNotosInfo.textContent = "Invalid NOTOS ID format. Use NTS-XXXXX format.";
+      return;
+    }
+    expected = enteredId;
+    account.notosId = expected;
+    const accountKey = String(account.email || "").trim().toLowerCase();
+    if (accountKey) accounts[accountKey] = account;
+    if (activeAccount && String(activeAccount.email || "").trim().toLowerCase() === accountKey) {
+      activeAccount.notosId = expected;
+      persistActiveSession(activeAccount);
+    }
+    persistAccountsData();
+  }
+  if (enteredId !== expected) {
+    if (sunriseNotosInfo) sunriseNotosInfo.textContent = "Incorrect NOTOS Employee ID.";
+    return;
+  }
+  if (sunriseNotosInfo) sunriseNotosInfo.textContent = "";
+  finalizeSunriseUnlock(account);
+};
+
+if (sunriseNotosSubmit && sunriseNotosSubmit.dataset.boundNotosVerify !== "1") {
+  sunriseNotosSubmit.addEventListener("click", verifySunriseNotosPopup);
+  sunriseNotosSubmit.dataset.boundNotosVerify = "1";
+}
+
+if (sunriseNotosInput && sunriseNotosInput.dataset.boundNotosEnter !== "1") {
+  sunriseNotosInput.addEventListener("keydown", (event) => {
+    if (event.key === "Enter") {
+      event.preventDefault();
+      verifySunriseNotosPopup();
+    }
+  });
+  sunriseNotosInput.dataset.boundNotosEnter = "1";
+}
+
+if (sunriseOwnerAlertBtn && sunriseOwnerAlertBtn.dataset.boundOwnerAlert !== "1") {
+  sunriseOwnerAlertBtn.addEventListener("click", () => {
+    const requester = activeAccount
+      ? `${String(activeAccount.prefix || "Mr.").trim()} ${String(activeAccount.firstName || "").trim()} ${String(activeAccount.lastName || "").trim()}`.replace(/\s+/g, " ").trim()
+      : "Unknown user";
+    if (sunriseControlState) {
+      ownerSunriseMailboxes().forEach((mailbox) => {
+        pushInboxMessage({
+          mailbox,
+          folder: "inbox",
+          from: "notos.alert@venture-voyagers.com",
+          to: "owner@venture-voyagers.com",
+          cc: "",
+          bcc: "",
+          subject: "NOTOS Critical Warning - Sunrise Owner Access Attempt",
+          bodyHtml: `<p>Unauthorized Sunrise owner-access attempt detected from VVS account: ${requester}.</p><p>Action requested: credential breach review.</p>`,
+          priority: "High",
+          scheduledAt: "",
+          attachments: []
+        });
+      });
+      const inbox = sunriseControlState.inbox || {};
+      inbox.lastInfo = "NOTOS critical alert sent to owner inbox.";
+      sunriseControlState.inbox = inbox;
+      saveSunriseControlState({ markDirty: false });
+    }
+    resetSunriseState({ clearStoredSession: false });
+    if (sunriseOwnerAlertOverlay) sunriseOwnerAlertOverlay.hidden = true;
+    showRoute("sunrise");
+    if (sunriseInfo) {
+      sunriseInfo.textContent = "NOTOS critical alert sent. Returned to Sunrise log in.";
+    }
+  });
+  sunriseOwnerAlertBtn.dataset.boundOwnerAlert = "1";
+}
+
+if (sunriseUnsavedSaveBtn && sunriseUnsavedSaveBtn.dataset.boundUnsavedSave !== "1") {
+  sunriseUnsavedSaveBtn.addEventListener("click", () => resolveSunriseUnsavedModal("save"));
+  sunriseUnsavedSaveBtn.dataset.boundUnsavedSave = "1";
+}
+if (sunriseUnsavedDiscardBtn && sunriseUnsavedDiscardBtn.dataset.boundUnsavedDiscard !== "1") {
+  sunriseUnsavedDiscardBtn.addEventListener("click", () => resolveSunriseUnsavedModal("discard"));
+  sunriseUnsavedDiscardBtn.dataset.boundUnsavedDiscard = "1";
+}
+if (sunriseUnsavedStayBtn && sunriseUnsavedStayBtn.dataset.boundUnsavedStay !== "1") {
+  sunriseUnsavedStayBtn.addEventListener("click", () => resolveSunriseUnsavedModal("cancel"));
+  sunriseUnsavedStayBtn.dataset.boundUnsavedStay = "1";
 }
 
 if (logoutBtn) {
@@ -5804,7 +8938,7 @@ if (logoutBtn) {
     resetSunriseState();
     clearActiveSession();
     updateAuthCta();
-    showRoute("home");
+    forceShowRoute("account");
   });
 }
 
@@ -5821,3 +8955,22 @@ sunriseRouteLogoutBtns.forEach((btn) => {
     showRoute("sunrise");
   });
 });
+
+const forceSubmitOnClick = (formId) => {
+  const form = document.getElementById(formId);
+  if (!form) return;
+  const submitBtn = form.querySelector('button[type="submit"]');
+  if (!submitBtn || submitBtn.dataset.forceSubmitBound === "1") return;
+  submitBtn.addEventListener("click", (event) => {
+    event.preventDefault();
+    form.dispatchEvent(new Event("submit", { bubbles: true, cancelable: true }));
+  });
+  submitBtn.dataset.forceSubmitBound = "1";
+};
+
+forceSubmitOnClick("login-step1");
+forceSubmitOnClick("login-step2");
+forceSubmitOnClick("signup-step1");
+forceSubmitOnClick("signup-step2");
+forceSubmitOnClick("sunrise-step1");
+forceSubmitOnClick("sunrise-step2");
