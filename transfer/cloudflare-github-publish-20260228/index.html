@@ -256,7 +256,7 @@
             <h2 class="viewTitle">Submit Your Service Request</h2>
             <p class="viewSub">Provide your request profile and preferred response channel. A concierge specialist will review your case and respond with execution details.</p>
 
-            <form id="contact-form" novalidate>
+            <form id="contact-form" novalidate onsubmit="return window.submitVvsContactRequest ? window.submitVvsContactRequest(event) : false;">
               <div class="contactLayout">
                 <div class="field">
                   <label for="first-name">First Name</label>
@@ -1107,6 +1107,6 @@
     </footer>
   </div>
 
-  <script src="script.js?v=20260228-79"></script>
+  <script src="script.js?v=20260228-78"></script>
 </body>
 </html>

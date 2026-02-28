@@ -1,0 +1,17 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 900 240" role="img" aria-label="Venture Voyager Services logo">
+  <defs>
+    <linearGradient id="gold" x1="0" x2="1" y1="0" y2="1">
+      <stop offset="0" stop-color="#f4e7c8"/>
+      <stop offset="1" stop-color="#cfaa70"/>
+    </linearGradient>
+  </defs>
+  <rect width="900" height="240" fill="none"/>
+  <g transform="translate(18 20)">
+    <circle cx="88" cy="88" r="68" fill="none" stroke="url(#gold)" stroke-width="10"/>
+    <path d="M24 126c30-24 79-40 140-45-40 29-84 52-128 70L24 126Z" fill="url(#gold)"/>
+    <path d="M16 144c38 10 111 7 170-20" fill="none" stroke="url(#gold)" stroke-width="8" stroke-linecap="round"/>
+  </g>
+  <text x="245" y="130" fill="url(#gold)" font-family="Georgia, serif" font-size="128" letter-spacing="8">VVS</text>
+  <text x="248" y="184" fill="url(#gold)" font-family="Arial, sans-serif" font-size="40" letter-spacing="9">VENTURE VOYAGER SERVICES</text>
+  <line x1="246" y1="196" x2="860" y2="196" stroke="url(#gold)" stroke-width="2"/>
+</svg>

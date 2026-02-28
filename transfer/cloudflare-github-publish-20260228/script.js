@@ -4200,132 +4200,6 @@ function submitServiceIntoSOC({ serviceType = "", clientName = "", tier = "Non-M
   saveSunriseControlState({ markDirty: false });
 }
 
-function isLocalPreviewHost() {
-  const host = String(window.location.hostname || "").trim().toLowerCase();
-  return host === "127.0.0.1" || host === "localhost" || host === "";
-}
-
-async function postJsonWithTimeout(url, payload, timeoutMs = 12000) {
-  const controller = new AbortController();
-  const timeoutId = window.setTimeout(() => controller.abort(), timeoutMs);
-  try {
-    const response = await fetch(url, {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json"
-      },
-      body: JSON.stringify(payload),
-      signal: controller.signal
-    });
-    const body = await response.json().catch(() => ({}));
-    return { ok: response.ok, status: response.status, body };
-  } catch (error) {
-    return {
-      ok: false,
-      status: 0,
-      body: {},
-      error
-    };
-  } finally {
-    window.clearTimeout(timeoutId);
-  }
-}
-
-function buildContactIntegrationPayload(data = {}, assignedConcierge = "", clientTier = "Non-Member") {
-  return {
-    firstName: data.firstName,
-    lastName: data.lastName,
-    title: data.title,
-    countryIssued: data.countryIssued,
-    phone: data.phone,
-    email: data.email,
-    serviceType: data.serviceType,
-    executionTime: data.executionTime,
-    requestDetails: data.requestDetails,
-    contactMethod: data.selectedMethod?.value || "",
-    assignedConcierge,
-    clientTier
-  };
-}
-
-async function submitContactIntegrations(payload = {}) {
-  const result = await postJsonWithTimeout("/api/contact-submit", payload);
-  if (result.ok) return { ok: true, skipped: false, result };
-  const likelyMissingApi = isLocalPreviewHost() && (result.status === 0 || result.status === 404 || result.status === 405);
-  if (likelyMissingApi) {
-    return {
-      ok: false,
-      skipped: true,
-      message: "Local preview has no Cloudflare Functions runtime."
-    };
-  }
-  return {
-    ok: false,
-    skipped: false,
-    message: String(result.body?.message || "Contact API request failed.").trim(),
-    result
-  };
-}
-
-async function readEmailAttachments(fileInput) {
-  if (!(fileInput instanceof HTMLInputElement) || !fileInput.files) return [];
-  const files = Array.from(fileInput.files).filter(Boolean);
-  const attachments = await Promise.all(files.map((file) => new Promise((resolve) => {
-    const reader = new FileReader();
-    reader.onload = () => {
-      const raw = String(reader.result || "");
-      const [, base64 = ""] = raw.split(",");
-      resolve({
-        filename: file.name,
-        content: base64,
-        contentType: file.type || "application/octet-stream"
-      });
-    };
-    reader.onerror = () => resolve(null);
-    reader.readAsDataURL(file);
-  })));
-  return attachments.filter(Boolean);
-}
-
-async function deliverSunriseEmail({
-  to = "",
-  cc = "",
-  bcc = "",
-  subject = "",
-  html = "",
-  text = "",
-  replyTo = "",
-  from = "",
-  attachments = []
-} = {}) {
-  const result = await postJsonWithTimeout("/api/email-send", {
-    to,
-    cc,
-    bcc,
-    subject,
-    html,
-    text,
-    replyTo,
-    from,
-    attachments
-  });
-  if (result.ok) return { ok: true, skipped: false, result };
-  const likelyMissingApi = isLocalPreviewHost() && (result.status === 0 || result.status === 404 || result.status === 405);
-  if (likelyMissingApi) {
-    return {
-      ok: false,
-      skipped: true,
-      message: "Local preview has no Cloudflare Functions runtime."
-    };
-  }
-  return {
-    ok: false,
-    skipped: false,
-    message: String(result.body?.message || "Email API request failed.").trim(),
-    result
-  };
-}
-
 function collectContactRequestData() {
   const selectedMethod = contactForm?.querySelector('input[name="contactMethod"]:checked');
   return {
@@ -4356,17 +4230,15 @@ function showContactSubmissionOverlay(message = "") {
   if (contactOverlay) contactOverlay.hidden = false;
 }
 
-async function handleContactSubmit(event) {
+function handleContactSubmit(event) {
   if (event) event.preventDefault();
   if (!contactForm) return false;
   if (contactError) contactError.textContent = "";
-  if (contactSubmitBtn instanceof HTMLButtonElement) contactSubmitBtn.disabled = true;
 
   const data = collectContactRequestData();
   const validationError = validateContactRequest(data);
   if (validationError) {
     if (contactError) contactError.textContent = validationError;
-    if (contactSubmitBtn instanceof HTMLButtonElement) contactSubmitBtn.disabled = false;
     return false;
   }
 
@@ -4406,13 +4278,6 @@ async function handleContactSubmit(event) {
     console.error("Contact submit routing error:", err);
   }
 
-  const integration = await submitContactIntegrations(
-    buildContactIntegrationPayload(data, assignedConcierge, clientTier)
-  );
-  if (!integration.ok && !integration.skipped && contactError) {
-    contactError.textContent = `Request saved locally, but external delivery failed: ${integration.message}`;
-  }
-
   showContactSubmissionOverlay(successMessage);
   refreshActiveLanguageIfNeeded();
   contactForm.reset();
@@ -4420,18 +4285,20 @@ async function handleContactSubmit(event) {
   pendingPreferredConcierge = "";
   if (activeAccount) applyContactAccountPrefill();
   if (instantWarning) instantWarning.hidden = true;
-  if (contactSubmitBtn instanceof HTMLButtonElement) contactSubmitBtn.disabled = false;
   return true;
 }
 
 if (contactForm) {
   contactForm.addEventListener("submit", handleContactSubmit);
+  contactForm.onsubmit = handleContactSubmit;
 }
 
-window.submitVvsContactRequest = (event) => {
-  handleContactSubmit(event);
-  return false;
-};
+if (contactSubmitBtn) {
+  contactSubmitBtn.addEventListener("click", handleContactSubmit);
+  contactSubmitBtn.onclick = handleContactSubmit;
+}
+
+window.submitVvsContactRequest = handleContactSubmit;
 
 if (contactOverlayClose) {
   contactOverlayClose.addEventListener("click", () => {
@@ -7468,7 +7335,7 @@ function bindSunriseControlInteractions() {
     return { key: a, idx: Number(b) };
   };
 
-  document.addEventListener("click", async (event) => {
+  document.addEventListener("click", (event) => {
     const clickTarget = event.target instanceof Element ? event.target : null;
     if (!clickTarget) return;
 
@@ -7636,27 +7503,9 @@ function bindSunriseControlInteractions() {
       const senderMailbox = activeSunriseMailbox();
       const folder = scheduledAt ? "sending" : "sent";
       const html = `<p style="font-family:${font};font-size:${fontSize}px;">${body.replace(/\n/g, "<br>")}</p>`;
-      const attachmentPayload = await readEmailAttachments(sunriseMailAttach);
       pushInboxMessage({ mailbox: senderMailbox, folder, from: sender, to, cc, bcc, subject, bodyHtml: html, priority, scheduledAt, attachments });
       routeSunriseInboundCopies({ senderMailbox, from: sender, to, cc, bcc, subject, bodyHtml: html, priority, attachments });
-      const delivery = await deliverSunriseEmail({
-        to,
-        cc,
-        bcc,
-        subject,
-        html,
-        text: body,
-        from: sender,
-        replyTo: sender,
-        attachments: attachmentPayload
-      });
-      if (sunriseMailInfo) {
-        sunriseMailInfo.textContent = delivery.ok
-          ? `Message sent to ${recipients || to}.`
-          : (delivery.skipped
-            ? `Message stored locally for ${recipients || to}. External delivery will work in Cloudflare Pages runtime.`
-            : `Message stored locally, but external delivery failed: ${delivery.message}`);
-      }
+      if (sunriseMailInfo) sunriseMailInfo.textContent = `Message sent to ${recipients || to}.`;
       clearSunriseComposeDraftBaseline();
       window.setTimeout(() => {
         closeSunriseEmailComposer();
@@ -8962,37 +8811,22 @@ function bindSunriseReplyForms() {
   const forms = Array.from(document.querySelectorAll(".sunriseClientReplyForm"));
   forms.forEach((form) => {
     if (form.dataset.boundReply === "1") return;
-    form.addEventListener("submit", async (event) => {
+    form.addEventListener("submit", (event) => {
       event.preventDefault();
       if (!form.reportValidity()) return;
       const email = form.querySelector(".sunrise-client-email");
       const info = form.parentElement ? form.parentElement.querySelector(".sunrise-reply-info") : null;
       const address = email ? email.value.trim() : "client";
-      const bodyText = String(form.querySelector(".sunrise-client-reply")?.value || "");
       pushInboxMessage({
         mailbox: activeSunriseMailbox(),
         folder: "sent",
         from: sunriseState.email || "concierge@venture-voyagers.com",
         to: address,
         subject: "VVS Survey Response",
-        bodyHtml: `<p>${bodyText.replace(/\n/g, "<br>")}</p>`,
+        bodyHtml: `<p>${String(form.querySelector(".sunrise-client-reply")?.value || "").replace(/\n/g, "<br>")}</p>`,
         priority: "Normal"
       });
-      const delivery = await deliverSunriseEmail({
-        to: address,
-        subject: "VVS Survey Response",
-        html: `<p>${bodyText.replace(/\n/g, "<br>")}</p>`,
-        text: bodyText,
-        from: sunriseState.email || "concierge@venture-voyagers.com",
-        replyTo: sunriseState.email || "concierge@venture-voyagers.com"
-      });
-      if (info) {
-        info.textContent = delivery.ok
-          ? `Reply sent to ${address}.`
-          : (delivery.skipped
-            ? `Reply stored locally for ${address}. External delivery will work in Cloudflare Pages runtime.`
-            : `Reply stored locally, but external delivery failed: ${delivery.message}`);
-      }
+      if (info) info.textContent = `Reply queued for ${email ? email.value.trim() : "client"} from concierge@venture-voyagers.com. API delivery will be connected later.`;
       form.reset();
     });
     form.dataset.boundReply = "1";
