@@ -3736,6 +3736,7 @@ const contactSuccessMessage = document.getElementById("contact-success-message")
 const contactOverlayClose = document.getElementById("contact-overlay-close");
 const contactSubmitBtn = document.getElementById("contact-submit-btn");
 const contactPrefillFieldIds = ["first-name", "last-name", "title", "phone", "email", "country-issued"];
+let contactSubmitInFlight = false;
 
 function contactPrefillStorageKey() {
   if (!activeAccount || !activeAccount.email) return "";
@@ -4455,6 +4456,8 @@ function syncSubmittedRequestIntoActiveAccount({
 async function handleContactSubmit(event) {
   if (event) event.preventDefault();
   if (!contactForm) return false;
+  if (contactSubmitInFlight) return false;
+  contactSubmitInFlight = true;
   if (contactError) contactError.textContent = "";
   if (contactSubmitBtn instanceof HTMLButtonElement) contactSubmitBtn.disabled = true;
 
@@ -4532,6 +4535,7 @@ async function handleContactSubmit(event) {
 
     return true;
   } finally {
+    contactSubmitInFlight = false;
     if (contactSubmitBtn instanceof HTMLButtonElement) contactSubmitBtn.disabled = false;
   }
 }

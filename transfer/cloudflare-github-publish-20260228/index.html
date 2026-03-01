@@ -334,7 +334,7 @@
               <div class="errorLine" id="contact-error" aria-live="polite"></div>
 
               <div class="viewActions">
-                <button class="btn primary" type="submit" id="contact-submit-btn">Submit Request</button>
+                <button class="btn primary" type="submit" id="contact-submit-btn" onclick="return window.submitVvsContactRequest ? window.submitVvsContactRequest(event) : false;">Submit Request</button>
                 <a class="btn ghost" href="#membership" data-route="membership">View Membership</a>
               </div>
             </form>
@@ -1107,6 +1107,6 @@
     </footer>
   </div>
 
-  <script src="script.js?v=20260228-78"></script>
+  <script src="script.js?v=20260301-80"></script>
 </body>
 </html>
