@@ -2082,6 +2082,9 @@ const TRANSLATION_REQUEST_TIMEOUT_MS = 3000;
 let activeRefreshTimer = null;
 let pendingServiceRequestKey = "";
 let pendingPreferredConcierge = "";
+let sunriseControlState = null;
+let sunriseHasUnsavedChanges = false;
+let sunriseCommittedStateHash = "";
 let sunriseSessionTicker = null;
 const sunriseModuleRoutes = [
   "sunrise-revenue",
@@ -3670,7 +3673,7 @@ document.addEventListener("click", (e) => {
     showRoute("contact");
     return;
   }
-  const routeLink = clickTarget.closest("[data-route]");
+  const routeLink = clickTarget.closest("a[data-route], button[data-route], [role='button'][data-route]");
   if (routeLink) {
     e.preventDefault();
     showRoute(routeLink.getAttribute("data-route"));
@@ -4403,8 +4406,18 @@ function collectContactRequestData() {
 
 function validateContactRequest(data) {
   if (!data.selectedMethod) return "Select your preferred contact method (Email or Phone).";
-  if (!data.firstName || !data.lastName || !data.title || !data.countryIssued || !data.phone || !data.email || !data.serviceType || !data.executionTime || !data.requestDetails) {
-    return "Please complete all required contact fields.";
+  const missingLabels = [];
+  if (!data.firstName) missingLabels.push("First Name");
+  if (!data.lastName) missingLabels.push("Last Name");
+  if (!data.title) missingLabels.push("Title");
+  if (!data.countryIssued) missingLabels.push("Country of Issued Service");
+  if (!data.phone) missingLabels.push("Phone Number");
+  if (!data.email) missingLabels.push("Email Address");
+  if (!data.serviceType) missingLabels.push("Service Type");
+  if (!data.executionTime) missingLabels.push("Desired Execution Time");
+  if (!data.requestDetails) missingLabels.push("Request Details");
+  if (missingLabels.length) {
+    return `Please complete: ${missingLabels.join(", ")}.`;
   }
   if (!/.+@.+\..+/.test(data.email)) return "Enter a valid email address.";
   return "";
@@ -6417,8 +6430,6 @@ const sunriseControlDefaults = {
   socSelectedServiceId: ""
 };
 
-let sunriseControlState = null;
-
 function cloneDefaultSunriseControlState() {
   return JSON.parse(JSON.stringify(sunriseControlDefaults));
 }
@@ -6558,9 +6569,7 @@ function loadSunriseControlState() {
 let sunrisePersistTimer = 0;
 let sunrisePersistQueued = false;
 const SUNRISE_PERSIST_DEBOUNCE_MS = 140;
-let sunriseHasUnsavedChanges = false;
 let sunriseUnsavedModalPendingAction = null;
-let sunriseCommittedStateHash = "";
 
 function snapshotSunriseControlState() {
   try {
