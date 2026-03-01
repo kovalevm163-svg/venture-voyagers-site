@@ -3738,6 +3738,49 @@ const contactSubmitBtn = document.getElementById("contact-submit-btn");
 const contactPrefillFieldIds = ["first-name", "last-name", "title", "phone", "email", "country-issued"];
 let contactSubmitInFlight = false;
 
+function ensureContactHiddenField(name, value = "") {
+  if (!contactForm || !name) return null;
+  let input = contactForm.querySelector(`input[type="hidden"][name="${name}"]`);
+  if (!(input instanceof HTMLInputElement)) {
+    input = document.createElement("input");
+    input.type = "hidden";
+    input.name = name;
+    contactForm.appendChild(input);
+  }
+  input.value = String(value || "");
+  return input;
+}
+
+function applyContactFormPublicFallbackState({
+  assignedConcierge = "",
+  clientTier = ""
+} = {}) {
+  if (!contactForm) return;
+  contactForm.setAttribute("method", "post");
+  contactForm.setAttribute("action", "/api/contact-submit");
+  contactForm.removeAttribute("onsubmit");
+  if (contactSubmitBtn instanceof HTMLButtonElement) {
+    contactSubmitBtn.removeAttribute("onclick");
+    contactSubmitBtn.setAttribute("formmethod", "post");
+    contactSubmitBtn.setAttribute("formaction", "/api/contact-submit");
+  }
+  ensureContactHiddenField("assignedConcierge", assignedConcierge || "VVS Concierge Desk");
+  ensureContactHiddenField("clientTier", clientTier || "Non-Member");
+}
+
+function submitContactFormNatively() {
+  if (!contactForm) return false;
+  try {
+    contactForm.dataset.nativeSubmit = "1";
+    HTMLFormElement.prototype.submit.call(contactForm);
+    return true;
+  } catch (error) {
+    console.error("Native contact form submit failed:", error);
+    contactForm.dataset.nativeSubmit = "";
+    return false;
+  }
+}
+
 function contactPrefillStorageKey() {
   if (!activeAccount || !activeAccount.email) return "";
   return `vvs_contact_prefill_${String(activeAccount.email).trim().toLowerCase()}`;
@@ -4456,6 +4499,7 @@ function syncSubmittedRequestIntoActiveAccount({
 async function handleContactSubmit(event) {
   if (event) event.preventDefault();
   if (!contactForm) return false;
+  if (contactForm.dataset.nativeSubmit === "1") return true;
   if (contactSubmitInFlight) return false;
   contactSubmitInFlight = true;
   if (contactError) contactError.textContent = "";
@@ -4473,6 +4517,7 @@ async function handleContactSubmit(event) {
     const assignedConcierge = pendingPreferredConcierge
       || (currentAssignedConcierge ? currentAssignedConcierge.name : (autoAssignConcierge(activeAccount || { country: "United Arab Emirates" })?.name || "Benedict Hale"));
     const clientTier = activeAccount ? String(activeAccount.membership || "").trim() || "Non-Member" : "Non-Member";
+    applyContactFormPublicFallbackState({ assignedConcierge, clientTier });
     const formattedServiceType = data.serviceType
       .replace(/_/g, " ")
       .replace(/\b\w/g, (m) => m.toUpperCase());
@@ -4534,11 +4579,23 @@ async function handleContactSubmit(event) {
     });
 
     return true;
+  } catch (error) {
+    console.error("Contact submit enhancement failed, falling back to native form submit:", error);
+    applyContactFormPublicFallbackState({
+      assignedConcierge: pendingPreferredConcierge || currentAssignedConcierge?.name || "VVS Concierge Desk",
+      clientTier: activeAccount ? String(activeAccount.membership || "").trim() || "Non-Member" : "Non-Member"
+    });
+    if (contactError) contactError.textContent = "Submitting request via secure fallback...";
+    submitContactFormNatively();
+    return true;
   } finally {
+    if (contactForm.dataset.nativeSubmit !== "1") contactForm.dataset.nativeSubmit = "";
     contactSubmitInFlight = false;
     if (contactSubmitBtn instanceof HTMLButtonElement) contactSubmitBtn.disabled = false;
   }
 }
+
+applyContactFormPublicFallbackState();
 
 if (contactForm) {
   contactForm.addEventListener("submit", handleContactSubmit);
