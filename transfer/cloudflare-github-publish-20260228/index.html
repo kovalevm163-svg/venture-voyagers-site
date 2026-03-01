@@ -256,7 +256,7 @@
             <h2 class="viewTitle">Submit Your Service Request</h2>
             <p class="viewSub">Provide your request profile and preferred response channel. A concierge specialist will review your case and respond with execution details.</p>
 
-            <form id="contact-form" novalidate onsubmit="return window.submitVvsContactRequest ? window.submitVvsContactRequest(event) : false;">
+            <form id="contact-form" method="post" action="/api/contact-submit" novalidate>
               <div class="contactLayout">
                 <div class="field">
                   <label for="first-name">First Name</label>
@@ -330,11 +330,13 @@
                   <textarea class="textarea" id="request-details" name="requestDetails" placeholder="Describe your request, context, and required outcomes." required></textarea>
                 </div>
               </div>
+              <input type="hidden" name="assignedConcierge" value="VVS Concierge Desk" />
+              <input type="hidden" name="clientTier" value="Non-Member" />
 
               <div class="errorLine" id="contact-error" aria-live="polite"></div>
 
               <div class="viewActions">
-                <button class="btn primary" type="submit" id="contact-submit-btn" onclick="return window.submitVvsContactRequest ? window.submitVvsContactRequest(event) : false;">Submit Request</button>
+                <button class="btn primary" type="submit" id="contact-submit-btn">Submit Request</button>
                 <a class="btn ghost" href="#membership" data-route="membership">View Membership</a>
               </div>
             </form>
