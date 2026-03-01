@@ -3735,7 +3735,7 @@ const contactOverlay = document.getElementById("contact-overlay");
 const contactSuccessMessage = document.getElementById("contact-success-message");
 const contactOverlayClose = document.getElementById("contact-overlay-close");
 const contactSubmitBtn = document.getElementById("contact-submit-btn");
-const contactPrefillFieldIds = ["first-name", "last-name", "title", "phone", "email"];
+const contactPrefillFieldIds = ["first-name", "last-name", "title", "phone", "email", "country-issued"];
 
 function contactPrefillStorageKey() {
   if (!activeAccount || !activeAccount.email) return "";
@@ -3745,12 +3745,15 @@ function contactPrefillStorageKey() {
 function saveContactPrefillDraft() {
   const key = contactPrefillStorageKey();
   if (!key) return;
+  const selectedMethod = contactForm?.querySelector('input[name="contactMethod"]:checked');
   const payload = {
     firstName: (document.getElementById("first-name")?.value || "").trim(),
     lastName: (document.getElementById("last-name")?.value || "").trim(),
     title: (document.getElementById("title")?.value || "").trim(),
     phone: (document.getElementById("phone")?.value || "").trim(),
-    email: (document.getElementById("email")?.value || "").trim()
+    email: (document.getElementById("email")?.value || "").trim(),
+    countryIssued: (document.getElementById("country-issued")?.value || "").trim(),
+    contactMethod: selectedMethod instanceof HTMLInputElement ? String(selectedMethod.value || "").trim() : ""
   };
   try {
     localStorage.setItem(key, JSON.stringify(payload));
@@ -3778,7 +3781,9 @@ function applyContactAccountPrefill() {
     lastName: String(activeAccount.lastName || "").trim(),
     title: String(activeAccount.prefix || "Mr.").trim(),
     phone: String(activeAccount.phone || "").trim(),
-    email: String(activeAccount.email || "").trim()
+    email: String(activeAccount.email || "").trim(),
+    countryIssued: resolveCountryCode(activeAccount.country) || "",
+    contactMethod: String(activeAccount.lastContactMethod || (activeAccount.email ? "email" : (activeAccount.phone ? "phone" : ""))).trim()
   };
   const draft = loadContactPrefillDraft() || {};
   const finalData = {
@@ -3786,7 +3791,9 @@ function applyContactAccountPrefill() {
     lastName: draft.lastName || defaults.lastName,
     title: draft.title || defaults.title,
     phone: draft.phone || defaults.phone,
-    email: draft.email || defaults.email
+    email: draft.email || defaults.email,
+    countryIssued: draft.countryIssued || defaults.countryIssued,
+    contactMethod: draft.contactMethod || defaults.contactMethod
   };
 
   const first = document.getElementById("first-name");
@@ -3794,11 +3801,19 @@ function applyContactAccountPrefill() {
   const title = document.getElementById("title");
   const phone = document.getElementById("phone");
   const email = document.getElementById("email");
+  const country = document.getElementById("country-issued");
   if (first) first.value = finalData.firstName;
   if (last) last.value = finalData.lastName;
   if (title) title.value = finalData.title;
   if (phone) phone.value = finalData.phone;
   if (email) email.value = finalData.email;
+  if (country) country.value = finalData.countryIssued;
+  const contactMethodInputs = Array.from(contactForm.querySelectorAll('input[name="contactMethod"]'));
+  contactMethodInputs.forEach((input) => {
+    if (!(input instanceof HTMLInputElement)) return;
+    input.checked = String(input.value || "").trim() === finalData.contactMethod;
+  });
+  setupContactMethodChoices();
   if (pendingPreferredConcierge && contactError) {
     contactError.textContent = `Preferred concierge pre-assigned: ${pendingPreferredConcierge}.`;
   } else if (contactError) {
@@ -4356,72 +4371,169 @@ function showContactSubmissionOverlay(message = "") {
   if (contactOverlay) contactOverlay.hidden = false;
 }
 
+function resolveConciergeRecordByName(name = "") {
+  const target = String(name || "").trim().toLowerCase();
+  if (!target) return null;
+  return conciergeCatalog.find((person) => String(person.name || "").trim().toLowerCase() === target) || null;
+}
+
+function resolveStoredAssignedConcierge(account) {
+  const stored = account?.lastAssignedConcierge;
+  if (!stored) return null;
+  if (typeof stored === "object") {
+    const directName = String(stored.name || "").trim();
+    const catalogMatch = resolveConciergeRecordByName(directName);
+    if (catalogMatch) return catalogMatch;
+    if (!directName) return null;
+    return {
+      id: String(stored.id || "assigned-concierge").trim(),
+      name: directName,
+      role: String(stored.role || "Assigned Concierge").trim(),
+      email: String(stored.email || "concierge@venture-voyagers.com").trim(),
+      localPhone: String(stored.localPhone || "").trim()
+    };
+  }
+  const catalogMatch = resolveConciergeRecordByName(stored);
+  if (catalogMatch) return catalogMatch;
+  const storedName = String(stored || "").trim();
+  if (!storedName) return null;
+  return {
+    id: "assigned-concierge",
+    name: storedName,
+    role: "Assigned Concierge",
+    email: "concierge@venture-voyagers.com",
+    localPhone: ""
+  };
+}
+
+function syncSubmittedRequestIntoActiveAccount({
+  data = {},
+  formattedServiceType = "",
+  assignedConcierge = "",
+  methodText = ""
+} = {}) {
+  if (!activeAccount || !activeAccount.email) return;
+  const accountKey = normalizeEmailAddress(activeAccount.email) || String(activeAccount.email || "").trim().toLowerCase();
+  if (!accountKey || !accounts[accountKey]) return;
+
+  const account = accounts[accountKey];
+  const assignedRecord = currentAssignedConcierge && String(currentAssignedConcierge.name || "").trim() === assignedConcierge
+    ? currentAssignedConcierge
+    : resolveConciergeRecordByName(assignedConcierge);
+  const submittedAt = formatUtcTimestamp(new Date());
+  const detailParts = [
+    String(data.requestDetails || "").trim(),
+    `Assigned concierge: ${assignedConcierge}.`,
+    `Preferred contact via ${methodText}.`,
+    `Request submitted ${submittedAt}.`
+  ].filter(Boolean);
+
+  account.lastAssignedConcierge = assignedRecord || {
+    id: "assigned-concierge",
+    name: assignedConcierge,
+    role: "Assigned Concierge",
+    email: "concierge@venture-voyagers.com",
+    localPhone: ""
+  };
+  account.lastContactMethod = String(data.selectedMethod?.value || "").trim();
+  account.upcomingService = {
+    title: formattedServiceType || "Service Request",
+    details: detailParts.join(" "),
+    startsAt: data.executionTime ? `Pending confirmation (${data.executionTime})` : "Pending confirmation"
+  };
+  if (!account.country && data.countryIssued) {
+    account.country = countryDisplayName(data.countryIssued);
+  }
+
+  accounts[accountKey] = account;
+  activeAccount = account;
+  persistAccountsData();
+  persistActiveSession(activeAccount);
+  renderProfile(activeAccount);
+}
+
 async function handleContactSubmit(event) {
   if (event) event.preventDefault();
   if (!contactForm) return false;
   if (contactError) contactError.textContent = "";
   if (contactSubmitBtn instanceof HTMLButtonElement) contactSubmitBtn.disabled = true;
 
-  const data = collectContactRequestData();
-  const validationError = validateContactRequest(data);
-  if (validationError) {
-    if (contactError) contactError.textContent = validationError;
-    if (contactSubmitBtn instanceof HTMLButtonElement) contactSubmitBtn.disabled = false;
-    return false;
-  }
-
-  const methodText = data.selectedMethod.value === "phone" ? "phone number" : "email address";
-  const assignedConcierge = pendingPreferredConcierge
-    || (currentAssignedConcierge ? currentAssignedConcierge.name : (autoAssignConcierge(activeAccount || { country: "United Arab Emirates" })?.name || "Benedict Hale"));
-  const clientTier = activeAccount ? String(activeAccount.membership || "").trim() || "Non-Member" : "Non-Member";
-  const formattedServiceType = data.serviceType
-    .replace(/_/g, " ")
-    .replace(/\b\w/g, (m) => m.toUpperCase());
-  const clientName = `${data.firstName} ${data.lastName}`.trim();
-  const successMessage =
-    `Dear ${data.title} ${data.lastName}, Concierge ${assignedConcierge} has been assigned to your request. You will be contacted for service details via your ${methodText}, based on your selected preference. Thank you for choosing VVS.`;
-
   try {
-    submitServiceIntoSOC({
-      serviceType: formattedServiceType,
-      clientName,
-      tier: clientTier,
-      desiredExecutionTime: data.executionTime,
-      details: data.requestDetails,
-      assigned: assignedConcierge
-    });
-    const intakeSubject = `New Service Submission - ${data.serviceType || "General Request"}`;
-    const intakeBody = `<p><b>Client:</b> ${data.title} ${data.firstName} ${data.lastName}</p><p><b>Phone:</b> ${data.phone}</p><p><b>Service:</b> ${data.serviceType}</p><p><b>Desired:</b> ${data.executionTime}</p><p><b>Assigned concierge:</b> ${assignedConcierge}</p><p><b>Details:</b> ${data.requestDetails || "N/A"}</p>`;
-    routeSunriseInboundCopies({
-      from: data.email || "client@unknown",
-      to: "team@venture-voyagers.com",
-      cc: "management@venture-voyagers.com",
-      bcc: "",
-      subject: intakeSubject,
-      bodyHtml: intakeBody,
-      priority: data.executionTime === "Instant" ? "Urgent" : "High",
-      attachments: []
-    });
-  } catch (err) {
-    console.error("Contact submit routing error:", err);
-  }
+    const data = collectContactRequestData();
+    const validationError = validateContactRequest(data);
+    if (validationError) {
+      if (contactError) contactError.textContent = validationError;
+      return false;
+    }
 
-  const integration = await submitContactIntegrations(
-    buildContactIntegrationPayload(data, assignedConcierge, clientTier)
-  );
-  if (!integration.ok && !integration.skipped && contactError) {
-    contactError.textContent = `Request saved locally, but external delivery failed: ${integration.message}`;
-  }
+    const methodText = data.selectedMethod.value === "phone" ? "phone number" : "email address";
+    const assignedConcierge = pendingPreferredConcierge
+      || (currentAssignedConcierge ? currentAssignedConcierge.name : (autoAssignConcierge(activeAccount || { country: "United Arab Emirates" })?.name || "Benedict Hale"));
+    const clientTier = activeAccount ? String(activeAccount.membership || "").trim() || "Non-Member" : "Non-Member";
+    const formattedServiceType = data.serviceType
+      .replace(/_/g, " ")
+      .replace(/\b\w/g, (m) => m.toUpperCase());
+    const clientName = `${data.firstName} ${data.lastName}`.trim();
+    const successMessage =
+      `Dear ${data.title} ${data.lastName}, Concierge ${assignedConcierge} has been assigned to your request. You will be contacted for service details via your ${methodText}, based on your selected preference. Thank you for choosing VVS.`;
 
-  showContactSubmissionOverlay(successMessage);
-  refreshActiveLanguageIfNeeded();
-  contactForm.reset();
-  setupContactMethodChoices();
-  pendingPreferredConcierge = "";
-  if (activeAccount) applyContactAccountPrefill();
-  if (instantWarning) instantWarning.hidden = true;
-  if (contactSubmitBtn instanceof HTMLButtonElement) contactSubmitBtn.disabled = false;
-  return true;
+    try {
+      submitServiceIntoSOC({
+        serviceType: formattedServiceType,
+        clientName,
+        tier: clientTier,
+        desiredExecutionTime: data.executionTime,
+        details: data.requestDetails,
+        assigned: assignedConcierge
+      });
+      const intakeSubject = `New Service Submission - ${data.serviceType || "General Request"}`;
+      const intakeBody = `<p><b>Client:</b> ${data.title} ${data.firstName} ${data.lastName}</p><p><b>Phone:</b> ${data.phone}</p><p><b>Service:</b> ${data.serviceType}</p><p><b>Desired:</b> ${data.executionTime}</p><p><b>Assigned concierge:</b> ${assignedConcierge}</p><p><b>Details:</b> ${data.requestDetails || "N/A"}</p>`;
+      routeSunriseInboundCopies({
+        from: data.email || "client@unknown",
+        to: "team@venture-voyagers.com",
+        cc: "management@venture-voyagers.com",
+        bcc: "",
+        subject: intakeSubject,
+        bodyHtml: intakeBody,
+        priority: data.executionTime === "Instant" ? "Urgent" : "High",
+        attachments: []
+      });
+    } catch (err) {
+      console.error("Contact submit routing error:", err);
+    }
+
+    if (activeAccount) {
+      syncSubmittedRequestIntoActiveAccount({
+        data,
+        formattedServiceType,
+        assignedConcierge,
+        methodText
+      });
+    }
+
+    showContactSubmissionOverlay(successMessage);
+    refreshActiveLanguageIfNeeded();
+    contactForm.reset();
+    pendingPreferredConcierge = "";
+    if (activeAccount) applyContactAccountPrefill();
+    else setupContactMethodChoices();
+    if (instantWarning) instantWarning.hidden = true;
+
+    submitContactIntegrations(
+      buildContactIntegrationPayload(data, assignedConcierge, clientTier)
+    ).then((integration) => {
+      if (!integration.ok && !integration.skipped && contactError) {
+        contactError.textContent = `Request saved locally, but external delivery failed: ${integration.message}`;
+      }
+    }).catch((error) => {
+      if (contactError) contactError.textContent = "Request saved locally, but external delivery failed.";
+      console.error("Contact integration error:", error);
+    });
+
+    return true;
+  } finally {
+    if (contactSubmitBtn instanceof HTMLButtonElement) contactSubmitBtn.disabled = false;
+  }
 }
 
 if (contactForm) {
@@ -4776,7 +4888,13 @@ function localizePhoneInText(text, country) {
 }
 
 function conciergeToText(person, country) {
-  return `${person.name} | ${person.email} | ${localizePhone(person.localPhone, country)}`;
+  const parts = [
+    String(person?.name || "").trim(),
+    String(person?.email || "").trim()
+  ].filter(Boolean);
+  const phone = String(person?.localPhone || "").trim();
+  if (phone) parts.push(localizePhone(phone, country));
+  return parts.join(" | ");
 }
 
 function autoAssignConcierge(account) {
@@ -5739,8 +5857,19 @@ function renderProfile(account) {
     const lastCons = document.getElementById("profile-last-concierge");
     const progressFill = document.getElementById("profile-progress-fill");
     const progressText = document.getElementById("profile-progress-text");
-    const isNewAccount = (account.servicesCompleted || 0) <= 0;
-    if (isNewAccount) {
+    const storedAssignedConcierge = resolveStoredAssignedConcierge(account);
+    const isNewAccount = (account.servicesCompleted || 0) <= 0 && !storedAssignedConcierge;
+    if (storedAssignedConcierge) {
+      currentAssignedConcierge = storedAssignedConcierge;
+      if (lastCons) lastCons.textContent = conciergeToText(storedAssignedConcierge, account.country);
+      if (conciergeAutoNote) {
+        const noteRole = String(storedAssignedConcierge.role || "Assigned Concierge").trim();
+        const noteId = String(storedAssignedConcierge.id || "").trim();
+        conciergeAutoNote.textContent = noteId
+          ? `Automatically assigned today: ${noteRole} (${noteId.toUpperCase()}) by VVS dispatch engine.`
+          : `Automatically assigned today: ${noteRole} by VVS dispatch engine.`;
+      }
+    } else if (isNewAccount) {
       currentAssignedConcierge = null;
       if (lastCons) lastCons.textContent = "No concierges were assigned to your services yet, let's find the first one!";
       if (conciergeAutoNote) conciergeAutoNote.textContent = "Submit your first request and VVS dispatch will assign the right concierge instantly.";
