@@ -4747,6 +4747,13 @@ function buildRtaTeamAssignmentText(account, role = "") {
   return parts.filter(Boolean).join(" | ");
 }
 
+function buildRtaTeamOptionLabel(account, role = "") {
+  if (!account) return "";
+  const fullName = `${String(account.firstName || "").trim()} ${String(account.lastName || "").trim()}`.trim();
+  const title = String(account.roleTitle || rtaRoleLabel(role)).trim();
+  return [fullName, title].filter(Boolean).join(" • ");
+}
+
 function findStaffKeyByLegacyTeamValue(value = "", role = "") {
   const raw = String(value || "").trim().toLowerCase();
   if (!raw) return "";
@@ -7882,44 +7889,92 @@ function renderRTAPage() {
   ensureRtaAssignmentsStore();
   const assignments = redMemberAccountEntries().map(([key, account]) => findRtaAssignmentByClientKey(key) || buildSeedRtaAssignmentFromAccount(key, account));
   const approved = canApproveRtaAssignment();
-  const rows = assignments.map((assignment) => {
+  const cards = assignments.map((assignment) => {
     const clientKey = String(assignment.clientKey || "").trim().toLowerCase();
     const client = accounts[clientKey] || null;
     const domKey = clientKey.replace(/[^a-z0-9]+/gi, "-");
     const clientName = assignment.clientName || `${String(client?.firstName || "").trim()} ${String(client?.lastName || "").trim()}`.trim();
     const currentStatus = normalizeRtaAssignmentStatus(assignment.status);
+    const statusClass = currentStatus === "Confirmed"
+      ? "isConfirmed"
+      : (currentStatus === "Pending Confirmation" ? "isPending" : "isUnassigned");
     const selectForRole = (role) => {
       const fieldKey = `${role}StaffKey`;
       const selected = String(assignment[fieldKey] || "").trim().toLowerCase();
+      const selectedAccount = accounts[selected] || null;
       const options = rtaEligibleStaffEntries(role).map(([staffKey, staffAccount]) => {
-        const label = buildRtaTeamAssignmentText(staffAccount, role);
+        const label = buildRtaTeamOptionLabel(staffAccount, role);
         return `<option value="${staffKey}" ${selected === staffKey ? "selected" : ""}>${label}</option>`;
       }).join("");
-      return `<select class="select" id="rta-${role}-${domKey}"><option value="">Select ${rtaRoleLabel(role)}</option>${options}</select>`;
+      const detail = selectedAccount
+        ? `<p class="sunriseRtaRoleMeta">${[
+            String(selectedAccount.email || "").trim().toLowerCase(),
+            String(selectedAccount.phone || "").trim()
+          ].filter(Boolean).join(" · ")}</p>`
+        : `<p class="sunriseRtaRoleMeta">No ${rtaRoleLabel(role).toLowerCase()} selected.</p>`;
+      return `<label class="sunriseRtaRoleCard"><span class="sunriseRtaRoleLabel">${rtaRoleLabel(role)}</span><select class="select sunriseRtaSelect" id="rta-${role}-${domKey}"><option value="">Select ${rtaRoleLabel(role)}</option>${options}</select>${detail}</label>`;
     };
     const statusMeta = currentStatus === "Pending Confirmation"
-      ? "Awaiting DA / CA / Owner confirmation."
-      : (currentStatus === "Confirmed" ? "Active and visible on the client profile." : "No team assigned yet.");
+      ? "Waiting for DA, CA, or Owner confirmation before publication to the client account."
+      : (currentStatus === "Confirmed" ? "Team is active and already visible on the client account page." : "No team has been assigned yet.");
     const auditParts = [];
     if (assignment.requestedBy) auditParts.push(`Requested by ${assignment.requestedBy}${assignment.requestedAt ? ` on ${assignment.requestedAt}` : ""}`);
     if (assignment.confirmedBy) auditParts.push(`Confirmed by ${assignment.confirmedBy}${assignment.confirmedAt ? ` on ${assignment.confirmedAt}` : ""}`);
-    return `<tr>
-      <td><div><b>${clientName || "Voyager Red Member"}</b><div class="profileNote">${String(assignment.tier || client?.membership || "Voyager Red").trim()}</div></div></td>
-      <td>${[
-        assignment.clientEmail || client?.email || "",
-        assignment.clientPhone || client?.phone || "",
-        formatOptionalCountryDisplay(assignment.clientCountry || client?.country || "")
-      ].filter(Boolean).join("<br>") || "<span class=\"profileNote\">No contact details.</span>"}</td>
-      <td>${selectForRole("fleet")}</td>
-      <td>${selectForRole("driver")}</td>
-      <td>${selectForRole("concierge")}</td>
-      <td>${selectForRole("security")}</td>
-      <td><b>${currentStatus}</b><div class="profileNote">${statusMeta}</div></td>
-      <td>${auditParts.join("<br>") || "<span class=\"profileNote\">No activity yet.</span>"}</td>
-      <td><button class="sunriseMiniBtn" type="button" data-rta-save="${clientKey}">${approved ? "Assign Team" : "Submit for Confirmation"}</button>${approved ? `<button class="sunriseMiniBtn" type="button" data-rta-confirm="${clientKey}" ${currentStatus === "Pending Confirmation" ? "" : "disabled"}>Confirm</button>` : ""}</td>
-    </tr>`;
+    const credentials = [
+      assignment.clientEmail || client?.email || "",
+      assignment.clientPhone || client?.phone || "",
+      formatOptionalCountryDisplay(assignment.clientCountry || client?.country || "")
+    ].filter(Boolean);
+    return `<article class="sunriseControlCard sunriseDetailWide sunriseRtaCard">
+      <div class="sunriseRtaCardTop">
+        <div>
+          <p class="sunriseRtaEyebrow">Voyager Red Member</p>
+          <h3 class="sunriseRtaClientName">${clientName || "Voyager Red Member"}</h3>
+          <p class="sunriseRtaClientTier">${String(assignment.tier || client?.membership || "Voyager Red").trim()}</p>
+        </div>
+        <div class="sunriseRtaStatusWrap">
+          <span class="sunriseRtaBadge ${statusClass}">${currentStatus}</span>
+          <p class="sunriseRtaStatusText">${statusMeta}</p>
+        </div>
+      </div>
+      <div class="sunriseRtaInfoStrip">
+        ${credentials.length ? credentials.map((item) => `<span>${item}</span>`).join("") : "<span>No client credentials stored yet.</span>"}
+      </div>
+      <div class="sunriseRtaRolesGrid">
+        ${selectForRole("fleet")}
+        ${selectForRole("driver")}
+        ${selectForRole("concierge")}
+        ${selectForRole("security")}
+      </div>
+      <div class="sunriseRtaFoot">
+        <div class="sunriseRtaAudit">
+          <p class="sunriseRtaSectionLabel">Assignment Audit</p>
+          ${(auditParts.length ? auditParts : ["No activity yet."]).map((item) => `<p>${item}</p>`).join("")}
+        </div>
+        <div class="sunriseRtaActions">
+          <button class="sunriseMiniBtn sunriseRtaActionBtn" type="button" data-rta-save="${clientKey}">${approved ? "Assign Team" : "Submit for Confirmation"}</button>
+          ${approved && currentStatus === "Pending Confirmation" ? `<button class="sunriseMiniBtn sunriseRtaActionBtn" type="button" data-rta-confirm="${clientKey}">Confirm</button>` : ""}
+        </div>
+      </div>
+    </article>`;
   }).join("");
-  grid.innerHTML = `<article class="sunriseControlCard sunriseDetailWide"><h3>Red Team Assigning Menu</h3><div class="sunriseControlActions"><span class="profileNote">Voyager Red members: ${assignments.length}</span><span class="profileNote">Pending confirmation: ${rtaPendingCount()}</span><span class="profileNote">Confirmed teams: ${assignments.filter((row) => normalizeRtaAssignmentStatus(row.status) === "Confirmed").length}</span></div><p class="profileNote">SM assignments wait for DA, CA, or Owner confirmation. Confirmed teams are mirrored to the client account page.</p><p class="authInfo" id="rta-info"></p></article><article class="sunriseControlCard sunriseDetailWide"><table class="sunriseControlTable"><thead><tr><th>Voyager Red Member</th><th>Client Credentials</th><th>Fleet</th><th>Driver</th><th>Concierge</th><th>Head of Security</th><th>Status</th><th>Audit</th><th>Actions</th></tr></thead><tbody>${rows || "<tr><td colspan='9'>No Voyager Red members available.</td></tr>"}</tbody></table></article>`;
+  grid.innerHTML = `<article class="sunriseControlCard sunriseDetailWide sunriseRtaHero">
+    <div class="sunriseRtaHeroTop">
+      <div>
+        <h3>Red Team Assigning Menu</h3>
+        <p class="opsText">Assign Fleet, Driver, Concierge, and Head of Security for each Voyager Red member. Confirmed teams publish to the client account automatically.</p>
+      </div>
+      <div class="sunriseRtaStatGrid">
+        <div class="sunriseRtaStat"><span>Voyager Red Members</span><b>${assignments.length}</b></div>
+        <div class="sunriseRtaStat"><span>Pending Confirmation</span><b>${rtaPendingCount()}</b></div>
+        <div class="sunriseRtaStat"><span>Confirmed Teams</span><b>${assignments.filter((row) => normalizeRtaAssignmentStatus(row.status) === "Confirmed").length}</b></div>
+      </div>
+    </div>
+    <p class="authInfo" id="rta-info"></p>
+  </article>
+  <section class="sunriseRtaBoard">
+    ${cards || `<article class="sunriseControlCard sunriseDetailWide"><p class="profileNote">No Voyager Red members available.</p></article>`}
+  </section>`;
 }
 
 function renderRIMPage() {
