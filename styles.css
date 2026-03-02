@@ -1202,6 +1202,13 @@ body.sunrise-dock-visible main{
   line-height:1.5;
 }
 
+.ampOwnerRestrictionNote{
+  margin:12px 0 0;
+  color: rgba(255,213,184,.66);
+  font-size:12px;
+  line-height:1.5;
+}
+
 .ampOwnerGrid{
   margin-top:14px;
   display:grid;

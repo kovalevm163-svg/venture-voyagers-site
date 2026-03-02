@@ -8488,10 +8488,10 @@ function renderAmpOwnerCards(entries = []) {
     const sunriseAccount = sunriseLogin && accounts[sunriseLogin] ? accounts[sunriseLogin] : null;
     const phone = String(account?.phone || "").trim();
     const country = formatOptionalCountryDisplay(account?.country || "");
-    const vvsValue = lockedForAleks ? "Restricted" : vvsLogin;
+    const vvsValue = vvsLogin || "Not stored";
     const sunriseValue = lockedForAleks ? "Restricted" : String(sunriseLogin || "Not linked").trim().toLowerCase();
     const phoneValue = lockedForAleks ? "Restricted" : (phone || "Not stored");
-    const countryValue = lockedForAleks ? "Restricted" : (country || "Not stored");
+    const countryValue = country || "Not stored";
     const notosValue = lockedForAleks
       ? "Restricted"
       : String(sunriseAccount?.notosId || account?.notosId || resolveSunriseOwnerCode(account) || "OW").trim().toUpperCase();
@@ -8499,8 +8499,8 @@ function renderAmpOwnerCards(entries = []) {
       <div class="ampOwnerCardTop">
         <div>
           <p class="ampSectionEyebrow">Owner</p>
-          <h4>${lockedForAleks ? "Protected Executive Record" : fullName}</h4>
-          <p class="ampOwnerRole">${lockedForAleks ? "Visible identity only. Credential access restricted." : roleTitle}</p>
+          <h4>${fullName}</h4>
+          <p class="ampOwnerRole">${roleTitle}</p>
         </div>
         <span class="ampHierarchyCode">OW</span>
       </div>
@@ -8511,6 +8511,7 @@ function renderAmpOwnerCards(entries = []) {
         <div class="ampOwnerField"><span>Country</span><strong>${countryValue}</strong></div>
         <div class="ampOwnerField ampOwnerFieldWide"><span>NOTOS ID</span><strong>${notosValue}</strong></div>
       </div>
+      ${lockedForAleks ? `<p class="ampOwnerRestrictionNote">Aleks Sunrise access can view identity, VVS email, and country only. Other executive credentials remain restricted.</p>` : ""}
     </article>`;
   }).join("");
   return `<div class="ampOwnerGridWrap">${cards}</div>`;
