@@ -4398,7 +4398,9 @@ function defaultClientUpcomingServiceCard() {
   return {
     title: "No upcoming service yet",
     details: "Book your first VVS service to start your schedule.",
-    startsAt: "N/A"
+    startsAt: "N/A",
+    statusText: "",
+    timeLabel: ""
   };
 }
 
@@ -4406,7 +4408,9 @@ function defaultClientPastServiceCard() {
   return {
     title: "No completed service yet",
     details: "No previous service records available.",
-    endedAt: "N/A"
+    endedAt: "N/A",
+    statusText: "",
+    timeLabel: ""
   };
 }
 
@@ -4432,51 +4436,28 @@ function compareSocServiceCandidates(a, b) {
   return Number(a?.idx || 0) - Number(b?.idx || 0);
 }
 
-function formatSocPreferredContact(method = "") {
-  const normalized = String(method || "").trim().toLowerCase();
-  if (normalized === "phone") return "Preferred contact via phone.";
-  if (normalized === "email") return "Preferred contact via email.";
-  return "";
-}
-
 function buildUpcomingServiceCardFromSoc(service = {}) {
-  const credentials = resolveSocClientCredentials(service);
   const normalizedStatus = normalizeSocServiceStatus(service.status);
-  const detailParts = [
-    String(service.description || "").trim(),
-    service.assigned && String(service.assigned).trim() && String(service.assigned).trim().toLowerCase() !== "unassigned"
-      ? `Assigned concierge: ${String(service.assigned).trim()}.`
-      : "Assigned concierge pending.",
-    formatSocPreferredContact(credentials.preferredContactMethod),
-    service.desiredExecutionTime ? `Desired execution: ${String(service.desiredExecutionTime).trim()}.` : "",
-    normalizedStatus === "Confirmed" ? "Status: Confirmed in Sunrise." : "Status: Pending confirmation."
-  ].filter(Boolean);
+  const description = String(service.description || "").trim() || "Your service request has been received and is being prepared.";
 
   return {
     title: String(service.title || "Service Request").trim() || "Service Request",
-    details: detailParts.join(" "),
-    startsAt: normalizedStatus === "Confirmed"
-      ? (service.desiredExecutionTime ? `Confirmed • ${String(service.desiredExecutionTime).trim()}` : "Confirmed")
-      : "Pending confirmation"
+    details: description,
+    statusText: normalizedStatus === "Confirmed" ? "Confirmed" : "Pending confirmation",
+    startsAt: String(service.desiredExecutionTime || "").trim(),
+    timeLabel: String(service.desiredExecutionTime || "").trim() ? "Requested timeframe" : ""
   };
 }
 
 function buildPastServiceCardFromSoc(service = {}) {
-  const credentials = resolveSocClientCredentials(service);
-  const detailParts = [
-    String(service.description || "").trim(),
-    service.assigned && String(service.assigned).trim() && String(service.assigned).trim().toLowerCase() !== "unassigned"
-      ? `Handled by ${String(service.assigned).trim()}.`
-      : "",
-    formatSocPreferredContact(credentials.preferredContactMethod),
-    service.desiredExecutionTime ? `Execution window: ${String(service.desiredExecutionTime).trim()}.` : "",
-    "Status: Closed in Sunrise."
-  ].filter(Boolean);
+  const description = String(service.description || "").trim() || "This service has been completed successfully.";
 
   return {
     title: String(service.title || "Completed Service").trim() || "Completed Service",
-    details: detailParts.join(" "),
-    endedAt: String(service.confirmedAt || service.assignedAt || "Closed").trim() || "Closed"
+    details: description,
+    statusText: "Completed",
+    endedAt: String(service.confirmedAt || service.assignedAt || "").trim() || "Closed",
+    timeLabel: "Completed"
   };
 }
 
@@ -4541,6 +4522,8 @@ function syncSocServicesToClientAccounts() {
         || account.upcomingService.title !== nextUpcoming.title
         || account.upcomingService.details !== nextUpcoming.details
         || account.upcomingService.startsAt !== nextUpcoming.startsAt
+        || String(account.upcomingService.statusText || "") !== String(nextUpcoming.statusText || "")
+        || String(account.upcomingService.timeLabel || "") !== String(nextUpcoming.timeLabel || "")
         || account.socUpcomingServiceId !== openCandidate.service.id;
       if (changed) {
         account.upcomingService = nextUpcoming;
@@ -4552,7 +4535,9 @@ function syncSocServicesToClientAccounts() {
       const changed = !account.upcomingService
         || account.upcomingService.title !== fallbackUpcoming.title
         || account.upcomingService.details !== fallbackUpcoming.details
-        || account.upcomingService.startsAt !== fallbackUpcoming.startsAt;
+        || account.upcomingService.startsAt !== fallbackUpcoming.startsAt
+        || String(account.upcomingService.statusText || "") !== String(fallbackUpcoming.statusText || "")
+        || String(account.upcomingService.timeLabel || "") !== String(fallbackUpcoming.timeLabel || "");
       account.upcomingService = fallbackUpcoming;
       account.socUpcomingServiceId = "";
       if (changed && activeAccount && normalizeEmailAddress(activeAccount.email) === key) activeAccountChanged = true;
@@ -4564,6 +4549,8 @@ function syncSocServicesToClientAccounts() {
         || account.pastService.title !== nextPast.title
         || account.pastService.details !== nextPast.details
         || account.pastService.endedAt !== nextPast.endedAt
+        || String(account.pastService.statusText || "") !== String(nextPast.statusText || "")
+        || String(account.pastService.timeLabel || "") !== String(nextPast.timeLabel || "")
         || account.socPastServiceId !== closedCandidate.service.id;
       if (changed) {
         account.pastService = nextPast;
@@ -4575,7 +4562,9 @@ function syncSocServicesToClientAccounts() {
       const changed = !account.pastService
         || account.pastService.title !== fallbackPast.title
         || account.pastService.details !== fallbackPast.details
-        || account.pastService.endedAt !== fallbackPast.endedAt;
+        || account.pastService.endedAt !== fallbackPast.endedAt
+        || String(account.pastService.statusText || "") !== String(fallbackPast.statusText || "")
+        || String(account.pastService.timeLabel || "") !== String(fallbackPast.timeLabel || "");
       account.pastService = fallbackPast;
       account.socPastServiceId = "";
       if (changed && activeAccount && normalizeEmailAddress(activeAccount.email) === key) activeAccountChanged = true;
@@ -4807,13 +4796,6 @@ function syncSubmittedRequestIntoActiveAccount({
   const assignedRecord = currentAssignedConcierge && String(currentAssignedConcierge.name || "").trim() === assignedConcierge
     ? currentAssignedConcierge
     : resolveConciergeRecordByName(assignedConcierge);
-  const submittedAt = formatUtcTimestamp(new Date());
-  const detailParts = [
-    String(data.requestDetails || "").trim(),
-    `Assigned concierge: ${assignedConcierge}.`,
-    `Preferred contact via ${methodText}.`,
-    `Request submitted ${submittedAt}.`
-  ].filter(Boolean);
 
   account.lastAssignedConcierge = assignedRecord || {
     id: "assigned-concierge",
@@ -4829,8 +4811,10 @@ function syncSubmittedRequestIntoActiveAccount({
   account.lastContactMethod = String(data.selectedMethod?.value || "").trim();
   account.upcomingService = {
     title: formattedServiceType || "Service Request",
-    details: detailParts.join(" "),
-    startsAt: data.executionTime ? `Pending confirmation (${data.executionTime})` : "Pending confirmation"
+    details: String(data.requestDetails || "").trim() || "Your request has been received and is being reviewed.",
+    startsAt: String(data.executionTime || "").trim(),
+    statusText: "Pending confirmation",
+    timeLabel: String(data.executionTime || "").trim() ? "Requested timeframe" : ""
   };
   if (data.countryIssued) {
     account.country = countryDisplayName(data.countryIssued);
@@ -6172,7 +6156,13 @@ function renderProfile(account) {
   if (pastDetailsEl) {
     pastDetailsEl.textContent = isEmployee && staffDashboardData
       ? `${staffDashboardData.scope}. Position focus: ${String(account.roleTitle || staffDashboardData.accessMeta.title)}.`
-      : `${account.pastService.details} Ended: ${account.pastService.endedAt}.`;
+      : [
+        String(account.pastService.details || "").trim(),
+        account.pastService.statusText ? `Status: ${String(account.pastService.statusText).trim()}.` : "",
+        (account.pastService.endedAt && String(account.pastService.endedAt).trim() && String(account.pastService.endedAt).trim() !== "N/A")
+          ? `${String(account.pastService.timeLabel || "Completed").trim()}: ${String(account.pastService.endedAt).trim()}.`
+          : ""
+      ].filter(Boolean).join(" ");
   }
   if (upcomingTitleEl) {
     upcomingTitleEl.textContent = isEmployee ? "Current Duty Focus" : account.upcomingService.title;
@@ -6180,7 +6170,13 @@ function renderProfile(account) {
   if (upcomingDetailsEl) {
     upcomingDetailsEl.textContent = isEmployee && staffDashboardData
       ? staffDashboardData.focus
-      : `${account.upcomingService.details} Scheduled: ${account.upcomingService.startsAt}.`;
+      : [
+        String(account.upcomingService.details || "").trim(),
+        account.upcomingService.statusText ? `Status: ${String(account.upcomingService.statusText).trim()}.` : "",
+        (account.upcomingService.startsAt && String(account.upcomingService.startsAt).trim() && String(account.upcomingService.startsAt).trim() !== "N/A")
+          ? `${String(account.upcomingService.timeLabel || "Timing").trim()}: ${String(account.upcomingService.startsAt).trim()}.`
+          : ""
+      ].filter(Boolean).join(" ");
   }
 
   if (tipsEl) {
