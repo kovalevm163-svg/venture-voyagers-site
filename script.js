@@ -908,10 +908,80 @@ const managedStaffDirectory = {
     country: "United Kingdom",
     sunriseAccessLevel: "STA",
     notosId: "NTS-2147C",
-    roleTitle: "Concierge (Basic Employee)",
+    roleTitle: "Office Concierge Associate",
     phone: "+44 20 7946 8501",
     staffDivision: "Office",
     rtaRoles: ["concierge"]
+  }),
+  "office.associate@vvs.com": buildManagedStaffSeed({
+    email: "office.associate@vvs.com",
+    password: "OfficeAssociate#26",
+    secretPhrase: "HelixLedger",
+    prefix: "Ms.",
+    firstName: "Clara",
+    lastName: "Mensah",
+    country: "United Kingdom",
+    sunriseAccessLevel: "SA",
+    notosId: "NTS-2751A",
+    roleTitle: "Office Client Associate",
+    phone: "+44 20 7946 8514",
+    staffDivision: "Office"
+  }),
+  "office.supervisor@vvs.com": buildManagedStaffSeed({
+    email: "office.supervisor@vvs.com",
+    password: "OfficeSupervisor#26",
+    secretPhrase: "BronzeOrbit",
+    prefix: "Mr.",
+    firstName: "Omar",
+    lastName: "Petrov",
+    country: "Bulgaria",
+    sunriseAccessLevel: "SS",
+    notosId: "NTS-3488S",
+    roleTitle: "Office Service Supervisor",
+    phone: "+359 2 492 5508",
+    staffDivision: "Office"
+  }),
+  "office.management@vvs.com": buildManagedStaffSeed({
+    email: "office.management@vvs.com",
+    password: "OfficeManager#26",
+    secretPhrase: "AmberVector",
+    prefix: "Ms.",
+    firstName: "Sofia",
+    lastName: "Arden",
+    country: "Italy",
+    sunriseAccessLevel: "SM",
+    notosId: "NTS-4160M",
+    roleTitle: "Office Operations Manager",
+    phone: "+39 02 8712 4522",
+    staffDivision: "Office"
+  }),
+  "office.directorate@vvs.com": buildManagedStaffSeed({
+    email: "office.directorate@vvs.com",
+    password: "OfficeDirectorate#26",
+    secretPhrase: "IvoryBridge",
+    prefix: "Mr.",
+    firstName: "Matteo",
+    lastName: "Kruger",
+    country: "Germany",
+    sunriseAccessLevel: "DA",
+    notosId: "NTS-5871D",
+    roleTitle: "Office Directorate Coordinator",
+    phone: "+49 30 2840 7611",
+    staffDivision: "Office"
+  }),
+  "office.chairman@vvs.com": buildManagedStaffSeed({
+    email: "office.chairman@vvs.com",
+    password: "OfficeChairman#26",
+    secretPhrase: "OnyxHarbor",
+    prefix: "Mrs.",
+    firstName: "Evelyn",
+    lastName: "Laurent",
+    country: "France",
+    sunriseAccessLevel: "CA",
+    notosId: "NTS-6405C",
+    roleTitle: "Office Executive Chairman Liaison",
+    phone: "+33 1 84 88 1150",
+    staffDivision: "Office"
   }),
   "ssr.supervisor@vvs.com": buildManagedStaffSeed({
     email: "ssr.supervisor@vvs.com",
@@ -4632,6 +4702,18 @@ function formatOptionalCountryDisplay(country = "") {
 
 const staffDivisionOrder = ["Headquarters", "Office", "Field", "Special Requests"];
 const ampStaffGroupOrder = ["Owners", ...staffDivisionOrder];
+const ampOwnerPreferredKeys = {
+  "aleks totev": "aleks.totev@vvs.com",
+  "mikhail kovalev": "mikhail.kovalev@vvs.com"
+};
+const ampOfficePreferredKeys = {
+  CA: "office.chairman@vvs.com",
+  DA: "office.directorate@vvs.com",
+  SM: "office.management@vvs.com",
+  SS: "office.supervisor@vvs.com",
+  SA: "office.associate@vvs.com",
+  STA: "concierge.basic@vvs.com"
+};
 const rtaRoleMeta = {
   fleet: { label: "Fleet", accountKey: "pilot" },
   driver: { label: "Driver", accountKey: "driver" },
@@ -8144,8 +8226,8 @@ function renderRTAPage() {
 function renderRIMPage() {
   const grid = document.getElementById("sunrise-rim-grid");
   if (!grid || !sunriseControlState) return;
-  const rows = (sunriseControlState.rimInvites || []).map((row, idx) => `<tr><td><input class="input" data-rim-id="${idx}" value="${row.id || ""}"></td><td><input class="input" data-rim-name="${idx}" value="${row.name || ""}"></td><td><input class="input" data-rim-email="${idx}" value="${row.email || ""}"></td><td><input class="input" data-rim-country="${idx}" value="${row.country || ""}"></td><td><input class="input" data-rim-team="${idx}" value="${row.team || ""}"></td><td><select class="select" data-rim-status="${idx}"><option ${row.status==="Draft"?"selected":""}>Draft</option><option ${row.status==="Sent"?"selected":""}>Sent</option><option ${row.status==="Accepted"?"selected":""}>Accepted</option></select></td><td><button class="sunriseMiniBtn" type="button" data-rim-del="${idx}">Delete</button></td></tr>`).join("");
-  grid.innerHTML = `<article class="sunriseControlCard sunriseDetailWide"><h3>Red Invitations and Team Assignment</h3><table class="sunriseControlTable"><thead><tr><th>ID</th><th>Name</th><th>Email</th><th>Country</th><th>Assigned Team</th><th>Status</th><th>Action</th></tr></thead><tbody>${rows}</tbody></table><div class="sunriseControlActions"><button class="sunriseMiniBtn" type="button" data-rim-add>Add Invitation</button></div></article>`;
+  const rows = (sunriseControlState.rimInvites || []).map((row, idx) => `<tr><td><input class="input" data-rim-id="${idx}" value="${row.id || ""}"></td><td><input class="input" data-rim-name="${idx}" value="${row.name || ""}"></td><td><input class="input" data-rim-email="${idx}" value="${row.email || ""}"></td><td><input class="input" data-rim-country="${idx}" value="${row.country || ""}"></td><td><select class="select" data-rim-status="${idx}"><option ${row.status==="Draft"?"selected":""}>Draft</option><option ${row.status==="Sent"?"selected":""}>Sent</option><option ${row.status==="Accepted"?"selected":""}>Accepted</option></select></td><td><button class="sunriseMiniBtn" type="button" data-rim-del="${idx}">Delete</button></td></tr>`).join("");
+  grid.innerHTML = `<article class="sunriseControlCard sunriseDetailWide"><h3>Red Invitation Register</h3><p class="opsText">Track invitation records without internal team assignment fields.</p><table class="sunriseControlTable"><thead><tr><th>ID</th><th>Name</th><th>Email</th><th>Country</th><th>Status</th><th>Action</th></tr></thead><tbody>${rows || "<tr><td colspan='6'>No invitations available.</td></tr>"}</tbody></table><div class="sunriseControlActions"><button class="sunriseMiniBtn" type="button" data-rim-add>Add Invitation</button></div></article>`;
 }
 
 function renderSOCPage() {
@@ -8283,25 +8365,93 @@ function sunriseAccessMetaByCode(code = "") {
   };
 }
 
+function findSunriseCredentialEmailForBaseKey(baseKey = "", account = null) {
+  const key = String(baseKey || "").trim().toLowerCase();
+  if (!key) return "";
+  const linked = Object.entries(accounts).find(([candidateKey, candidateAccount]) => {
+    if (!candidateAccount?.sunriseCredential) return false;
+    return String(candidateAccount.sunriseLinkedEmail || "").trim().toLowerCase() === key
+      || String(candidateKey || "").trim().toLowerCase() === preferredSunriseEmailForBase(key, account || accounts[key] || null);
+  });
+  return linked ? String(linked[0] || "").trim().toLowerCase() : preferredSunriseEmailForBase(key, account || accounts[key] || null);
+}
+
+function choosePreferredAmpEntry(entries = [], preferredKey = "") {
+  return entries
+    .slice()
+    .sort((a, b) => {
+      const aKey = String(a?.[0] || "").trim().toLowerCase();
+      const bKey = String(b?.[0] || "").trim().toLowerCase();
+      const preferred = String(preferredKey || "").trim().toLowerCase();
+      const aScore = aKey === preferred ? 0 : (aKey.startsWith("office.") ? 1 : (aKey.includes(".totev@") || aKey.includes(".kovalev@") ? 1 : 2));
+      const bScore = bKey === preferred ? 0 : (bKey.startsWith("office.") ? 1 : (bKey.includes(".totev@") || bKey.includes(".kovalev@") ? 1 : 2));
+      if (aScore !== bScore) return aScore - bScore;
+      return aKey.localeCompare(bKey);
+    })[0] || null;
+}
+
+function canonicalizeAmpStaffEntries(entries = []) {
+  const ownersByPerson = new Map();
+  const officeByAccess = new Map();
+  const passthrough = [];
+
+  entries.forEach((entry) => {
+    const [key, account] = entry;
+    if (!account) return;
+    if (isOwnerAccount(account)) {
+      const fullName = `${String(account.firstName || "").trim()} ${String(account.lastName || "").trim()}`.trim().toLowerCase() || String(key || "").trim().toLowerCase();
+      if (!ownersByPerson.has(fullName)) ownersByPerson.set(fullName, []);
+      ownersByPerson.get(fullName).push(entry);
+      return;
+    }
+    if (ampStaffGroupName(account) === "Office") {
+      const accessCode = staffAccessCode(account) || "STA";
+      if (!officeByAccess.has(accessCode)) officeByAccess.set(accessCode, []);
+      officeByAccess.get(accessCode).push(entry);
+      return;
+    }
+    passthrough.push(entry);
+  });
+
+  const canonicalOwners = Array.from(ownersByPerson.entries())
+    .map(([personKey, ownerEntries]) => choosePreferredAmpEntry(ownerEntries, ampOwnerPreferredKeys[personKey] || ""))
+    .filter(Boolean);
+  const canonicalOffice = sunriseHierarchyOrder()
+    .filter((code) => code !== "OW")
+    .map((code) => {
+      const officeEntries = officeByAccess.get(code) || [];
+      if (!officeEntries.length) return null;
+      return choosePreferredAmpEntry(officeEntries, ampOfficePreferredKeys[code] || "");
+    })
+    .filter(Boolean);
+
+  return [...canonicalOwners, ...canonicalOffice, ...passthrough];
+}
+
 function renderAmpOfficeHierarchy(entries = []) {
   if (!Array.isArray(entries) || !entries.length) return "";
-  const cards = entries.map(([, account]) => {
+  const cards = entries.map(([key, account]) => {
     const accessMeta = sunriseAccessMetaByCode(staffAccessCode(account));
     const fullName = `${String(account?.firstName || "").trim()} ${String(account?.lastName || "").trim()}`.trim() || "Staff Member";
     const position = String(account?.roleTitle || "Staff").trim();
+    const sunriseLogin = findSunriseCredentialEmailForBaseKey(key, account);
     const accessLine = accessMeta.access || accessMeta.title;
     return `<article class="ampHierarchyCard">
       <span class="ampHierarchyCode">${accessMeta.code}</span>
       <b>${position}</b>
       <p>${fullName}</p>
       <span class="ampHierarchyMeta">${accessLine}</span>
+      <div class="ampHierarchyCredentials">
+        <span><b>VVS</b> ${String(account?.email || key || "").trim().toLowerCase()}</span>
+        <span><b>Sunrise</b> ${sunriseLogin}</span>
+      </div>
     </article>`;
   }).join("");
   return `<div class="ampOfficeHierarchy">
     <div class="ampOfficeHierarchyTop">
       <div>
         <p class="ampSectionEyebrow">Office Position Hierarchy</p>
-        <p class="opsText">Ordered from highest Sunrise access down to associate level for the office team.</p>
+        <p class="opsText">Ordered from highest Sunrise access down to associate level for the office team, with linked VVS and Sunrise logins.</p>
       </div>
     </div>
     <div class="ampHierarchyGrid">${cards}</div>
@@ -8372,11 +8522,13 @@ function renderAMPPage(filter = "") {
       const disabled = lockedForAleks ? "disabled" : "";
       const displayCountry = formatOptionalCountryDisplay(account.country);
       const division = ampStaffGroupName(account);
+      const sunriseLogin = findSunriseCredentialEmailForBaseKey(key, account);
       const deleteCell = lockedForAleks
         ? `<span class="profileNote">Restricted</span>`
         : `<button class="sunriseMiniBtn" type="button" data-amp-del="${key}">Delete</button>`;
       const sensitiveCells = viewerIsOwner
         ? `<td><input class="input" data-amp-email="${key}" value="${account.email || ""}" ${readOnly}></td>
+      <td><input class="input" value="${sunriseLogin}" readonly></td>
       <td><input class="input" data-amp-phone="${key}" value="${account.phone || ""}" ${readOnly}></td>
       <td><input class="input" data-amp-country="${key}" value="${displayCountry}" ${readOnly}></td>
       <td><input class="input" data-amp-password="${key}" value="${String(account.password || "")}" ${lockedForAleks ? "readonly" : ""}></td>
@@ -8396,7 +8548,7 @@ function renderAMPPage(filter = "") {
     }).join("");
 
   const customerEntries = accountEntries.filter(([, account]) => !isStaffAccountForAdmin(account));
-  const staffEntries = accountEntries.filter(([, account]) => isStaffAccountForAdmin(account));
+  const staffEntries = canonicalizeAmpStaffEntries(accountEntries.filter(([, account]) => isStaffAccountForAdmin(account)));
   const customersHtml = `<article class="sunriseControlCard sunriseDetailWide"><h3>Customers List</h3><table class="sunriseControlTable"><thead><tr><th>Code</th><th>Email</th><th>Phone</th><th>Country</th><th>Title</th><th>Name</th><th>Password</th><th>Secret Phrase</th><th>Tier/Status</th><th>Action</th></tr></thead><tbody>${renderCustomerRows(customerEntries) || "<tr><td colspan='10'>No customer accounts found.</td></tr>"}</tbody></table></article>`;
 
   const groupedStaff = new Map();
@@ -8419,7 +8571,7 @@ function renderAMPPage(filter = "") {
       groupedStaff.get(division).push(entry);
     });
   const staffHeader = viewerIsOwner
-    ? "<tr><th>Code</th><th>Honorific</th><th>Name</th><th>Position</th><th>Division</th><th>Email</th><th>Phone</th><th>Country</th><th>Password</th><th>Secret Phrase</th><th>Sunrise Access</th><th>NOTOS ID</th><th>Action</th></tr>"
+    ? "<tr><th>Code</th><th>Honorific</th><th>Name</th><th>Position</th><th>Division</th><th>VVS Login</th><th>Sunrise Login</th><th>Phone</th><th>Country</th><th>Password</th><th>Secret Phrase</th><th>Sunrise Access</th><th>NOTOS ID</th><th>Action</th></tr>"
     : "<tr><th>Code</th><th>Honorific</th><th>Name</th><th>Position</th><th>Division</th><th>Sunrise Access</th><th>NOTOS ID</th><th>Action</th></tr>";
   const staffOverviewStats = ampStaffGroupOrder
     .map((division) => ({ division, count: groupedStaff.get(division)?.length || 0 }))
@@ -8448,7 +8600,7 @@ function renderAMPPage(filter = "") {
         <div class="ampStaffOverviewTop">
           <div>
             <h3>Staff Directory</h3>
-            <p class="opsText">Owners are isolated into their own executive group. Office positions are displayed in Sunrise hierarchy order for easier review.</p>
+            <p class="opsText">Only Aleks Totev and Mikhail Kovalev appear in Owners. Office accounts are normalized to one canonical record per Sunrise hierarchy level.</p>
           </div>
           <div class="ampStaffStatsGrid">${staffOverviewStats}</div>
         </div>
@@ -8661,15 +8813,62 @@ function renderALPPage(filter = "") {
 
 function renderShortcutCodeAdminCard(context = "MCC", filter = "", searchId = "mcc-search", searchAttr = "data-mcc-search", addAttr = "data-mcc-add") {
   const allAccess = sunriseAccessCodesList();
-  const rows = ensureShortcutCodeRegistry()
+  const filteredCodes = ensureShortcutCodeRegistry()
     .map((row, originalIdx) => ({ row, originalIdx }))
-    .filter(({ row }) => matchesSearch([row.code, row.title, row.route, row.access], filter))
+    .filter(({ row }) => matchesSearch([row.code, row.title, row.route, row.access], filter));
+  const rows = filteredCodes
     .map(({ row, originalIdx }) => {
       const selected = normalizeCodeAccessList(row.access);
       const accessOptions = allAccess.map((code) => `<option value="${code}" ${selected.includes(code) ? "selected" : ""}>${code}</option>`).join("");
-      return `<tr><td><input class="input" data-code-key="${originalIdx}" value="${row.code || ""}"></td><td><input class="input" data-code-title="${originalIdx}" value="${row.title || ""}"></td><td><input class="input" data-code-route="${originalIdx}" value="${row.route || ""}" placeholder="sunrise-... route"></td><td><select class="select" multiple size="4" data-code-access="${originalIdx}">${accessOptions}</select></td><td><button class="sunriseMiniBtn" type="button" data-code-del="${originalIdx}">Delete</button></td></tr>`;
+      return `<article class="sunriseControlCard mccCodeCard">
+        <div class="mccCodeCardTop">
+          <div>
+            <p class="ampSectionEyebrow">${context} Shortcut</p>
+            <span class="mccCodeBadge">${row.code || "NEW"}</span>
+          </div>
+          <button class="sunriseMiniBtn" type="button" data-code-del="${originalIdx}">Delete</button>
+        </div>
+        <div class="mccFieldGrid">
+          <label class="mccField">
+            <span>Code</span>
+            <input class="input" data-code-key="${originalIdx}" value="${row.code || ""}">
+          </label>
+          <label class="mccField">
+            <span>Title</span>
+            <input class="input" data-code-title="${originalIdx}" value="${row.title || ""}">
+          </label>
+          <label class="mccField mccFieldWide">
+            <span>Route</span>
+            <input class="input" data-code-route="${originalIdx}" value="${row.route || ""}" placeholder="sunrise-... route">
+          </label>
+          <label class="mccField mccFieldWide">
+            <span>Allowed Access</span>
+            <select class="select mccAccessSelect" multiple size="${Math.max(4, Math.min(allAccess.length, 7))}" data-code-access="${originalIdx}">${accessOptions}</select>
+            <small>Use Cmd/Ctrl to select multiple Sunrise access levels.</small>
+          </label>
+        </div>
+      </article>`;
     }).join("");
-  return `<article class="sunriseControlCard sunriseDetailWide"><h3>Shortcut Codes Access (${context})</h3><div class="sunriseControlActions"><input class="input" id="${searchId}" placeholder="Search code/title/route/access, use / to narrow" value="${String(filter || "").replace(/"/g, "&quot;")}"><button class="sunriseMiniBtn" type="button" ${searchAttr}>Search</button><button class="sunriseMiniBtn" type="button" ${addAttr}>Add Code</button><a class="sunriseMiniBtn" href="#sunrise-mcc" data-route="sunrise-mcc">Open MCC</a></div><table class="sunriseControlTable"><thead><tr><th>Code</th><th>Title</th><th>Route</th><th>Allowed Access</th><th>Action</th></tr></thead><tbody>${rows || "<tr><td colspan='5'>No shortcut codes found.</td></tr>"}</tbody></table></article>`;
+  return `<article class="sunriseControlCard sunriseDetailWide mccRegistryHero">
+    <div class="mccRegistryTop">
+      <div>
+        <h3>Manage &amp; Create Codes</h3>
+        <p class="opsText">Maintain Sunrise shortcut codes with route targets and allowed access levels in a cleaner control layout.</p>
+      </div>
+      <div class="mccRegistryStats">
+        <div class="mccRegistryStat"><span>Visible Codes</span><b>${filteredCodes.length}</b></div>
+        <div class="mccRegistryStat"><span>Access Levels</span><b>${allAccess.length}</b></div>
+      </div>
+    </div>
+    <div class="mccControlBar">
+      <input class="input" id="${searchId}" placeholder="Search code/title/route/access, use / to narrow" value="${String(filter || "").replace(/"/g, "&quot;")}">
+      <button class="sunriseMiniBtn" type="button" ${searchAttr}>Search</button>
+      <button class="sunriseMiniBtn" type="button" ${addAttr}>Add Code</button>
+    </div>
+  </article>
+  <section class="mccCodeGrid">
+    ${rows || `<article class="sunriseControlCard sunriseDetailWide"><p class="profileNote">No shortcut codes found.</p></article>`}
+  </section>`;
 }
 
 function renderMCCPage(filter = "") {
@@ -9478,7 +9677,7 @@ function bindSunriseControlInteractions() {
 
     const rimAdd = clickTarget.closest("[data-rim-add]");
     if (rimAdd && sunriseControlState) {
-      sunriseControlState.rimInvites.push({ id: `RIM-${Math.floor(Math.random() * 900 + 100)}`, name: "New Invite", email: "", country: "", team: "", status: "Draft" });
+      sunriseControlState.rimInvites.push({ id: `RIM-${Math.floor(Math.random() * 900 + 100)}`, name: "New Invite", email: "", country: "", status: "Draft" });
       saveSunriseControlState();
       renderCustomSunriseControlPages();
       return;

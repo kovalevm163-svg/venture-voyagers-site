@@ -1072,7 +1072,7 @@ body.sunrise-dock-visible main{
 
 .ampStaffStatsGrid{
   display:grid;
-  grid-template-columns: repeat(5, minmax(0, 1fr));
+  grid-template-columns: repeat(auto-fit, minmax(112px, 1fr));
   gap:10px;
 }
 
@@ -1081,6 +1081,7 @@ body.sunrise-dock-visible main{
   border-radius:16px;
   padding:12px 14px;
   background: rgba(18,10,8,.28);
+  min-width:0;
 }
 
 .ampStaffStat span{
@@ -1089,6 +1090,8 @@ body.sunrise-dock-visible main{
   letter-spacing:.13em;
   text-transform:uppercase;
   color: rgba(255,222,199,.68);
+  line-height:1.35;
+  overflow-wrap:anywhere;
 }
 
 .ampStaffStat b{
@@ -1150,7 +1153,7 @@ body.sunrise-dock-visible main{
 
 .ampHierarchyGrid{
   display:grid;
-  grid-template-columns: repeat(3, minmax(0, 1fr));
+  grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
   gap:10px;
   margin-top:12px;
 }
@@ -1201,10 +1204,195 @@ body.sunrise-dock-visible main{
   line-height:1.4;
 }
 
+.ampHierarchyCredentials{
+  display:grid;
+  gap:6px;
+  margin-top:10px;
+}
+
+.ampHierarchyCredentials span{
+  display:block;
+  padding:8px 10px;
+  border-radius:12px;
+  background: rgba(17,9,7,.26);
+  border:1px solid rgba(236,188,146,.12);
+  color: rgba(255,226,207,.80);
+  font-size:11px;
+  line-height:1.45;
+  overflow-wrap:anywhere;
+}
+
+.ampHierarchyCredentials span b{
+  display:inline;
+  margin:0 6px 0 0;
+  font-size:11px;
+  color: rgba(255,238,222,.96);
+}
+
 .ampStaffTableWrap{
   width:100%;
   overflow-x:auto;
   margin-top:14px;
+}
+
+.ampStaffTableWrap .sunriseControlTable{
+  min-width:1180px;
+}
+
+.mccRegistryHero{
+  padding:18px;
+  background:
+    linear-gradient(145deg, rgba(73,34,19,.88), rgba(126,72,38,.68)),
+    radial-gradient(120% 160% at 12% 0%, rgba(236,176,126,.12), transparent 58%);
+}
+
+.mccRegistryTop{
+  display:grid;
+  grid-template-columns: minmax(0, 1.1fr) minmax(240px, .7fr);
+  gap:16px;
+  align-items:start;
+}
+
+.mccRegistryStats{
+  display:grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap:10px;
+}
+
+.mccRegistryStat{
+  border:1px solid rgba(236,188,146,.22);
+  border-radius:16px;
+  padding:12px 14px;
+  background: rgba(18,10,8,.28);
+}
+
+.mccRegistryStat span{
+  display:block;
+  font-size:10px;
+  letter-spacing:.13em;
+  text-transform:uppercase;
+  color: rgba(255,222,199,.68);
+}
+
+.mccRegistryStat b{
+  display:block;
+  margin-top:6px;
+  font-size:22px;
+  line-height:1;
+  color: rgba(255,237,222,.96);
+}
+
+.mccControlBar{
+  display:grid;
+  grid-template-columns: minmax(0, 1fr) auto auto;
+  gap:10px;
+  margin-top:14px;
+}
+
+.mccCodeGrid{
+  display:grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap:14px;
+  grid-column: 1 / -1;
+}
+
+.mccCodeCard{
+  padding:18px;
+  display:flex;
+  flex-direction:column;
+  gap:14px;
+}
+
+.mccCodeCardTop{
+  display:flex;
+  justify-content:space-between;
+  gap:12px;
+  align-items:flex-start;
+}
+
+.mccCodeBadge{
+  display:inline-flex;
+  align-items:center;
+  justify-content:center;
+  min-height:38px;
+  padding:0 14px;
+  border-radius:999px;
+  border:1px solid rgba(236,188,146,.24);
+  background: rgba(18,10,8,.28);
+  color: rgba(255,236,220,.96);
+  font-size:12px;
+  letter-spacing:.14em;
+  text-transform:uppercase;
+}
+
+.mccFieldGrid{
+  display:grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap:12px;
+}
+
+.mccField{
+  display:flex;
+  flex-direction:column;
+  gap:8px;
+}
+
+.mccField span{
+  font-size:10px;
+  letter-spacing:.14em;
+  text-transform:uppercase;
+  color: rgba(255,221,198,.70);
+}
+
+.mccFieldWide{
+  grid-column: 1 / -1;
+}
+
+.mccField small{
+  color: rgba(255,213,184,.62);
+  font-size:11px;
+  line-height:1.4;
+}
+
+.mccAccessSelect{
+  min-height:152px;
+  border-color: rgba(223,167,131,.34);
+  background: linear-gradient(160deg, rgba(34,18,13,.92), rgba(74,42,26,.82));
+  color: rgba(255,232,214,.95);
+  box-shadow: inset 0 0 0 1px rgba(255,220,190,.04), 0 8px 18px rgba(0,0,0,.26);
+  scrollbar-width: thin;
+  scrollbar-color: rgba(223,167,131,.54) rgba(20,10,8,.62);
+}
+
+.mccAccessSelect:focus{
+  border-color: rgba(255,205,169,.62);
+  box-shadow: inset 0 0 0 1px rgba(255,222,193,.10), 0 0 0 3px rgba(190,121,74,.20);
+}
+
+.mccAccessSelect option{
+  background: rgba(32,16,12,.96);
+  color: rgba(255,228,208,.92);
+  padding:4px 8px;
+}
+
+.mccAccessSelect option:checked{
+  background: linear-gradient(140deg, rgba(150,86,49,.92), rgba(108,56,32,.95));
+  color: rgba(255,244,230,.98);
+}
+
+.mccAccessSelect::-webkit-scrollbar{
+  width:10px;
+}
+
+.mccAccessSelect::-webkit-scrollbar-track{
+  background: rgba(24,12,10,.72);
+  border-radius:10px;
+}
+
+.mccAccessSelect::-webkit-scrollbar-thumb{
+  background: linear-gradient(180deg, rgba(223,167,131,.78), rgba(166,101,62,.72));
+  border-radius:10px;
+  border:2px solid rgba(24,12,10,.72);
 }
 
 .sunriseRtaHero{
@@ -3040,8 +3228,10 @@ footer{
   .sunriseLaunchGrid{grid-template-columns:1fr;}
   .sunriseDetailGrid{grid-template-columns:1fr;}
   .ampStaffOverviewTop{grid-template-columns:1fr;}
-  .ampStaffStatsGrid{grid-template-columns:repeat(3, minmax(0, 1fr));}
-  .ampHierarchyGrid{grid-template-columns:1fr 1fr;}
+  .mccRegistryTop{grid-template-columns:1fr;}
+  .mccControlBar{grid-template-columns:1fr;}
+  .mccCodeGrid{grid-template-columns:1fr;}
+  .mccFieldGrid{grid-template-columns:1fr 1fr;}
   .sunriseRtaBoard{grid-template-columns:1fr;}
   .sunriseRtaHeroTop{grid-template-columns:1fr;}
   .sunriseRtaStatGrid{grid-template-columns:1fr 1fr 1fr;}
@@ -3335,7 +3525,9 @@ footer{
   }
 
   .ampStaffStatsGrid,
-  .ampHierarchyGrid{
+  .ampHierarchyGrid,
+  .mccRegistryStats,
+  .mccFieldGrid{
     grid-template-columns:1fr;
   }
 
