@@ -4240,26 +4240,356 @@ function pushInboxMessage(payload = {}) {
   saveSunriseControlState({ markDirty: false });
 }
 
-function submitServiceIntoSOC({ serviceType = "", clientName = "", tier = "Non-Member", desiredExecutionTime = "", details = "", assigned = "" } = {}) {
-  if (!sunriseControlState) return;
-  if (!sunriseControlState.socServices) sunriseControlState.socServices = { current: [], past: [], deleted: [] };
-  if (!Array.isArray(sunriseControlState.socServices.current)) sunriseControlState.socServices.current = [];
-  sunriseControlState.socServices.current.unshift({
-    id: generateServiceId(),
+function formatOptionalCountryDisplay(country = "") {
+  const raw = String(country || "").trim();
+  return raw ? countryDisplayName(raw) : "";
+}
+
+function resolveAccountByServiceClient({ clientAccountEmail = "", clientEmail = "", clientName = "" } = {}) {
+  const directKeys = [clientAccountEmail, clientEmail]
+    .map((value) => normalizeEmailAddress(value))
+    .filter(Boolean);
+  for (const key of directKeys) {
+    if (accounts[key] && !accounts[key].sunriseCredential) {
+      return { key, account: accounts[key] };
+    }
+  }
+
+  const normalizedClientName = String(clientName || "").trim().toLowerCase();
+  if (!normalizedClientName) {
+    return { key: directKeys[0] || "", account: null };
+  }
+
+  const match = Object.entries(accounts).find(([, account]) => {
+    if (!account || account.sunriseCredential) return false;
+    const fullName = `${String(account.firstName || "").trim()} ${String(account.lastName || "").trim()}`.trim().toLowerCase();
+    return !!fullName && fullName === normalizedClientName;
+  });
+
+  if (!match) return { key: directKeys[0] || "", account: null };
+  return { key: match[0], account: match[1] };
+}
+
+function resolveSocClientCredentials(service = {}) {
+  const match = resolveAccountByServiceClient({
+    clientAccountEmail: service.clientAccountEmail,
+    clientEmail: service.clientEmail,
+    clientName: service.client
+  });
+  const account = match.account;
+  const rawEmail = String(service.clientEmail || account?.email || match.key || "").trim();
+  const rawPhone = String(service.clientPhone || account?.phone || "").trim();
+  const rawCountry = String(service.clientCountry || account?.country || "").trim();
+  const rawMethod = String(
+    service.preferredContactMethod
+    || account?.lastContactMethod
+    || (rawEmail ? "email" : (rawPhone ? "phone" : ""))
+  ).trim().toLowerCase();
+
+  return {
+    clientAccountEmail: normalizeEmailAddress(service.clientAccountEmail || rawEmail || match.key || ""),
+    clientTitle: String(service.clientTitle || account?.prefix || "").trim(),
+    clientEmail: rawEmail,
+    clientPhone: rawPhone,
+    clientCountry: rawCountry ? countryDisplayName(rawCountry) : "",
+    preferredContactMethod: rawMethod
+  };
+}
+
+function createSocServiceRecord({
+  serviceId = "",
+  serviceType = "",
+  clientName = "",
+  tier = "Non-Member",
+  desiredExecutionTime = "",
+  details = "",
+  assigned = "",
+  assignedAt = "",
+  confirmedAt = "",
+  status = "",
+  stage = "Current",
+  budget = 0,
+  steps = null,
+  clientTitle = "",
+  clientEmail = "",
+  clientPhone = "",
+  clientCountry = "",
+  preferredContactMethod = "",
+  clientAccountEmail = ""
+} = {}) {
+  const resolvedAssigned = String(assigned || "").trim() || "Unassigned";
+  const resolvedStatus = String(status || "").trim() || "Awaiting Confirmation";
+  const credentials = resolveSocClientCredentials({
+    client: clientName,
+    clientTitle,
+    clientEmail,
+    clientPhone,
+    clientCountry,
+    preferredContactMethod,
+    clientAccountEmail
+  });
+  return {
+    id: serviceId || generateServiceId(),
     title: serviceType || "Service Request",
     client: clientName || "New Client",
     tier: tier || "Non-Member",
     desiredExecutionTime: desiredExecutionTime || "24h",
     description: details || "",
-    assigned: assigned || "Unassigned",
-    assignedAt: assigned ? formatUtcTimestamp(new Date()) : "",
-    confirmedAt: "",
-    status: "Awaiting Confirmation",
-    stage: "Current",
-    budget: 0,
-    steps: defaultSocSteps()
-  });
+    assigned: resolvedAssigned,
+    assignedAt: assignedAt || (resolvedAssigned.toLowerCase() !== "unassigned" ? formatUtcTimestamp(new Date()) : ""),
+    confirmedAt: confirmedAt || "",
+    status: resolvedStatus,
+    stage: stage || "Current",
+    budget: Number.isFinite(Number(budget)) ? Number(budget) : 0,
+    clientTitle: credentials.clientTitle,
+    clientEmail: credentials.clientEmail,
+    clientPhone: credentials.clientPhone,
+    clientCountry: credentials.clientCountry,
+    preferredContactMethod: credentials.preferredContactMethod,
+    clientAccountEmail: credentials.clientAccountEmail,
+    steps: Array.isArray(steps) ? steps : defaultSocSteps()
+  };
+}
+
+function submitServiceIntoSOC({
+  serviceType = "",
+  clientName = "",
+  tier = "Non-Member",
+  desiredExecutionTime = "",
+  details = "",
+  assigned = "",
+  clientTitle = "",
+  clientEmail = "",
+  clientPhone = "",
+  clientCountry = "",
+  preferredContactMethod = "",
+  clientAccountEmail = ""
+} = {}) {
+  if (!sunriseControlState) return;
+  if (!sunriseControlState.socServices) sunriseControlState.socServices = { current: [], past: [], deleted: [] };
+  if (!Array.isArray(sunriseControlState.socServices.current)) sunriseControlState.socServices.current = [];
+  sunriseControlState.socServices.current.unshift(createSocServiceRecord({
+    serviceType,
+    clientName,
+    tier,
+    desiredExecutionTime,
+    details,
+    assigned,
+    clientTitle,
+    clientEmail,
+    clientPhone,
+    clientCountry,
+    preferredContactMethod,
+    clientAccountEmail
+  }));
   saveSunriseControlState({ markDirty: false });
+}
+
+function normalizeSocServiceStatus(status = "") {
+  const value = String(status || "").trim().toLowerCase();
+  if (value === "closed") return "Closed";
+  if (value === "confirmed") return "Confirmed";
+  if (value === "assigned") return "Assigned";
+  if (value === "awaiting confirmation") return "Awaiting Confirmation";
+  return value ? String(status).trim() : "Awaiting Confirmation";
+}
+
+function defaultClientUpcomingServiceCard() {
+  return {
+    title: "No upcoming service yet",
+    details: "Book your first VVS service to start your schedule.",
+    startsAt: "N/A"
+  };
+}
+
+function defaultClientPastServiceCard() {
+  return {
+    title: "No completed service yet",
+    details: "No previous service records available.",
+    endedAt: "N/A"
+  };
+}
+
+function socStatusPriority(status = "") {
+  const normalized = normalizeSocServiceStatus(status);
+  if (normalized === "Confirmed") return 3;
+  if (normalized === "Assigned") return 2;
+  if (normalized === "Awaiting Confirmation") return 1;
+  return 0;
+}
+
+function socBucketPriority(bucket = "") {
+  if (bucket === "current") return 2;
+  if (bucket === "past") return 1;
+  return 0;
+}
+
+function compareSocServiceCandidates(a, b) {
+  const statusDiff = socStatusPriority(b?.service?.status) - socStatusPriority(a?.service?.status);
+  if (statusDiff) return statusDiff;
+  const bucketDiff = socBucketPriority(b?.bucket) - socBucketPriority(a?.bucket);
+  if (bucketDiff) return bucketDiff;
+  return Number(a?.idx || 0) - Number(b?.idx || 0);
+}
+
+function formatSocPreferredContact(method = "") {
+  const normalized = String(method || "").trim().toLowerCase();
+  if (normalized === "phone") return "Preferred contact via phone.";
+  if (normalized === "email") return "Preferred contact via email.";
+  return "";
+}
+
+function buildUpcomingServiceCardFromSoc(service = {}) {
+  const credentials = resolveSocClientCredentials(service);
+  const normalizedStatus = normalizeSocServiceStatus(service.status);
+  const detailParts = [
+    String(service.description || "").trim(),
+    service.assigned && String(service.assigned).trim() && String(service.assigned).trim().toLowerCase() !== "unassigned"
+      ? `Assigned concierge: ${String(service.assigned).trim()}.`
+      : "Assigned concierge pending.",
+    formatSocPreferredContact(credentials.preferredContactMethod),
+    service.desiredExecutionTime ? `Desired execution: ${String(service.desiredExecutionTime).trim()}.` : "",
+    normalizedStatus === "Confirmed" ? "Status: Confirmed in Sunrise." : "Status: Pending confirmation."
+  ].filter(Boolean);
+
+  return {
+    title: String(service.title || "Service Request").trim() || "Service Request",
+    details: detailParts.join(" "),
+    startsAt: normalizedStatus === "Confirmed"
+      ? (service.desiredExecutionTime ? `Confirmed • ${String(service.desiredExecutionTime).trim()}` : "Confirmed")
+      : "Pending confirmation"
+  };
+}
+
+function buildPastServiceCardFromSoc(service = {}) {
+  const credentials = resolveSocClientCredentials(service);
+  const detailParts = [
+    String(service.description || "").trim(),
+    service.assigned && String(service.assigned).trim() && String(service.assigned).trim().toLowerCase() !== "unassigned"
+      ? `Handled by ${String(service.assigned).trim()}.`
+      : "",
+    formatSocPreferredContact(credentials.preferredContactMethod),
+    service.desiredExecutionTime ? `Execution window: ${String(service.desiredExecutionTime).trim()}.` : "",
+    "Status: Closed in Sunrise."
+  ].filter(Boolean);
+
+  return {
+    title: String(service.title || "Completed Service").trim() || "Completed Service",
+    details: detailParts.join(" "),
+    endedAt: String(service.confirmedAt || service.assignedAt || "Closed").trim() || "Closed"
+  };
+}
+
+function syncSocServicesToClientAccounts() {
+  if (!sunriseControlState) return;
+  const groups = sunriseControlState.socServices || {};
+  const accountStates = new Map();
+  const managedKeys = new Set(
+    Object.entries(accounts)
+      .filter(([, account]) => !!(account?.socUpcomingServiceId || account?.socPastServiceId))
+      .map(([key]) => String(key || "").trim().toLowerCase())
+  );
+
+  ["current", "past"].forEach((bucket) => {
+    const list = Array.isArray(groups[bucket]) ? groups[bucket] : [];
+    list.forEach((service, idx) => {
+      const match = resolveAccountByServiceClient({
+        clientAccountEmail: service?.clientAccountEmail,
+        clientEmail: service?.clientEmail,
+        clientName: service?.client
+      });
+      const key = String(match?.key || "").trim().toLowerCase();
+      const account = key && accounts[key] ? accounts[key] : null;
+      if (!account || account.sunriseCredential || isStaffAccountForAdmin(account)) return;
+      managedKeys.add(key);
+      if (!accountStates.has(key)) {
+        accountStates.set(key, { account, open: [], closed: [] });
+      }
+      const state = accountStates.get(key);
+      const normalizedStatus = normalizeSocServiceStatus(service?.status);
+      const credentials = resolveSocClientCredentials(service || {});
+      if (credentials.clientTitle) state.account.prefix = credentials.clientTitle;
+      if (credentials.clientPhone) state.account.phone = credentials.clientPhone;
+      if (credentials.clientCountry) state.account.country = credentials.clientCountry;
+      if (credentials.preferredContactMethod) state.account.lastContactMethod = credentials.preferredContactMethod;
+      if (service?.assigned && String(service.assigned).trim() && String(service.assigned).trim().toLowerCase() !== "unassigned") {
+        state.account.lastAssignedConcierge = resolveConciergeRecordByName(service.assigned) || {
+          id: "assigned-concierge",
+          name: String(service.assigned).trim(),
+          role: "Assigned Concierge",
+          email: "concierge@venture-voyagers.com",
+          localPhone: ""
+        };
+      }
+      const candidate = { service, bucket, idx };
+      if (normalizedStatus === "Closed") state.closed.push(candidate);
+      else state.open.push(candidate);
+    });
+  });
+
+  let activeAccountChanged = false;
+  managedKeys.forEach((key) => {
+    const account = accounts[key];
+    if (!account || account.sunriseCredential || isStaffAccountForAdmin(account)) return;
+    const state = accountStates.get(key) || { account, open: [], closed: [] };
+    const openCandidate = state.open.slice().sort(compareSocServiceCandidates)[0] || null;
+    const closedCandidate = state.closed.slice().sort(compareSocServiceCandidates)[0] || null;
+
+    if (openCandidate) {
+      const nextUpcoming = buildUpcomingServiceCardFromSoc(openCandidate.service);
+      const changed = !account.upcomingService
+        || account.upcomingService.title !== nextUpcoming.title
+        || account.upcomingService.details !== nextUpcoming.details
+        || account.upcomingService.startsAt !== nextUpcoming.startsAt
+        || account.socUpcomingServiceId !== openCandidate.service.id;
+      if (changed) {
+        account.upcomingService = nextUpcoming;
+        account.socUpcomingServiceId = String(openCandidate.service.id || "").trim().toUpperCase();
+        if (activeAccount && normalizeEmailAddress(activeAccount.email) === key) activeAccountChanged = true;
+      }
+    } else if (account.socUpcomingServiceId) {
+      const fallbackUpcoming = defaultClientUpcomingServiceCard();
+      const changed = !account.upcomingService
+        || account.upcomingService.title !== fallbackUpcoming.title
+        || account.upcomingService.details !== fallbackUpcoming.details
+        || account.upcomingService.startsAt !== fallbackUpcoming.startsAt;
+      account.upcomingService = fallbackUpcoming;
+      account.socUpcomingServiceId = "";
+      if (changed && activeAccount && normalizeEmailAddress(activeAccount.email) === key) activeAccountChanged = true;
+    }
+
+    if (closedCandidate) {
+      const nextPast = buildPastServiceCardFromSoc(closedCandidate.service);
+      const changed = !account.pastService
+        || account.pastService.title !== nextPast.title
+        || account.pastService.details !== nextPast.details
+        || account.pastService.endedAt !== nextPast.endedAt
+        || account.socPastServiceId !== closedCandidate.service.id;
+      if (changed) {
+        account.pastService = nextPast;
+        account.socPastServiceId = String(closedCandidate.service.id || "").trim().toUpperCase();
+        if (activeAccount && normalizeEmailAddress(activeAccount.email) === key) activeAccountChanged = true;
+      }
+    } else if (account.socPastServiceId) {
+      const fallbackPast = defaultClientPastServiceCard();
+      const changed = !account.pastService
+        || account.pastService.title !== fallbackPast.title
+        || account.pastService.details !== fallbackPast.details
+        || account.pastService.endedAt !== fallbackPast.endedAt;
+      account.pastService = fallbackPast;
+      account.socPastServiceId = "";
+      if (changed && activeAccount && normalizeEmailAddress(activeAccount.email) === key) activeAccountChanged = true;
+    }
+  });
+
+  if (activeAccountChanged && activeAccount) {
+    const activeKey = normalizeEmailAddress(activeAccount.email);
+    if (activeKey && accounts[activeKey]) {
+      activeAccount = accounts[activeKey];
+      persistActiveSession(activeAccount);
+      renderProfile(activeAccount);
+    }
+  }
 }
 
 function isLocalPreviewHost() {
@@ -4492,13 +4822,17 @@ function syncSubmittedRequestIntoActiveAccount({
     email: "concierge@venture-voyagers.com",
     localPhone: ""
   };
+  if (data.title) account.prefix = data.title;
+  if (data.firstName) account.firstName = data.firstName;
+  if (data.lastName) account.lastName = data.lastName;
+  if (data.phone) account.phone = data.phone;
   account.lastContactMethod = String(data.selectedMethod?.value || "").trim();
   account.upcomingService = {
     title: formattedServiceType || "Service Request",
     details: detailParts.join(" "),
     startsAt: data.executionTime ? `Pending confirmation (${data.executionTime})` : "Pending confirmation"
   };
-  if (!account.country && data.countryIssued) {
+  if (data.countryIssued) {
     account.country = countryDisplayName(data.countryIssued);
   }
 
@@ -4545,7 +4879,13 @@ async function handleContactSubmit(event) {
         tier: clientTier,
         desiredExecutionTime: data.executionTime,
         details: data.requestDetails,
-        assigned: assignedConcierge
+        assigned: assignedConcierge,
+        clientTitle: data.title,
+        clientEmail: data.email,
+        clientPhone: data.phone,
+        clientCountry: data.countryIssued,
+        preferredContactMethod: String(data.selectedMethod?.value || "").trim(),
+        clientAccountEmail: activeAccount ? normalizeEmailAddress(activeAccount.email) : normalizeEmailAddress(data.email)
       });
       const intakeSubject = `New Service Submission - ${data.serviceType || "General Request"}`;
       const intakeBody = `<p><b>Client:</b> ${data.title} ${data.firstName} ${data.lastName}</p><p><b>Phone:</b> ${data.phone}</p><p><b>Service:</b> ${data.serviceType}</p><p><b>Desired:</b> ${data.executionTime}</p><p><b>Assigned concierge:</b> ${assignedConcierge}</p><p><b>Details:</b> ${data.requestDetails || "N/A"}</p>`;
@@ -6610,6 +6950,7 @@ function queueSunriseControlStatePersist() {
 
 function saveSunriseControlState(options = {}) {
   if (!sunriseControlState) return;
+  syncSocServicesToClientAccounts();
   const markDirty = options?.markDirty !== false;
   if (markDirty) {
     refreshSunriseDirtyFlag();
@@ -6884,7 +7225,7 @@ function renderSOCPage() {
   const grid = document.getElementById("sunrise-soc-grid");
   if (!grid || !sunriseControlState) return;
   const soc = sunriseControlState.socServices || { current: [], past: [], deleted: [] };
-  const renderRows = (bucket, restoreMode = false) => (soc[bucket] || []).map((row, idx) => `<tr><td><input class="input" data-soc-id="${bucket}:${idx}" value="${row.id || ""}"></td><td><input class="input" data-soc-title="${bucket}:${idx}" value="${row.title || ""}"></td><td><input class="input" data-soc-client="${bucket}:${idx}" value="${row.client || ""}"></td><td><select class="select" data-soc-tier="${bucket}:${idx}"><option ${row.tier==="Non-Member"?"selected":""}>Non-Member</option><option ${row.tier==="Voyager Cuprum"?"selected":""}>Voyager Cuprum</option><option ${row.tier==="Voyager Argentum"?"selected":""}>Voyager Argentum</option><option ${row.tier==="Voyager Aurum"?"selected":""}>Voyager Aurum</option><option ${row.tier==="Voyager Platinum"?"selected":""}>Voyager Platinum</option><option ${row.tier==="Voyager Diamante"?"selected":""}>Voyager Diamante</option><option ${row.tier==="Voyager Noir"?"selected":""}>Voyager Noir</option><option ${row.tier==="Voyager Red"?"selected":""}>Voyager Red</option></select></td><td><select class="select" data-soc-desired="${bucket}:${idx}"><option ${row.desiredExecutionTime==="Instant"?"selected":""}>Instant</option><option ${row.desiredExecutionTime==="24h"?"selected":""}>24h</option><option ${row.desiredExecutionTime==="48h"?"selected":""}>48h</option><option ${row.desiredExecutionTime==="72h"?"selected":""}>72h</option><option ${row.desiredExecutionTime==="Within a week"?"selected":""}>Within a week</option><option ${row.desiredExecutionTime==="Within a month"?"selected":""}>Within a month</option><option ${row.desiredExecutionTime==="2 months"?"selected":""}>2 months</option><option ${row.desiredExecutionTime==="3 months"?"selected":""}>3 months</option><option ${row.desiredExecutionTime==="6 months"?"selected":""}>6 months</option></select></td><td><input class="input" data-soc-assigned="${bucket}:${idx}" value="${row.assigned || ""}"></td><td><input class="input" data-soc-assigned-at="${bucket}:${idx}" value="${row.assignedAt || ""}" placeholder="YYYY-MM-DD HH:MM TZ"></td><td><input class="input" data-soc-confirmed-at="${bucket}:${idx}" value="${row.confirmedAt || ""}" placeholder="YYYY-MM-DD HH:MM TZ"></td><td><select class="select" data-soc-status="${bucket}:${idx}"><option ${row.status==="Assigned"?"selected":""}>Assigned</option><option ${row.status==="Confirmed"?"selected":""}>Confirmed</option><option ${row.status==="Closed"?"selected":""}>Closed</option></select></td><td>${restoreMode ? `<button class="sunriseMiniBtn" type="button" data-soc-restore="${idx}">Restore</button>` : `<button class="sunriseMiniBtn" type="button" data-soc-delete="${bucket}:${idx}">Delete</button><button class="sunriseMiniBtn" type="button" data-soc-open="${row.id}">Details</button>`}</td></tr>`).join("");
+  const renderRows = (bucket, restoreMode = false) => (soc[bucket] || []).map((row, idx) => `<tr><td><input class="input" data-soc-id="${bucket}:${idx}" value="${row.id || ""}"></td><td><input class="input" data-soc-title="${bucket}:${idx}" value="${row.title || ""}"></td><td><input class="input" data-soc-client="${bucket}:${idx}" value="${row.client || ""}"></td><td><select class="select" data-soc-tier="${bucket}:${idx}"><option ${row.tier==="Non-Member"?"selected":""}>Non-Member</option><option ${row.tier==="Voyager Cuprum"?"selected":""}>Voyager Cuprum</option><option ${row.tier==="Voyager Argentum"?"selected":""}>Voyager Argentum</option><option ${row.tier==="Voyager Aurum"?"selected":""}>Voyager Aurum</option><option ${row.tier==="Voyager Platinum"?"selected":""}>Voyager Platinum</option><option ${row.tier==="Voyager Diamante"?"selected":""}>Voyager Diamante</option><option ${row.tier==="Voyager Noir"?"selected":""}>Voyager Noir</option><option ${row.tier==="Voyager Red"?"selected":""}>Voyager Red</option></select></td><td><select class="select" data-soc-desired="${bucket}:${idx}"><option ${row.desiredExecutionTime==="Instant"?"selected":""}>Instant</option><option ${row.desiredExecutionTime==="24h"?"selected":""}>24h</option><option ${row.desiredExecutionTime==="48h"?"selected":""}>48h</option><option ${row.desiredExecutionTime==="72h"?"selected":""}>72h</option><option ${row.desiredExecutionTime==="Within a week"?"selected":""}>Within a week</option><option ${row.desiredExecutionTime==="Within a month"?"selected":""}>Within a month</option><option ${row.desiredExecutionTime==="2 months"?"selected":""}>2 months</option><option ${row.desiredExecutionTime==="3 months"?"selected":""}>3 months</option><option ${row.desiredExecutionTime==="6 months"?"selected":""}>6 months</option></select></td><td><input class="input" data-soc-assigned="${bucket}:${idx}" value="${row.assigned || ""}"></td><td><input class="input" data-soc-assigned-at="${bucket}:${idx}" value="${row.assignedAt || ""}" placeholder="YYYY-MM-DD HH:MM TZ"></td><td><input class="input" data-soc-confirmed-at="${bucket}:${idx}" value="${row.confirmedAt || ""}" placeholder="YYYY-MM-DD HH:MM TZ"></td><td><select class="select" data-soc-status="${bucket}:${idx}"><option ${row.status==="Awaiting Confirmation"?"selected":""}>Awaiting Confirmation</option><option ${row.status==="Assigned"?"selected":""}>Assigned</option><option ${row.status==="Confirmed"?"selected":""}>Confirmed</option><option ${row.status==="Closed"?"selected":""}>Closed</option></select></td><td>${restoreMode ? `<button class="sunriseMiniBtn" type="button" data-soc-restore="${idx}">Restore</button>` : `<button class="sunriseMiniBtn" type="button" data-soc-delete="${bucket}:${idx}">Delete</button><button class="sunriseMiniBtn" type="button" data-soc-open="${row.id}">Details</button>`}</td></tr>`).join("");
   grid.innerHTML = `<article class="sunriseControlCard sunriseDetailWide"><h3>Service Registration</h3><div class="sunriseControlActions"><input class="input" id="soc-new-title" placeholder="Service title"><input class="input" id="soc-new-client" placeholder="Client"><select class="select" id="soc-new-tier"><option>Non-Member</option><option>Voyager Cuprum</option><option>Voyager Argentum</option><option>Voyager Aurum</option><option>Voyager Platinum</option><option>Voyager Diamante</option><option>Voyager Noir</option><option>Voyager Red</option></select><select class="select" id="soc-new-desired"><option>Instant</option><option selected>24h</option><option>48h</option><option>72h</option><option>Within a week</option><option>Within a month</option><option>2 months</option><option>3 months</option><option>6 months</option></select><button class="sunriseMiniBtn" type="button" id="soc-add-service">Register Service</button></div></article><article class="sunriseControlCard sunriseDetailWide"><h3>Current Services</h3><table class="sunriseControlTable"><thead><tr><th>ID</th><th>Title</th><th>Client</th><th>Tier</th><th>Desired Execution</th><th>Assigned To</th><th>Assigned At</th><th>Confirmed At</th><th>Status</th><th>Actions</th></tr></thead><tbody>${renderRows("current") || "<tr><td colspan='10'>No current services.</td></tr>"}</tbody></table></article><article class="sunriseControlCard sunriseDetailWide"><h3>Past Services</h3><table class="sunriseControlTable"><thead><tr><th>ID</th><th>Title</th><th>Client</th><th>Tier</th><th>Desired Execution</th><th>Assigned To</th><th>Assigned At</th><th>Confirmed At</th><th>Status</th><th>Actions</th></tr></thead><tbody>${renderRows("past") || "<tr><td colspan='10'>No past services.</td></tr>"}</tbody></table></article><article class="sunriseControlCard sunriseDetailWide"><h3>Recently Deleted</h3><table class="sunriseControlTable"><thead><tr><th>ID</th><th>Title</th><th>Client</th><th>Tier</th><th>Desired Execution</th><th>Assigned To</th><th>Assigned At</th><th>Confirmed At</th><th>Status</th><th>Action</th></tr></thead><tbody>${renderRows("deleted", true) || "<tr><td colspan='10'>No deleted services.</td></tr>"}</tbody></table></article>`;
 }
 
@@ -6897,9 +7238,10 @@ function renderSOCDetailsPage() {
     grid.innerHTML = `<article class="sunriseControlCard sunriseDetailWide"><h3>No Selected Service</h3><p class="opsText">Open a service from SOC list or use shortcut with service ID (example: A1234567).</p></article>`;
     return;
   }
+  const clientCredentials = resolveSocClientCredentials(selected);
   const steps = Array.isArray(selected.steps) ? selected.steps : [];
   const stepRows = steps.map((step, idx) => `<tr><td><input class="input" data-socd-step-id="${idx}" value="${step.id || `S${idx + 1}`}"></td><td><input class="input" data-socd-action="${idx}" value="${step.action || ""}"></td><td><input class="input" data-socd-details="${idx}" value="${step.details || ""}"></td><td><select class="select" data-socd-status="${idx}"><option ${step.status==="Pending"?"selected":""}>Pending</option><option ${step.status==="In Progress"?"selected":""}>In Progress</option><option ${step.status==="Done"?"selected":""}>Done</option><option ${step.status==="Blocked"?"selected":""}>Blocked</option></select></td><td><button class="sunriseMiniBtn" type="button" data-socd-del="${idx}">Delete</button></td></tr>`).join("");
-  grid.innerHTML = `<article class="sunriseControlCard sunriseDetailWide"><h3>Core Service Profile</h3><table class="sunriseControlTable"><tbody><tr><th style="width:220px;">Service ID</th><td><input class="input" data-socd-id value="${selected.id || ""}"></td></tr><tr><th>Service Title</th><td><input class="input" data-socd-title value="${selected.title || ""}"></td></tr><tr><th>Client</th><td><input class="input" data-socd-client value="${selected.client || ""}"></td></tr><tr><th>Client Tier</th><td><select class="select" data-socd-tier><option ${selected.tier==="Non-Member"?"selected":""}>Non-Member</option><option ${selected.tier==="Voyager Cuprum"?"selected":""}>Voyager Cuprum</option><option ${selected.tier==="Voyager Argentum"?"selected":""}>Voyager Argentum</option><option ${selected.tier==="Voyager Aurum"?"selected":""}>Voyager Aurum</option><option ${selected.tier==="Voyager Platinum"?"selected":""}>Voyager Platinum</option><option ${selected.tier==="Voyager Diamante"?"selected":""}>Voyager Diamante</option><option ${selected.tier==="Voyager Noir"?"selected":""}>Voyager Noir</option><option ${selected.tier==="Voyager Red"?"selected":""}>Voyager Red</option></select></td></tr><tr><th>Desired Execution Time</th><td><select class="select" data-socd-desired><option ${selected.desiredExecutionTime==="Instant"?"selected":""}>Instant</option><option ${selected.desiredExecutionTime==="24h"?"selected":""}>24h</option><option ${selected.desiredExecutionTime==="48h"?"selected":""}>48h</option><option ${selected.desiredExecutionTime==="72h"?"selected":""}>72h</option><option ${selected.desiredExecutionTime==="Within a week"?"selected":""}>Within a week</option><option ${selected.desiredExecutionTime==="Within a month"?"selected":""}>Within a month</option><option ${selected.desiredExecutionTime==="2 months"?"selected":""}>2 months</option><option ${selected.desiredExecutionTime==="3 months"?"selected":""}>3 months</option><option ${selected.desiredExecutionTime==="6 months"?"selected":""}>6 months</option></select></td></tr><tr><th>Assigned Concierge / Team</th><td><input class="input" data-socd-assigned value="${selected.assigned || ""}"></td></tr><tr><th>Assigned At</th><td><input class="input" data-socd-assigned-at value="${selected.assignedAt || ""}" placeholder="YYYY-MM-DD HH:MM TZ"></td></tr><tr><th>Confirmed At</th><td><input class="input" data-socd-confirmed-at value="${selected.confirmedAt || ""}" placeholder="YYYY-MM-DD HH:MM TZ"></td></tr><tr><th>Status</th><td><select class="select" data-socd-status-main><option ${selected.status==="Assigned"?"selected":""}>Assigned</option><option ${selected.status==="Confirmed"?"selected":""}>Confirmed</option><option ${selected.status==="Closed"?"selected":""}>Closed</option></select></td></tr><tr><th>Service Description</th><td><textarea class="input mailTextarea" data-socd-description>${selected.description || ""}</textarea></td></tr></tbody></table></article><article class="sunriseControlCard sunriseDetailWide"><h3>Step-by-Step Actions</h3><table class="sunriseControlTable"><thead><tr><th>Step</th><th>Action</th><th>Concrete Details</th><th>Status</th><th>Action</th></tr></thead><tbody>${stepRows || "<tr><td colspan='5'>No steps yet.</td></tr>"}</tbody></table><div class="sunriseControlActions"><button class="sunriseMiniBtn" type="button" data-socd-add-step>Add Step</button></div></article>`;
+  grid.innerHTML = `<article class="sunriseControlCard sunriseDetailWide"><h3>Core Service Profile</h3><table class="sunriseControlTable"><tbody><tr><th style="width:220px;">Service ID</th><td><input class="input" data-socd-id value="${selected.id || ""}"></td></tr><tr><th>Service Title</th><td><input class="input" data-socd-title value="${selected.title || ""}"></td></tr><tr><th>Client</th><td><input class="input" data-socd-client value="${selected.client || ""}"></td></tr><tr><th>Client Title</th><td><input class="input" data-socd-client-title value="${clientCredentials.clientTitle || ""}"></td></tr><tr><th>Client Email</th><td><input class="input" data-socd-client-email value="${clientCredentials.clientEmail || ""}"></td></tr><tr><th>Client Phone</th><td><input class="input" data-socd-client-phone value="${clientCredentials.clientPhone || ""}"></td></tr><tr><th>Client Country</th><td><input class="input" data-socd-client-country value="${clientCredentials.clientCountry || ""}"></td></tr><tr><th>Preferred Contact</th><td><select class="select" data-socd-client-contact><option value="" ${!clientCredentials.preferredContactMethod?"selected":""}>Not set</option><option value="email" ${clientCredentials.preferredContactMethod==="email"?"selected":""}>Email</option><option value="phone" ${clientCredentials.preferredContactMethod==="phone"?"selected":""}>Phone</option></select></td></tr><tr><th>Client Tier</th><td><select class="select" data-socd-tier><option ${selected.tier==="Non-Member"?"selected":""}>Non-Member</option><option ${selected.tier==="Voyager Cuprum"?"selected":""}>Voyager Cuprum</option><option ${selected.tier==="Voyager Argentum"?"selected":""}>Voyager Argentum</option><option ${selected.tier==="Voyager Aurum"?"selected":""}>Voyager Aurum</option><option ${selected.tier==="Voyager Platinum"?"selected":""}>Voyager Platinum</option><option ${selected.tier==="Voyager Diamante"?"selected":""}>Voyager Diamante</option><option ${selected.tier==="Voyager Noir"?"selected":""}>Voyager Noir</option><option ${selected.tier==="Voyager Red"?"selected":""}>Voyager Red</option></select></td></tr><tr><th>Desired Execution Time</th><td><select class="select" data-socd-desired><option ${selected.desiredExecutionTime==="Instant"?"selected":""}>Instant</option><option ${selected.desiredExecutionTime==="24h"?"selected":""}>24h</option><option ${selected.desiredExecutionTime==="48h"?"selected":""}>48h</option><option ${selected.desiredExecutionTime==="72h"?"selected":""}>72h</option><option ${selected.desiredExecutionTime==="Within a week"?"selected":""}>Within a week</option><option ${selected.desiredExecutionTime==="Within a month"?"selected":""}>Within a month</option><option ${selected.desiredExecutionTime==="2 months"?"selected":""}>2 months</option><option ${selected.desiredExecutionTime==="3 months"?"selected":""}>3 months</option><option ${selected.desiredExecutionTime==="6 months"?"selected":""}>6 months</option></select></td></tr><tr><th>Assigned Concierge / Team</th><td><input class="input" data-socd-assigned value="${selected.assigned || ""}"></td></tr><tr><th>Assigned At</th><td><input class="input" data-socd-assigned-at value="${selected.assignedAt || ""}" placeholder="YYYY-MM-DD HH:MM TZ"></td></tr><tr><th>Confirmed At</th><td><input class="input" data-socd-confirmed-at value="${selected.confirmedAt || ""}" placeholder="YYYY-MM-DD HH:MM TZ"></td></tr><tr><th>Status</th><td><select class="select" data-socd-status-main><option ${selected.status==="Awaiting Confirmation"?"selected":""}>Awaiting Confirmation</option><option ${selected.status==="Assigned"?"selected":""}>Assigned</option><option ${selected.status==="Confirmed"?"selected":""}>Confirmed</option><option ${selected.status==="Closed"?"selected":""}>Closed</option></select></td></tr><tr><th>Service Description</th><td><textarea class="input mailTextarea" data-socd-description>${selected.description || ""}</textarea></td></tr></tbody></table></article><article class="sunriseControlCard sunriseDetailWide"><h3>Step-by-Step Actions</h3><table class="sunriseControlTable"><thead><tr><th>Step</th><th>Action</th><th>Concrete Details</th><th>Status</th><th>Action</th></tr></thead><tbody>${stepRows || "<tr><td colspan='5'>No steps yet.</td></tr>"}</tbody></table><div class="sunriseControlActions"><button class="sunriseMiniBtn" type="button" data-socd-add-step>Add Step</button></div></article>`;
 }
 
 function renderLCSPage(filter = "") {
@@ -7003,8 +7345,10 @@ function renderAMPPage(filter = "") {
     .filter(([, account]) => !account?.sunriseCredential)
     .filter(([, account]) => matchesSearch([
       account.email,
+      account.phone,
       account.firstName,
       account.lastName,
+      account.prefix,
       account.membership,
       account.sunriseAccessLevel,
       account.notosId,
@@ -7020,15 +7364,19 @@ function renderAMPPage(filter = "") {
       const secretPhraseDisplay = ownerRestricted || lockedForAleks ? "RESTRICTED" : String(account.secretPhrase || "");
       const readOnly = lockedForAleks ? "readonly" : "";
       const disabled = lockedForAleks ? "disabled" : "";
+      const displayCountry = formatOptionalCountryDisplay(account.country);
       const deleteCell = lockedForAleks
         ? `<span class="profileNote">Restricted</span>`
         : `<button class="sunriseMiniBtn" type="button" data-amp-del="${key}">Delete</button>`;
       return `<tr>
       <td><input class="input" data-amp-key="${key}" value="${key}" ${readOnly}></td>
       <td><input class="input" data-amp-email="${key}" value="${account.email || ""}" ${readOnly}></td>
+      <td><input class="input" data-amp-phone="${key}" value="${account.phone || ""}" ${readOnly}></td>
+      <td><input class="input" data-amp-country="${key}" value="${displayCountry}" ${readOnly}></td>
+      <td><input class="input" data-amp-title="${key}" value="${account.prefix || ""}" ${readOnly}></td>
+      <td><input class="input" data-amp-name="${key}" value="${(account.firstName || "") + " " + (account.lastName || "")}" ${readOnly}></td>
       <td><input class="input" data-amp-password="${key}" value="${passwordDisplay}" ${(ownerRestricted || lockedForAleks) ? "readonly" : ""}></td>
       <td><input class="input" data-amp-secret="${key}" value="${secretPhraseDisplay}" ${(ownerRestricted || lockedForAleks) ? "readonly" : ""}></td>
-      <td><input class="input" data-amp-name="${key}" value="${(account.firstName || "") + " " + (account.lastName || "")}" ${readOnly}></td>
       <td><select class="select" data-amp-tier="${key}" ${disabled}>${tierList.map((tier) => `<option ${tier === selectedTier ? "selected" : ""}>${tier}</option>`).join("")}</select></td>
       <td>${deleteCell}</td>
     </tr>`;
@@ -7045,15 +7393,19 @@ function renderAMPPage(filter = "") {
       const secretPhraseDisplay = ownerRestricted || lockedForAleks ? "RESTRICTED" : String(account.secretPhrase || "");
       const readOnly = lockedForAleks ? "readonly" : "";
       const disabled = lockedForAleks ? "disabled" : "";
+      const displayCountry = formatOptionalCountryDisplay(account.country);
       const deleteCell = lockedForAleks
         ? `<span class="profileNote">Restricted</span>`
         : `<button class="sunriseMiniBtn" type="button" data-amp-del="${key}">Delete</button>`;
       return `<tr>
       <td><input class="input" data-amp-key="${key}" value="${key}" ${readOnly}></td>
       <td><input class="input" data-amp-email="${key}" value="${account.email || ""}" ${readOnly}></td>
+      <td><input class="input" data-amp-phone="${key}" value="${account.phone || ""}" ${readOnly}></td>
+      <td><input class="input" data-amp-country="${key}" value="${displayCountry}" ${readOnly}></td>
+      <td><input class="input" data-amp-title="${key}" value="${account.prefix || ""}" ${readOnly}></td>
+      <td><input class="input" data-amp-name="${key}" value="${(account.firstName || "") + " " + (account.lastName || "")}" ${readOnly}></td>
       <td><input class="input" data-amp-password="${key}" value="${passwordDisplay}" ${(ownerRestricted || lockedForAleks) ? "readonly" : ""}></td>
       <td><input class="input" data-amp-secret="${key}" value="${secretPhraseDisplay}" ${(ownerRestricted || lockedForAleks) ? "readonly" : ""}></td>
-      <td><input class="input" data-amp-name="${key}" value="${(account.firstName || "") + " " + (account.lastName || "")}" ${readOnly}></td>
       <td><select class="select" data-amp-tier="${key}" ${disabled}>${tierList.map((tier) => `<option ${tier === selectedTier ? "selected" : ""}>${tier}</option>`).join("")}</select></td>
       <td><select class="select" data-amp-access="${key}" ${disabled}>${accessList.map((code) => `<option value="${code}" ${code === selectedAccess ? "selected" : ""}>${code || "None"}</option>`).join("")}</select></td>
       <td><input class="input" data-amp-notos="${key}" value="${account.notosId || ""}" ${readOnly}></td>
@@ -7063,7 +7415,7 @@ function renderAMPPage(filter = "") {
 
   const customerEntries = accountEntries.filter(([, account]) => !isStaffAccountForAdmin(account));
   const staffEntries = accountEntries.filter(([, account]) => isStaffAccountForAdmin(account));
-  const customersHtml = `<article class="sunriseControlCard sunriseDetailWide"><h3>Customers List</h3><table class="sunriseControlTable"><thead><tr><th>Code</th><th>Email</th><th>Password</th><th>Secret Phrase</th><th>Name</th><th>Tier/Status</th><th>Action</th></tr></thead><tbody>${renderCustomerRows(customerEntries) || "<tr><td colspan='7'>No customer accounts found.</td></tr>"}</tbody></table></article>`;
+  const customersHtml = `<article class="sunriseControlCard sunriseDetailWide"><h3>Customers List</h3><table class="sunriseControlTable"><thead><tr><th>Code</th><th>Email</th><th>Phone</th><th>Country</th><th>Title</th><th>Name</th><th>Password</th><th>Secret Phrase</th><th>Tier/Status</th><th>Action</th></tr></thead><tbody>${renderCustomerRows(customerEntries) || "<tr><td colspan='10'>No customer accounts found.</td></tr>"}</tbody></table></article>`;
 
   const hierarchyCodes = sunriseHierarchyOrder();
   const levelTitleByCode = new Map((sunriseControlState?.accessLevels || []).map((row) => [String(row.code || "").toUpperCase(), String(row.title || "").trim()]));
@@ -7078,7 +7430,7 @@ function renderAMPPage(filter = "") {
     });
   const staffGroupsHtml = Array.from(groupedStaff.entries())
     .filter(([, entries]) => entries.length)
-    .map(([code, entries]) => `<article class="sunriseControlCard sunriseDetailWide"><h3>${code} · ${levelTitleByCode.get(code) || "Staff Level"}</h3><table class="sunriseControlTable"><thead><tr><th>Code</th><th>Email</th><th>Password</th><th>Secret Phrase</th><th>Name</th><th>Tier/Status</th><th>Sunrise Access</th><th>NOTOS ID</th><th>Action</th></tr></thead><tbody>${renderStaffRows(entries)}</tbody></table></article>`)
+    .map(([code, entries]) => `<article class="sunriseControlCard sunriseDetailWide"><h3>${code} · ${levelTitleByCode.get(code) || "Staff Level"}</h3><table class="sunriseControlTable"><thead><tr><th>Code</th><th>Email</th><th>Phone</th><th>Country</th><th>Title</th><th>Name</th><th>Password</th><th>Secret Phrase</th><th>Tier/Status</th><th>Sunrise Access</th><th>NOTOS ID</th><th>Action</th></tr></thead><tbody>${renderStaffRows(entries)}</tbody></table></article>`)
     .join("");
   const staffHtml = staffGroupsHtml || `<article class="sunriseControlCard sunriseDetailWide"><h3>Staff Hierarchy</h3><p class="profileNote">No staff accounts found.</p></article>`;
   const deletedRows = (Array.isArray(sunriseControlState?.deletedAccounts) ? sunriseControlState.deletedAccounts : [])
@@ -7967,21 +8319,13 @@ function bindSunriseControlInteractions() {
       const tier = (document.getElementById("soc-new-tier")?.value || "Non-Member").trim();
       const desiredExecutionTime = (document.getElementById("soc-new-desired")?.value || "24h").trim();
       if (!title || !client) return;
-      sunriseControlState.socServices.current.push({
-        id: generateServiceId(),
-        title,
-        client,
+      sunriseControlState.socServices.current.push(createSocServiceRecord({
+        serviceType: title,
+        clientName: client,
         tier,
         desiredExecutionTime,
-        description: "",
-        assigned: "Unassigned",
-        assignedAt: "",
-        confirmedAt: "",
-        status: "Assigned",
-        stage: "Current",
-        budget: 0,
-        steps: defaultSocSteps()
-      });
+        status: "Assigned"
+      }));
       saveSunriseControlState();
       renderCustomSunriseControlPages();
       return;
@@ -8424,6 +8768,7 @@ function bindSunriseControlInteractions() {
         firstName: "",
         lastName: "",
         country: "",
+        phone: "",
         membership: isStaffSection ? "Staff" : "Non-Member",
         sunriseAccessLevel: isStaffSection ? "STA" : "",
         notosId: "",
@@ -8762,6 +9107,32 @@ function bindSunriseControlInteractions() {
       if (meta) meta.service.client = t.value;
       renderSOCPage();
     })) return;
+    if (updateField("data-socd-client-title", () => {
+      const meta = findServiceMetaById(sunriseControlState.socSelectedServiceId);
+      if (meta) meta.service.clientTitle = t.value.trim();
+    })) return;
+    if (updateField("data-socd-client-email", () => {
+      const meta = findServiceMetaById(sunriseControlState.socSelectedServiceId);
+      if (meta) {
+        meta.service.clientEmail = t.value.trim();
+        meta.service.clientAccountEmail = normalizeEmailAddress(t.value);
+      }
+    })) return;
+    if (updateField("data-socd-client-phone", () => {
+      const meta = findServiceMetaById(sunriseControlState.socSelectedServiceId);
+      if (meta) meta.service.clientPhone = t.value.trim();
+    })) return;
+    if (updateField("data-socd-client-country", () => {
+      const meta = findServiceMetaById(sunriseControlState.socSelectedServiceId);
+      if (meta) {
+        const nextCountry = t.value.trim();
+        meta.service.clientCountry = nextCountry ? countryDisplayName(nextCountry) : "";
+      }
+    })) return;
+    if (updateField("data-socd-client-contact", () => {
+      const meta = findServiceMetaById(sunriseControlState.socSelectedServiceId);
+      if (meta) meta.service.preferredContactMethod = t.value.trim().toLowerCase();
+    })) return;
     if (updateField("data-socd-tier", () => {
       const meta = findServiceMetaById(sunriseControlState.socSelectedServiceId);
       if (meta) meta.service.tier = t.value;
@@ -8885,6 +9256,16 @@ function bindSunriseControlInteractions() {
         return nextEmail;
       }
       return key;
+    })) return;
+    if (updateAccountField("data-amp-phone", (key) => {
+      accounts[key].phone = String(t.value || "").trim();
+    })) return;
+    if (updateAccountField("data-amp-country", (key) => {
+      const nextCountry = String(t.value || "").trim();
+      accounts[key].country = nextCountry ? countryDisplayName(nextCountry) : "";
+    })) return;
+    if (updateAccountField("data-amp-title", (key) => {
+      accounts[key].prefix = String(t.value || "").trim();
     })) return;
     if (updateAccountField("data-amp-password", (key) => {
       if (isOwnerAccount(accounts[key])) return;
