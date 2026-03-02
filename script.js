@@ -4161,6 +4161,7 @@ safeStartupCall("populateAllTierBacks", populateAllTierBacks);
 safeStartupCall("initHeroLocator", initHeroLocator);
 safeStartupCall("populateSignupCountries", populateSignupCountries);
 safeStartupCall("populateIssuedServiceCountries", populateIssuedServiceCountries);
+safeStartupCall("populateAccountSettingsCountry", () => populateCountrySelect(document.getElementById("account-settings-country"), "Select country"));
 safeStartupCall("populateNavLanguageCountries", populateNavLanguageCountries);
 safeStartupCall("setupNavLanguageSelector", setupNavLanguageSelector);
 safeStartupCall("setupSignupCountryPhoneAutofill", setupSignupCountryPhoneAutofill);
@@ -5886,6 +5887,18 @@ const loginInfo = document.getElementById("login-info");
 const signupInfo = document.getElementById("signup-info");
 const passwordInfo = document.getElementById("password-info");
 const passwordRecoveryInfo = document.getElementById("password-recovery-info");
+const profileAccountSettingsBtn = document.getElementById("profile-account-settings-btn");
+const accountSettingsOverlay = document.getElementById("account-settings-overlay");
+const accountSettingsClose = document.getElementById("account-settings-close");
+const accountSettingsForm = document.getElementById("account-settings-form");
+const accountSettingsSummary = document.getElementById("account-settings-summary");
+const accountSettingsInfo = document.getElementById("account-settings-info");
+const accountSettingsPasswordInfo = document.getElementById("account-password-info");
+const accountSettingsPasswordRecoveryInfo = document.getElementById("account-password-recovery-info");
+const accountSettingsPasswordModeBtns = Array.from(document.querySelectorAll("[data-account-password-mode]"));
+const accountSettingsPasswordForm = document.getElementById("account-pw-change-form");
+const accountSettingsRecoveryStep1 = document.getElementById("account-pw-recovery-step1");
+const accountSettingsRecoveryStep2 = document.getElementById("account-pw-recovery-step2");
 
 const authState = {
   loginCode: "",
@@ -5897,6 +5910,12 @@ const authState = {
 };
 
 const passwordResetState = {
+  email: "",
+  code: "",
+  account: null
+};
+
+const accountPasswordResetState = {
   email: "",
   code: "",
   account: null
@@ -5919,6 +5938,238 @@ const SUNRISE_OWNER_CODES = {
 
 function normalizeMembershipTier(value) {
   return String(value || "").trim().toLowerCase().replace(/\s+/g, " ");
+}
+
+function populateCountrySelect(select, placeholder = "Select country") {
+  if (!(select instanceof HTMLSelectElement)) return;
+  const current = String(select.value || "").trim();
+  select.innerHTML = `<option value="">${placeholder}</option>`;
+  getCountryEntriesForSelectors().forEach((entry) => {
+    const option = document.createElement("option");
+    option.value = entry.iso;
+    option.textContent = entry.label;
+    select.appendChild(option);
+  });
+  const resolved = resolveCountryCode(current);
+  if (resolved) select.value = resolved;
+}
+
+function canEditAmpOwnerAccount(rawKey = "") {
+  const key = resolveAccountKey(rawKey);
+  const target = key ? accounts[key] : null;
+  const operator = getCurrentSunriseOperator();
+  if (!target || !isOwnerAccount(target) || !operator) return false;
+  if (isMikhailOwnerAccount(operator)) return true;
+  if (isAleksSunriseOperator()) return isAleksOwnerAccount(target);
+  return false;
+}
+
+function canViewAmpOwnerSensitiveFields(rawKey = "") {
+  return canEditAmpOwnerAccount(rawKey);
+}
+
+function renameBaseAccountKey(rawKey = "", nextEmail = "") {
+  const currentKey = resolveAccountKey(rawKey);
+  const nextKey = normalizeEmailAddress(nextEmail);
+  if (!currentKey || !accounts[currentKey] || !nextKey) return currentKey;
+  const currentAccount = accounts[currentKey];
+  if (nextKey !== currentKey && accounts[nextKey] && accounts[nextKey] !== currentAccount) return currentKey;
+
+  if (nextKey !== currentKey) {
+    accounts[nextKey] = currentAccount;
+    delete accounts[currentKey];
+  }
+  currentAccount.email = nextKey;
+
+  Object.values(accounts).forEach((account) => {
+    if (!account?.sunriseCredential) return;
+    if (normalizeEmailAddress(account.sunriseLinkedEmail || "") === currentKey) {
+      account.sunriseLinkedEmail = nextKey;
+    }
+  });
+
+  return nextKey;
+}
+
+function syncCredentialFieldAcrossLinkedAccounts(rawKey = "", fieldName = "", value = "") {
+  const keys = relatedAccountKeysForDelete(rawKey);
+  keys.forEach((key) => {
+    const account = accounts[key];
+    if (!account) return;
+    account[fieldName] = value;
+    if (fieldName === "password") {
+      account.altPasswords = [];
+    }
+  });
+}
+
+function syncChangedAccountState(updatedKey = "") {
+  ensureSunriseCredentials();
+  pruneDuplicateSunriseCredentials();
+  persistAccountsData();
+
+  if (activeAccount) {
+    const refreshed = findAccountByEmail(activeAccount.email)
+      || accounts[resolveAccountKey(updatedKey)]
+      || activeAccount;
+    activeAccount = refreshed;
+    persistActiveSession(activeAccount);
+    renderProfile(activeAccount);
+  }
+
+  if (sunriseState.unlocked && sunriseState.account) {
+    const refreshedSunrise = findAccountByEmail(sunriseState.account.email)
+      || sunriseState.account;
+    sunriseState.account = refreshedSunrise;
+    sunriseState.email = normalizeEmailAddress(refreshedSunrise.email || sunriseState.email);
+    persistSunriseSession(sunriseState.account);
+  }
+
+  updateAuthCta();
+  scheduleSunriseAdminRenders();
+}
+
+function applyStoredPasswordUpdate(account, newPassword = "") {
+  if (!account) return false;
+  const key = resolveAccountKey(account.email || "");
+  if (!key || !accounts[key]) return false;
+  syncCredentialFieldAcrossLinkedAccounts(key, "password", newPassword);
+  syncChangedAccountState(key);
+  return true;
+}
+
+function applyStoredSecretPhraseUpdate(account, nextPhrase = "") {
+  if (!account) return false;
+  const key = resolveAccountKey(account.email || "");
+  if (!key || !accounts[key]) return false;
+  syncCredentialFieldAcrossLinkedAccounts(key, "secretPhrase", nextPhrase);
+  syncChangedAccountState(key);
+  return true;
+}
+
+function submitPasswordChangeFlow({
+  email = "",
+  currentPassword = "",
+  newPassword = "",
+  confirmPassword = "",
+  infoEl = null,
+  onSuccess = null
+} = {}) {
+  const account = findAccountByEmail(email);
+  if (!account) {
+    if (infoEl) infoEl.textContent = "Account not found for this email address.";
+    return false;
+  }
+
+  const allPasswords = [String(account.password), ...((account.altPasswords || []).map((item) => String(item)))];
+  const oldOk = allPasswords.some((stored) => currentPassword === stored || currentPassword.toLowerCase() === stored.toLowerCase());
+  if (!oldOk) {
+    if (infoEl) infoEl.textContent = "Current password is incorrect.";
+    return false;
+  }
+  if (newPassword !== confirmPassword) {
+    if (infoEl) infoEl.textContent = "New password and confirmation do not match.";
+    return false;
+  }
+  if (!isValidSignupPassword(newPassword)) {
+    if (infoEl) infoEl.textContent = "New password must be at least 12 characters with 2 capital letters, 2 numbers, and 2 special symbols.";
+    return false;
+  }
+
+  if (!applyStoredPasswordUpdate(account, newPassword)) {
+    if (infoEl) infoEl.textContent = "Unable to update this password right now.";
+    return false;
+  }
+
+  if (infoEl) infoEl.textContent = "Password updated successfully.";
+  if (typeof onSuccess === "function") onSuccess(account);
+  return true;
+}
+
+function startPasswordRecoveryFlow({
+  email = "",
+  phrase = "",
+  selectedTier = "",
+  infoEl = null,
+  step1Form = null,
+  step2Form = null,
+  state = passwordResetState
+} = {}) {
+  const account = findAccountByEmail(email);
+  if (!account) {
+    if (infoEl) infoEl.textContent = "Account not found for this email address.";
+    return false;
+  }
+  const phraseOk = phrase === String(account.secretPhrase || "").toLowerCase();
+  if (!phraseOk) {
+    if (infoEl) infoEl.textContent = "Secret phrase is incorrect.";
+    return false;
+  }
+  const accountTier = normalizeMembershipTier(account.membership || "");
+  if (!selectedTier || selectedTier !== accountTier) {
+    if (infoEl) infoEl.textContent = "Selected membership tier does not match this account.";
+    return false;
+  }
+
+  state.email = String(account.email || email).trim().toLowerCase();
+  state.account = account;
+  state.code = issueTestEmailCode(state.email);
+  if (step1Form) step1Form.hidden = true;
+  if (step2Form) {
+    step2Form.hidden = false;
+    step2Form.reset();
+  }
+  if (infoEl) infoEl.textContent = `Recovery code sent to ${state.email}. Test code: ${state.code}.`;
+  return true;
+}
+
+function completePasswordRecoveryFlow({
+  code = "",
+  newPassword = "",
+  confirmPassword = "",
+  infoEl = null,
+  step1Form = null,
+  step2Form = null,
+  state = passwordResetState,
+  onSuccess = null
+} = {}) {
+  const account = state.account || findAccountByEmail(state.email);
+  if (!account) {
+    if (infoEl) infoEl.textContent = "Password recovery session expired. Start again.";
+    return false;
+  }
+  if (code !== state.code) {
+    if (infoEl) infoEl.textContent = "Verification code is incorrect.";
+    return false;
+  }
+  if (newPassword !== confirmPassword) {
+    if (infoEl) infoEl.textContent = "New password and confirmation do not match.";
+    return false;
+  }
+  if (!isValidSignupPassword(newPassword)) {
+    if (infoEl) infoEl.textContent = "New password must be at least 12 characters with 2 capital letters, 2 numbers, and 2 special symbols.";
+    return false;
+  }
+
+  if (!applyStoredPasswordUpdate(account, newPassword)) {
+    if (infoEl) infoEl.textContent = "Unable to update this password right now.";
+    return false;
+  }
+
+  if (step2Form) {
+    step2Form.reset();
+    step2Form.hidden = true;
+  }
+  if (step1Form) {
+    step1Form.hidden = false;
+    step1Form.reset();
+  }
+  state.email = "";
+  state.code = "";
+  state.account = null;
+  if (infoEl) infoEl.textContent = "Password updated successfully through email + secret phrase.";
+  if (typeof onSuccess === "function") onSuccess(account);
+  return true;
 }
 
 function activateAuthTab(tabKey) {
@@ -6610,10 +6861,11 @@ function isMikhailOwnerAccount(account) {
 }
 
 function isAleksSunriseOperator() {
-  if (!activeAccount || !isOwnerAccount(activeAccount)) return false;
+  const operator = getCurrentSunriseOperator();
+  if (!operator || !isOwnerAccount(operator)) return false;
   const sessionCode = String(sunriseState?.operatorCode || "").trim().toUpperCase();
   if (sessionCode) return sessionCode === "AO1";
-  return isAleksOwnerAccount(activeAccount);
+  return isAleksOwnerAccount(operator);
 }
 
 function isMikhailCredentialAccount(accountOrKey) {
@@ -6647,7 +6899,8 @@ function isAleksAmpRestrictedKey(rawKey = "") {
 }
 
 function isAleksRestrictedFromMikhailSunrise(targetAccount) {
-  if (!isAleksOwnerAccount(activeAccount)) return false;
+  const operator = getCurrentSunriseOperator();
+  if (!isAleksOwnerAccount(operator)) return false;
   return isMikhailCredentialAccount(targetAccount);
 }
 
@@ -7132,6 +7385,7 @@ function renderProfile(account) {
 
   if (profileAmbassadorBtn) profileAmbassadorBtn.hidden = !isRed;
   if (profileSunriseBtn) profileSunriseBtn.hidden = !hasSunriseAccess(account);
+  if (profileAccountSettingsBtn) profileAccountSettingsBtn.hidden = !account;
   if (ownerExecutiveTag) ownerExecutiveTag.hidden = !isOwner;
   if (ownerMetricsWrap) ownerMetricsWrap.hidden = !isOwner;
   if (conciergeDeskCard) conciergeDeskCard.hidden = isOwner || isEmployee;
@@ -7245,6 +7499,116 @@ function renderProfile(account) {
   refreshActiveLanguageIfNeeded();
 }
 
+function resetAccountSettingsPasswordState() {
+  if (accountSettingsPasswordForm) accountSettingsPasswordForm.reset();
+  if (accountSettingsRecoveryStep1) {
+    accountSettingsRecoveryStep1.hidden = true;
+    accountSettingsRecoveryStep1.reset();
+  }
+  if (accountSettingsRecoveryStep2) {
+    accountSettingsRecoveryStep2.hidden = true;
+    accountSettingsRecoveryStep2.reset();
+  }
+  accountPasswordResetState.email = "";
+  accountPasswordResetState.code = "";
+  accountPasswordResetState.account = null;
+  if (accountSettingsPasswordInfo) accountSettingsPasswordInfo.textContent = "";
+  if (accountSettingsPasswordRecoveryInfo) {
+    accountSettingsPasswordRecoveryInfo.textContent = "Enter your email address, secret phrase, and membership tier to send the recovery code.";
+  }
+}
+
+function activateAccountSettingsPasswordMode(mode = "change") {
+  const normalized = String(mode || "change").trim().toLowerCase() === "recovery" ? "recovery" : "change";
+  accountSettingsPasswordModeBtns.forEach((btn) => {
+    const active = String(btn.getAttribute("data-account-password-mode") || "").trim().toLowerCase() === normalized;
+    btn.classList.toggle("isActive", active);
+    btn.setAttribute("aria-pressed", active ? "true" : "false");
+  });
+
+  if (!accountSettingsPasswordForm || !accountSettingsRecoveryStep1 || !accountSettingsRecoveryStep2) return;
+
+  if (normalized === "recovery") {
+    accountSettingsPasswordForm.hidden = true;
+    if (accountSettingsRecoveryStep2.hidden) {
+      accountSettingsRecoveryStep1.hidden = false;
+    }
+    if (accountSettingsPasswordInfo) accountSettingsPasswordInfo.textContent = "";
+    if (accountSettingsPasswordRecoveryInfo && !accountSettingsPasswordRecoveryInfo.textContent) {
+      accountSettingsPasswordRecoveryInfo.textContent = "Enter your email address, secret phrase, and membership tier to send the recovery code.";
+    }
+    return;
+  }
+
+  accountSettingsPasswordForm.hidden = false;
+  accountSettingsRecoveryStep1.hidden = true;
+  accountSettingsRecoveryStep2.hidden = true;
+  if (accountSettingsPasswordRecoveryInfo) accountSettingsPasswordRecoveryInfo.textContent = "";
+  accountPasswordResetState.email = "";
+  accountPasswordResetState.code = "";
+  accountPasswordResetState.account = null;
+}
+
+function populateAccountSettingsForm(account = activeAccount, options = {}) {
+  if (!account || !accountSettingsForm) return;
+  const shouldResetPasswordTools = options?.resetPasswordTools !== false;
+  const countrySelect = document.getElementById("account-settings-country");
+  if (countrySelect) populateCountrySelect(countrySelect, "Select country");
+  if (shouldResetPasswordTools) resetAccountSettingsPasswordState();
+
+  const setValue = (id, value) => {
+    const el = document.getElementById(id);
+    if (el) el.value = String(value || "");
+  };
+  const accessMeta = hasSunriseAccess(account) ? sunriseAccessMeta(account) : null;
+  const membershipWrap = document.getElementById("account-settings-membership-wrap");
+  const roleWrap = document.getElementById("account-settings-role-wrap");
+  const accessWrap = document.getElementById("account-settings-access-wrap");
+
+  setValue("account-settings-title", account.prefix || "");
+  setValue("account-settings-first", account.firstName || "");
+  setValue("account-settings-last", account.lastName || "");
+  setValue("account-settings-phone", account.phone || "");
+  setValue("account-settings-email", account.email || "");
+  setValue("account-settings-phrase", account.secretPhrase || "");
+  setValue("account-settings-membership", account.membership || "");
+  setValue("account-settings-role", account.roleTitle || "");
+  setValue("account-settings-access", accessMeta ? `${accessMeta.code} - ${accessMeta.title}` : "");
+  if (countrySelect instanceof HTMLSelectElement) {
+    countrySelect.value = resolveCountryCode(account.country || "") || "";
+  }
+
+  if (membershipWrap) membershipWrap.hidden = false;
+  if (roleWrap) roleWrap.hidden = !String(account.roleTitle || "").trim();
+  if (accessWrap) accessWrap.hidden = !accessMeta;
+
+  const passwordEmail = document.getElementById("account-pw-email");
+  const recoveryEmail = document.getElementById("account-pw-rec-email");
+  const recoveryTier = document.getElementById("account-pw-rec-tier");
+  if (passwordEmail) passwordEmail.value = String(account.email || "").trim();
+  if (recoveryEmail) recoveryEmail.value = String(account.email || "").trim();
+  if (recoveryTier instanceof HTMLSelectElement) {
+    recoveryTier.value = normalizeMembershipTier(account.membership || "");
+  }
+
+  if (accountSettingsSummary) {
+    const accountType = isOwnerAccount(account) ? "owner profile" : (accessMeta ? "staff profile" : "client profile");
+    accountSettingsSummary.textContent = `${String(account.firstName || "").trim()} ${String(account.lastName || "").trim()} - ${String(account.email || "").trim()} - ${accountType}.`;
+  }
+  if (accountSettingsInfo) accountSettingsInfo.textContent = "";
+  activateAccountSettingsPasswordMode("change");
+}
+
+function openAccountSettingsOverlay() {
+  if (!activeAccount || !accountSettingsOverlay) return;
+  populateAccountSettingsForm(activeAccount);
+  accountSettingsOverlay.hidden = false;
+}
+
+function closeAccountSettingsOverlay() {
+  if (accountSettingsOverlay) accountSettingsOverlay.hidden = true;
+}
+
 authTabs.forEach((tab) => {
   tab.addEventListener("click", () => activateAuthTab(tab.getAttribute("data-auth-tab")));
 });
@@ -7255,6 +7619,126 @@ document.querySelectorAll("[data-open-password-tab]").forEach((btn) => {
     activateAuthTab(mode === "recovery" ? "password-recovery" : "password");
   });
 });
+
+if (profileAccountSettingsBtn) {
+  profileAccountSettingsBtn.addEventListener("click", () => openAccountSettingsOverlay());
+}
+
+if (accountSettingsClose) {
+  accountSettingsClose.addEventListener("click", () => closeAccountSettingsOverlay());
+}
+
+if (accountSettingsOverlay && accountSettingsOverlay.dataset.boundDismiss !== "1") {
+  accountSettingsOverlay.addEventListener("click", (event) => {
+    if (event.target === accountSettingsOverlay) closeAccountSettingsOverlay();
+  });
+  accountSettingsOverlay.dataset.boundDismiss = "1";
+}
+
+accountSettingsPasswordModeBtns.forEach((btn) => {
+  btn.addEventListener("click", () => {
+    const mode = String(btn.getAttribute("data-account-password-mode") || "change").trim().toLowerCase();
+    activateAccountSettingsPasswordMode(mode);
+  });
+});
+
+if (accountSettingsForm) {
+  accountSettingsForm.addEventListener("submit", (event) => {
+    event.preventDefault();
+    if (!accountSettingsForm.reportValidity() || !activeAccount) return;
+
+    const currentKey = resolveAccountKey(activeAccount.email || "");
+    const account = accounts[currentKey] || activeAccount;
+    const nextEmail = normalizeEmailAddress(document.getElementById("account-settings-email")?.value || "");
+    const nextCountryCode = String(document.getElementById("account-settings-country")?.value || "").trim();
+    const nextPhrase = String(document.getElementById("account-settings-phrase")?.value || "").trim();
+
+    if (!currentKey || !accounts[currentKey] || !account) {
+      if (accountSettingsInfo) accountSettingsInfo.textContent = "Unable to load the active account for editing.";
+      return;
+    }
+    if (!nextEmail) {
+      if (accountSettingsInfo) accountSettingsInfo.textContent = "Enter a valid VVS email address.";
+      return;
+    }
+    if (nextEmail !== currentKey && accounts[nextEmail] && accounts[nextEmail] !== account) {
+      if (accountSettingsInfo) accountSettingsInfo.textContent = "That email is already linked to another VVS account.";
+      return;
+    }
+
+    account.prefix = String(document.getElementById("account-settings-title")?.value || "").trim();
+    account.firstName = String(document.getElementById("account-settings-first")?.value || "").trim();
+    account.lastName = String(document.getElementById("account-settings-last")?.value || "").trim();
+    account.phone = String(document.getElementById("account-settings-phone")?.value || "").trim();
+    account.country = nextCountryCode ? countryDisplayName(nextCountryCode) : "";
+    account.secretPhrase = nextPhrase;
+
+    const updatedKey = renameBaseAccountKey(currentKey, nextEmail);
+    syncCredentialFieldAcrossLinkedAccounts(updatedKey, "secretPhrase", nextPhrase);
+    syncChangedAccountState(updatedKey);
+    populateAccountSettingsForm(accounts[resolveAccountKey(updatedKey)] || activeAccount);
+    if (accountSettingsInfo) accountSettingsInfo.textContent = "Account details updated successfully.";
+  });
+}
+
+if (accountSettingsPasswordForm) {
+  accountSettingsPasswordForm.addEventListener("submit", (event) => {
+    event.preventDefault();
+    if (!accountSettingsPasswordForm.reportValidity()) return;
+    submitPasswordChangeFlow({
+      email: (document.getElementById("account-pw-email")?.value || "").trim(),
+      currentPassword: (document.getElementById("account-pw-current")?.value || "").trim(),
+      newPassword: (document.getElementById("account-pw-new")?.value || "").trim(),
+      confirmPassword: (document.getElementById("account-pw-confirm")?.value || "").trim(),
+      infoEl: accountSettingsPasswordInfo,
+      onSuccess: () => {
+        accountSettingsPasswordForm.reset();
+        const emailField = document.getElementById("account-pw-email");
+        if (emailField) emailField.value = String(activeAccount?.email || "").trim();
+      }
+    });
+  });
+}
+
+if (accountSettingsRecoveryStep1) {
+  accountSettingsRecoveryStep1.addEventListener("submit", (event) => {
+    event.preventDefault();
+    if (!accountSettingsRecoveryStep1.reportValidity()) return;
+    startPasswordRecoveryFlow({
+      email: (document.getElementById("account-pw-rec-email")?.value || "").trim(),
+      phrase: (document.getElementById("account-pw-rec-phrase")?.value || "").trim().toLowerCase(),
+      selectedTier: normalizeMembershipTier(document.getElementById("account-pw-rec-tier")?.value || ""),
+      infoEl: accountSettingsPasswordRecoveryInfo,
+      step1Form: accountSettingsRecoveryStep1,
+      step2Form: accountSettingsRecoveryStep2,
+      state: accountPasswordResetState
+    });
+  });
+}
+
+if (accountSettingsRecoveryStep2) {
+  accountSettingsRecoveryStep2.addEventListener("submit", (event) => {
+    event.preventDefault();
+    if (!accountSettingsRecoveryStep2.reportValidity()) return;
+    completePasswordRecoveryFlow({
+      code: (document.getElementById("account-pw-rec-code")?.value || "").trim(),
+      newPassword: (document.getElementById("account-pw-rec-new")?.value || "").trim(),
+      confirmPassword: (document.getElementById("account-pw-rec-confirm")?.value || "").trim(),
+      infoEl: accountSettingsPasswordRecoveryInfo,
+      step1Form: accountSettingsRecoveryStep1,
+      step2Form: accountSettingsRecoveryStep2,
+      state: accountPasswordResetState,
+      onSuccess: (account) => {
+        const email = String(account?.email || activeAccount?.email || "").trim();
+        const tier = normalizeMembershipTier(account?.membership || activeAccount?.membership || "");
+        const emailField = document.getElementById("account-pw-rec-email");
+        const tierField = document.getElementById("account-pw-rec-tier");
+        if (emailField) emailField.value = email;
+        if (tierField instanceof HTMLSelectElement) tierField.value = tier;
+      }
+    });
+  });
+}
 
 if (loginStep1) {
   loginStep1.addEventListener("submit", (event) => {
@@ -7428,43 +7912,15 @@ if (pwOldForm) {
   pwOldForm.addEventListener("submit", (event) => {
     event.preventDefault();
     if (!pwOldForm.reportValidity()) return;
-
-    const email = (document.getElementById("pw-old-email")?.value || "").trim();
-    const oldPassword = (document.getElementById("pw-old-password")?.value || "").trim();
-    const newPassword = (document.getElementById("pw-old-new")?.value || "").trim();
-    const confirmPassword = (document.getElementById("pw-old-confirm")?.value || "").trim();
-
-    const account = findAccountByEmail(email);
-    if (!account) {
-      if (passwordInfo) passwordInfo.textContent = "Account not found for this email address.";
-      return;
-    }
-
-    const allPasswords = [String(account.password), ...((account.altPasswords || []).map((item) => String(item)))];
-    const oldOk = allPasswords.some((stored) => oldPassword === stored || oldPassword.toLowerCase() === stored.toLowerCase());
-    if (!oldOk) {
-      if (passwordInfo) passwordInfo.textContent = "Current password is incorrect.";
-      return;
-    }
-    if (newPassword !== confirmPassword) {
-      if (passwordInfo) passwordInfo.textContent = "New password and confirmation do not match.";
-      return;
-    }
-    if (!isValidSignupPassword(newPassword)) {
-      if (passwordInfo) passwordInfo.textContent = "New password must be at least 12 characters with 2 capital letters, 2 numbers, and 2 special symbols.";
-      return;
-    }
-
-    account.password = newPassword;
-    account.altPasswords = [];
-    persistAccountsData();
-    if (activeAccount && String(activeAccount.email || "").trim().toLowerCase() === String(account.email || "").trim().toLowerCase()) {
-      activeAccount.password = newPassword;
-      activeAccount.altPasswords = [];
-      persistActiveSession(activeAccount);
-    }
-    if (passwordInfo) passwordInfo.textContent = "Password updated successfully.";
-    pwOldForm.reset();
+    const changed = submitPasswordChangeFlow({
+      email: (document.getElementById("pw-old-email")?.value || "").trim(),
+      currentPassword: (document.getElementById("pw-old-password")?.value || "").trim(),
+      newPassword: (document.getElementById("pw-old-new")?.value || "").trim(),
+      confirmPassword: (document.getElementById("pw-old-confirm")?.value || "").trim(),
+      infoEl: passwordInfo,
+      onSuccess: () => pwOldForm.reset()
+    });
+    if (!changed) return;
   });
 }
 
@@ -7472,34 +7928,15 @@ if (pwRecoveryStep1) {
   pwRecoveryStep1.addEventListener("submit", (event) => {
     event.preventDefault();
     if (!pwRecoveryStep1.reportValidity()) return;
-
-    const email = (document.getElementById("pw-rec-email")?.value || "").trim();
-    const phrase = (document.getElementById("pw-rec-phrase")?.value || "").trim().toLowerCase();
-    const selectedTier = normalizeMembershipTier(document.getElementById("pw-rec-tier")?.value || "");
-    const account = findAccountByEmail(email);
-    if (!account) {
-      if (passwordRecoveryInfo) passwordRecoveryInfo.textContent = "Account not found for this email address.";
-      return;
-    }
-    const phraseOk = phrase === String(account.secretPhrase || "").toLowerCase();
-    if (!phraseOk) {
-      if (passwordRecoveryInfo) passwordRecoveryInfo.textContent = "Secret phrase is incorrect.";
-      return;
-    }
-    const accountTier = normalizeMembershipTier(account.membership || "");
-    if (!selectedTier || selectedTier !== accountTier) {
-      if (passwordRecoveryInfo) passwordRecoveryInfo.textContent = "Selected membership tier does not match this account.";
-      return;
-    }
-
-    passwordResetState.email = String(account.email || email).trim().toLowerCase();
-    passwordResetState.account = account;
-    passwordResetState.code = issueTestEmailCode(passwordResetState.email);
-    if (pwRecoveryStep2) {
-      pwRecoveryStep2.hidden = true;
-      pwRecoveryStep2.reset();
-    }
-    if (passwordRecoveryInfo) passwordRecoveryInfo.textContent = `Recovery code sent to ${passwordResetState.email}. Test code: ${passwordResetState.code}.`;
+    startPasswordRecoveryFlow({
+      email: (document.getElementById("pw-rec-email")?.value || "").trim(),
+      phrase: (document.getElementById("pw-rec-phrase")?.value || "").trim().toLowerCase(),
+      selectedTier: normalizeMembershipTier(document.getElementById("pw-rec-tier")?.value || ""),
+      infoEl: passwordRecoveryInfo,
+      step1Form: pwRecoveryStep1,
+      step2Form: pwRecoveryStep2,
+      state: passwordResetState
+    });
   });
 }
 
@@ -7507,45 +7944,15 @@ if (pwRecoveryStep2) {
   pwRecoveryStep2.addEventListener("submit", (event) => {
     event.preventDefault();
     if (!pwRecoveryStep2.reportValidity()) return;
-
-    const code = (document.getElementById("pw-rec-code")?.value || "").trim();
-    const newPassword = (document.getElementById("pw-rec-new")?.value || "").trim();
-    const confirmPassword = (document.getElementById("pw-rec-confirm")?.value || "").trim();
-    const account = passwordResetState.account || findAccountByEmail(passwordResetState.email);
-
-    if (!account) {
-      if (passwordInfo) passwordInfo.textContent = "Password recovery session expired. Start again.";
-      return;
-    }
-    if (code !== passwordResetState.code) {
-      if (passwordInfo) passwordInfo.textContent = "Verification code is incorrect.";
-      return;
-    }
-    if (newPassword !== confirmPassword) {
-      if (passwordInfo) passwordInfo.textContent = "New password and confirmation do not match.";
-      return;
-    }
-    if (!isValidSignupPassword(newPassword)) {
-      if (passwordInfo) passwordInfo.textContent = "New password must be at least 12 characters with 2 capital letters, 2 numbers, and 2 special symbols.";
-      return;
-    }
-
-    account.password = newPassword;
-    account.altPasswords = [];
-    persistAccountsData();
-    if (activeAccount && String(activeAccount.email || "").trim().toLowerCase() === String(account.email || "").trim().toLowerCase()) {
-      activeAccount.password = newPassword;
-      activeAccount.altPasswords = [];
-      persistActiveSession(activeAccount);
-    }
-    if (passwordInfo) passwordInfo.textContent = "Password updated successfully through email + secret phrase.";
-    pwRecoveryStep2.reset();
-    pwRecoveryStep2.hidden = true;
-    pwRecoveryStep1.hidden = false;
-    pwRecoveryStep1.reset();
-    passwordResetState.email = "";
-    passwordResetState.code = "";
-    passwordResetState.account = null;
+    completePasswordRecoveryFlow({
+      code: (document.getElementById("pw-rec-code")?.value || "").trim(),
+      newPassword: (document.getElementById("pw-rec-new")?.value || "").trim(),
+      confirmPassword: (document.getElementById("pw-rec-confirm")?.value || "").trim(),
+      infoEl: passwordRecoveryInfo,
+      step1Form: pwRecoveryStep1,
+      step2Form: pwRecoveryStep2,
+      state: passwordResetState
+    });
   });
 }
 
@@ -8480,21 +8887,26 @@ function canonicalizeAmpStaffEntries(entries = []) {
 function renderAmpOwnerCards(entries = []) {
   if (!Array.isArray(entries) || !entries.length) return "";
   const cards = entries.map(([key, account]) => {
-    const lockedForAleks = isAleksAmpRestrictedKey(key);
+    const editable = canEditAmpOwnerAccount(key);
+    const canViewSensitive = canViewAmpOwnerSensitiveFields(key);
     const fullName = `${String(account?.firstName || "").trim()} ${String(account?.lastName || "").trim()}`.trim() || "Owner";
     const roleTitle = String(account?.roleTitle || "Owner").trim();
+    const titleValue = String(account?.prefix || "").trim();
     const vvsLogin = String(account?.email || key || "").trim().toLowerCase();
     const sunriseLogin = findSunriseCredentialEmailForBaseKey(key, account);
     const sunriseAccount = sunriseLogin && accounts[sunriseLogin] ? accounts[sunriseLogin] : null;
     const phone = String(account?.phone || "").trim();
     const country = formatOptionalCountryDisplay(account?.country || "");
+    const secretPhrase = canViewSensitive ? String(account?.secretPhrase || "") : "Restricted";
     const vvsValue = vvsLogin || "Not stored";
-    const sunriseValue = lockedForAleks ? "Restricted" : String(sunriseLogin || "Not linked").trim().toLowerCase();
-    const phoneValue = lockedForAleks ? "Restricted" : (phone || "Not stored");
+    const sunriseValue = canViewSensitive ? String(sunriseLogin || "Not linked").trim().toLowerCase() : "Restricted";
+    const phoneValue = canViewSensitive ? (phone || "Not stored") : "Restricted";
     const countryValue = country || "Not stored";
-    const notosValue = lockedForAleks
-      ? "Restricted"
-      : String(sunriseAccount?.notosId || account?.notosId || resolveSunriseOwnerCode(account) || "OW").trim().toUpperCase();
+    const passwordValue = canViewSensitive ? String(account?.password || "") : "Restricted";
+    const notosValue = canViewSensitive
+      ? String(sunriseAccount?.notosId || account?.notosId || resolveSunriseOwnerCode(account) || "OW").trim().toUpperCase()
+      : "Restricted";
+    const mutableAttr = (attr) => editable ? `${attr}="${key}"` : "readonly";
     return `<article class="ampOwnerCard">
       <div class="ampOwnerCardTop">
         <div>
@@ -8505,13 +8917,17 @@ function renderAmpOwnerCards(entries = []) {
         <span class="ampHierarchyCode">OW</span>
       </div>
       <div class="ampOwnerGrid">
-        <div class="ampOwnerField"><span>VVS Login</span><strong>${vvsValue}</strong></div>
-        <div class="ampOwnerField"><span>Sunrise Login</span><strong>${sunriseValue}</strong></div>
-        <div class="ampOwnerField"><span>Phone</span><strong>${phoneValue}</strong></div>
-        <div class="ampOwnerField"><span>Country</span><strong>${countryValue}</strong></div>
-        <div class="ampOwnerField ampOwnerFieldWide"><span>NOTOS ID</span><strong>${notosValue}</strong></div>
+        <div class="ampOwnerField"><span>Preferred Title</span><input class="input" ${mutableAttr("data-amp-title")} value="${titleValue}"></div>
+        <div class="ampOwnerField ampOwnerFieldWide"><span>Full Name</span><input class="input" ${mutableAttr("data-amp-name")} value="${fullName}"></div>
+        <div class="ampOwnerField ampOwnerFieldWide"><span>Position</span><input class="input" ${mutableAttr("data-amp-role")} value="${roleTitle}"></div>
+        <div class="ampOwnerField ampOwnerFieldWide"><span>VVS Email</span><input class="input" ${editable ? `data-amp-email="${key}"` : "readonly"} value="${vvsValue}"></div>
+        <div class="ampOwnerField ampOwnerFieldWide"><span>Sunrise Login</span><input class="input" readonly value="${sunriseValue}"></div>
+        <div class="ampOwnerField"><span>Phone</span><input class="input" ${editable ? `data-amp-phone="${key}"` : "readonly"} value="${phoneValue}"></div>
+        <div class="ampOwnerField"><span>Country</span><input class="input" ${editable ? `data-amp-country="${key}"` : "readonly"} value="${countryValue}"></div>
+        <div class="ampOwnerField"><span>Password</span><input class="input" ${editable ? `data-amp-password="${key}"` : "readonly"} value="${passwordValue}"></div>
+        <div class="ampOwnerField"><span>Secret Phrase</span><input class="input" ${editable ? `data-amp-secret="${key}"` : "readonly"} value="${secretPhrase}"></div>
+        <div class="ampOwnerField ampOwnerFieldWide"><span>NOTOS ID</span><input class="input" ${editable ? `data-amp-notos="${key}"` : "readonly"} value="${notosValue}"></div>
       </div>
-      ${lockedForAleks ? `<p class="ampOwnerRestrictionNote">Aleks Sunrise access can view identity, VVS email, and country only. Other executive credentials remain restricted.</p>` : ""}
     </article>`;
   }).join("");
   return `<div class="ampOwnerGridWrap">${cards}</div>`;
@@ -10731,23 +11147,18 @@ function bindSunriseControlInteractions() {
     if (updateField("data-lcs-path", (raw) => { sunriseControlState.lcsSessions[Number(raw)].path = t.value; })) return;
     if (updateField("data-lcs-permission", (raw) => { sunriseControlState.lcsSessions[Number(raw)].permission = t.value; })) return;
 
-    const syncUpdatedAccount = (updatedKey) => {
-      const key = String(updatedKey || "").trim().toLowerCase();
-      if (!key || !accounts[key]) return;
-      if (activeAccount && String(activeAccount.email || "").trim().toLowerCase() === key) {
-        activeAccount = accounts[key];
-        persistActiveSession(activeAccount);
-        renderProfile(activeAccount);
-      }
-      updateAuthCta();
-      scheduleSunriseAdminRenders();
-    };
+    const syncUpdatedAccount = (updatedKey) => syncChangedAccountState(updatedKey);
 
     const updateAccountField = (attr, handler) => {
       const raw = t.getAttribute(attr);
       if (raw == null) return false;
       const key = String(raw).trim().toLowerCase();
       if (!accounts[key]) return false;
+      if (attr.startsWith("data-amp-") && isOwnerAccount(accounts[key]) && !canEditAmpOwnerAccount(key)) {
+        if (sunriseInfo) sunriseInfo.textContent = "Access restricted: owner credentials are not editable from this Sunrise session.";
+        scheduleSunriseAdminRenders();
+        return true;
+      }
       if (attr.startsWith("data-amp-") && isAleksAmpRestrictedKey(key)) {
         if (sunriseInfo) sunriseInfo.textContent = "Access restricted: Mikhail credentials are protected for Aleks Sunrise access.";
         scheduleSunriseAdminRenders();
@@ -10760,24 +11171,13 @@ function bindSunriseControlInteractions() {
     };
     if (updateAccountField("data-amp-key", (key) => {
       const nextKey = String(t.value || "").trim().toLowerCase();
-      if (!nextKey || nextKey === key || accounts[nextKey]) return key;
-      accounts[nextKey] = accounts[key];
-      delete accounts[key];
-      if (String(accounts[nextKey].email || "").trim().toLowerCase() !== nextKey) {
-        accounts[nextKey].email = nextKey;
-      }
-      return nextKey;
+      if (!nextKey || nextKey === key) return key;
+      return renameBaseAccountKey(key, nextKey);
     })) return;
     if (updateAccountField("data-amp-email", (key) => {
       const nextEmail = String(t.value || "").trim().toLowerCase();
       if (!nextEmail) return key;
-      accounts[key].email = nextEmail;
-      if (nextEmail !== key && !accounts[nextEmail]) {
-        accounts[nextEmail] = accounts[key];
-        delete accounts[key];
-        return nextEmail;
-      }
-      return key;
+      return renameBaseAccountKey(key, nextEmail);
     })) return;
     if (updateAccountField("data-amp-phone", (key) => {
       accounts[key].phone = String(t.value || "").trim();
@@ -10793,12 +11193,14 @@ function bindSunriseControlInteractions() {
       accounts[key].roleTitle = String(t.value || "").trim();
     })) return;
     if (updateAccountField("data-amp-password", (key) => {
-      if (isOwnerAccount(accounts[key])) return;
-      accounts[key].password = t.value;
+      if (isOwnerAccount(accounts[key]) && !canEditAmpOwnerAccount(key)) return key;
+      syncCredentialFieldAcrossLinkedAccounts(key, "password", t.value);
+      return key;
     })) return;
     if (updateAccountField("data-amp-secret", (key) => {
-      if (isOwnerAccount(accounts[key])) return;
-      accounts[key].secretPhrase = t.value;
+      if (isOwnerAccount(accounts[key]) && !canEditAmpOwnerAccount(key)) return key;
+      syncCredentialFieldAcrossLinkedAccounts(key, "secretPhrase", t.value);
+      return key;
     })) return;
     if (updateAccountField("data-amp-name", (key) => {
       const [first = "", ...rest] = String(t.value || "").trim().split(/\s+/);
@@ -11365,6 +11767,7 @@ if (sunriseUnsavedStayBtn && sunriseUnsavedStayBtn.dataset.boundUnsavedStay !== 
 
 if (logoutBtn) {
   logoutBtn.addEventListener("click", () => {
+    closeAccountSettingsOverlay();
     activeAccount = null;
     resetSunriseState();
     clearActiveSession();
