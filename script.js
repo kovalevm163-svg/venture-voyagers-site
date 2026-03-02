@@ -4808,6 +4808,16 @@ function canApproveRtaAssignment(account = getCurrentSunriseOperator()) {
   return ["DA", "CA", "OW"].includes(level);
 }
 
+function canManageRtaSwitch(account = getCurrentSunriseOperator()) {
+  const level = currentRtaApprovalLevel(account);
+  return ["DA", "CA", "OW"].includes(level);
+}
+
+function canEmptyRtaTeam(account = getCurrentSunriseOperator()) {
+  const level = currentRtaApprovalLevel(account);
+  return ["CA", "OW"].includes(level);
+}
+
 function redMemberAccountEntries() {
   return Object.entries(accounts)
     .filter(([, account]) => isVoyagerRedAccount(account))
@@ -4926,21 +4936,31 @@ function ensureRtaAssignmentsStore() {
     row.clientCountry = String(account?.country || row.clientCountry || "").trim();
     row.clientPhone = String(account?.phone || row.clientPhone || "").trim();
     row.tier = String(account?.membership || row.tier || "Voyager Red").trim();
-    if (!row.fleetStaffKey && account?.assignedTeam?.pilot) row.fleetStaffKey = findStaffKeyByLegacyTeamValue(account.assignedTeam.pilot, "fleet");
-    if (!row.driverStaffKey && account?.assignedTeam?.driver) row.driverStaffKey = findStaffKeyByLegacyTeamValue(account.assignedTeam.driver, "driver");
-    if (!row.conciergeStaffKey && account?.assignedTeam?.concierge) row.conciergeStaffKey = findStaffKeyByLegacyTeamValue(account.assignedTeam.concierge, "concierge");
-    if (!row.securityStaffKey && account?.assignedTeam?.security) row.securityStaffKey = findStaffKeyByLegacyTeamValue(account.assignedTeam.security, "security");
-    if (!row.publishedFleetStaffKey && account?.assignedTeam?.pilot) row.publishedFleetStaffKey = findStaffKeyByLegacyTeamValue(account.assignedTeam.pilot, "fleet");
-    if (!row.publishedDriverStaffKey && account?.assignedTeam?.driver) row.publishedDriverStaffKey = findStaffKeyByLegacyTeamValue(account.assignedTeam.driver, "driver");
-    if (!row.publishedConciergeStaffKey && account?.assignedTeam?.concierge) row.publishedConciergeStaffKey = findStaffKeyByLegacyTeamValue(account.assignedTeam.concierge, "concierge");
-    if (!row.publishedSecurityStaffKey && account?.assignedTeam?.security) row.publishedSecurityStaffKey = findStaffKeyByLegacyTeamValue(account.assignedTeam.security, "security");
     if (row.status === "Confirmed") {
       if (!row.publishedFleetStaffKey && row.fleetStaffKey) row.publishedFleetStaffKey = row.fleetStaffKey;
       if (!row.publishedDriverStaffKey && row.driverStaffKey) row.publishedDriverStaffKey = row.driverStaffKey;
       if (!row.publishedConciergeStaffKey && row.conciergeStaffKey) row.publishedConciergeStaffKey = row.conciergeStaffKey;
       if (!row.publishedSecurityStaffKey && row.securityStaffKey) row.publishedSecurityStaffKey = row.securityStaffKey;
     }
-    if (row.status === "Unassigned" && account?.assignedTeam) row.status = "Confirmed";
+    const hasPublishedSelection = hasAnyRtaSelection(rtaPublishedSelectionFromAssignment(row));
+    const hasWorkingSelection = hasAnyRtaSelection(rtaSelectionFromAssignment(row));
+    if (!row.requestedBy && !row.requestedAt && !row.confirmedBy && !row.confirmedAt && !row.auditLog.length) {
+      if (!hasWorkingSelection && account?.assignedTeam) {
+        row.fleetStaffKey = findStaffKeyByLegacyTeamValue(account.assignedTeam.pilot, "fleet");
+        row.driverStaffKey = findStaffKeyByLegacyTeamValue(account.assignedTeam.driver, "driver");
+        row.conciergeStaffKey = findStaffKeyByLegacyTeamValue(account.assignedTeam.concierge, "concierge");
+        row.securityStaffKey = findStaffKeyByLegacyTeamValue(account.assignedTeam.security, "security");
+      }
+      if (!hasPublishedSelection && account?.assignedTeam) {
+        row.publishedFleetStaffKey = findStaffKeyByLegacyTeamValue(account.assignedTeam.pilot, "fleet");
+        row.publishedDriverStaffKey = findStaffKeyByLegacyTeamValue(account.assignedTeam.driver, "driver");
+        row.publishedConciergeStaffKey = findStaffKeyByLegacyTeamValue(account.assignedTeam.concierge, "concierge");
+        row.publishedSecurityStaffKey = findStaffKeyByLegacyTeamValue(account.assignedTeam.security, "security");
+      }
+      if (account?.assignedTeam && !hasAnyRtaSelection(rtaPublishedSelectionFromAssignment(row)) && !hasAnyRtaSelection(rtaSelectionFromAssignment(row))) {
+        row.status = "Confirmed";
+      }
+    }
   });
 }
 
@@ -5019,6 +5039,18 @@ function clearRtaSelection(assignment) {
   assignment.driverStaffKey = "";
   assignment.conciergeStaffKey = "";
   assignment.securityStaffKey = "";
+}
+
+function clearRtaAssignmentState(assignment) {
+  if (!assignment) return;
+  clearRtaSelection(assignment);
+  clearPublishedRtaSelection(assignment);
+  assignment.status = "Unassigned";
+  assignment.pendingAction = "";
+  assignment.requestedBy = "";
+  assignment.requestedAt = "";
+  assignment.confirmedBy = "";
+  assignment.confirmedAt = "";
 }
 
 function hasAnyRtaSelection(selection = {}) {
@@ -5116,10 +5148,15 @@ function syncRedTeamAssignmentsToClientAccounts() {
       security: buildRtaTeamAssignmentText(security, "security")
     } : null;
     const nextNote = buildRtaProfileStatusNote(nextStatus, assignment.confirmedAt || assignment.requestedAt);
-    if (nextTeam) account.assignedTeam = nextTeam;
-    else delete account.assignedTeam;
-    account.redTeamAssignmentStatus = nextStatus;
-    account.redTeamAssignmentNote = nextNote;
+    if (nextTeam) {
+      account.assignedTeam = nextTeam;
+      account.redTeamAssignmentStatus = nextStatus;
+      account.redTeamAssignmentNote = nextNote;
+    } else {
+      delete account.assignedTeam;
+      delete account.redTeamAssignmentStatus;
+      delete account.redTeamAssignmentNote;
+    }
     if (activeAccount && normalizeEmailAddress(activeAccount.email) === key) activeAccountChanged = true;
   });
   if (activeAccountChanged && activeAccount) {
@@ -7532,6 +7569,11 @@ const sunriseUnsavedOverlay = document.getElementById("sunrise-unsaved-overlay")
 const sunriseUnsavedSaveBtn = document.getElementById("sunrise-unsaved-save");
 const sunriseUnsavedDiscardBtn = document.getElementById("sunrise-unsaved-discard");
 const sunriseUnsavedStayBtn = document.getElementById("sunrise-unsaved-stay");
+const sunriseRtaAuditOverlay = document.getElementById("sunrise-rta-audit-overlay");
+const sunriseRtaAuditTitle = document.getElementById("sunrise-rta-audit-title");
+const sunriseRtaAuditBody = document.getElementById("sunrise-rta-audit-body");
+const sunriseRtaAuditInfo = document.getElementById("sunrise-rta-audit-info");
+const sunriseRtaAuditClose = document.getElementById("sunrise-rta-audit-close");
 const logoutBtn = document.getElementById("logout-btn");
 
 const sunriseControlDefaults = {
@@ -8126,6 +8168,8 @@ function renderRTAPage() {
   ensureRtaAssignmentsStore();
   const assignments = redMemberAccountEntries().map(([key, account]) => findRtaAssignmentByClientKey(key) || buildSeedRtaAssignmentFromAccount(key, account));
   const approved = canApproveRtaAssignment();
+  const canSwitch = canManageRtaSwitch();
+  const canEmpty = canEmptyRtaTeam();
   const cards = assignments.map((assignment) => {
     const clientKey = String(assignment.clientKey || "").trim().toLowerCase();
     const client = accounts[clientKey] || null;
@@ -8156,7 +8200,7 @@ function renderRTAPage() {
       ? (pendingAction === "switch"
         ? "Team switch is waiting for DA, CA, or Owner confirmation."
         : (pendingAction === "clear"
-          ? "Team removal is waiting for DA, CA, or Owner confirmation."
+          ? "Team removal is waiting for CA or Owner confirmation."
           : "Waiting for DA, CA, or Owner confirmation before publication to the client account."))
       : (currentStatus === "Confirmed" ? "Team is active and already visible on the client account page." : "No team has been assigned yet.");
     const auditParts = buildRtaAuditEntries(assignment);
@@ -8166,7 +8210,7 @@ function renderRTAPage() {
       formatOptionalCountryDisplay(assignment.clientCountry || client?.country || "")
     ].filter(Boolean);
     const primaryAction = currentStatus === "Confirmed"
-      ? `<button class="sunriseMiniBtn sunriseRtaActionBtn" type="button" data-rta-switch="${clientKey}">Initiate Team Switch</button>`
+      ? (canSwitch ? `<button class="sunriseMiniBtn sunriseRtaActionBtn" type="button" data-rta-switch="${clientKey}">Initiate Team Switch</button>` : "")
       : `<button class="sunriseMiniBtn sunriseRtaActionBtn" type="button" data-rta-save="${clientKey}">${approved ? "Assign Team" : "Submit for Confirmation"}</button>`;
     const showEmpty = hasAnyRtaSelection(rtaSelectionFromAssignment(assignment)) || hasAnyRtaSelection(rtaPublishedSelectionFromAssignment(assignment));
     return `<article class="sunriseControlCard sunriseDetailWide sunriseRtaCard">
@@ -8192,14 +8236,19 @@ function renderRTAPage() {
       </div>
       <div class="sunriseRtaFoot">
         <div class="sunriseRtaAudit">
-          <p class="sunriseRtaSectionLabel">Assignment Audit</p>
-          ${(auditParts.length ? auditParts : ["No activity yet."]).map((item) => `<p>${item}</p>`).join("")}
+          <div class="sunriseRtaAuditTop">
+            <div>
+              <p class="sunriseRtaSectionLabel">Assignment Audit</p>
+              <p class="sunriseRtaAuditHint">${auditParts.length ? `${auditParts.length} logged change${auditParts.length === 1 ? "" : "s"} available.` : "No activity recorded yet."}</p>
+            </div>
+            <button class="sunriseMiniBtn sunriseRtaAuditBtn" type="button" data-rta-audit="${clientKey}">Open Audit</button>
+          </div>
         </div>
         <div class="sunriseRtaActions">
           ${primaryAction}
-          ${approved && currentStatus === "Pending Confirmation" ? `<button class="sunriseMiniBtn sunriseRtaActionBtn" type="button" data-rta-confirm="${clientKey}">Confirm</button>` : ""}
-          ${approved && currentStatus === "Confirmed" ? `<button class="sunriseMiniBtn sunriseRtaActionBtn isWarn" type="button" data-rta-revoke="${clientKey}">Revoke Confirmation</button>` : ""}
-          ${showEmpty ? `<button class="sunriseMiniBtn sunriseRtaActionBtn isDanger" type="button" data-rta-empty="${clientKey}">Empty Team</button>` : ""}
+          ${approved && currentStatus === "Pending Confirmation" && (pendingAction !== "clear" || canEmpty) ? `<button class="sunriseMiniBtn sunriseRtaActionBtn" type="button" data-rta-confirm="${clientKey}">Confirm</button>` : ""}
+          ${canSwitch && currentStatus === "Confirmed" ? `<button class="sunriseMiniBtn sunriseRtaActionBtn isWarn" type="button" data-rta-revoke="${clientKey}">Revoke Confirmation</button>` : ""}
+          ${canEmpty && showEmpty ? `<button class="sunriseMiniBtn sunriseRtaActionBtn isDanger" type="button" data-rta-empty="${clientKey}">Empty Team</button>` : ""}
         </div>
       </div>
     </article>`;
@@ -9092,11 +9141,25 @@ function bindSunriseControlInteractions() {
   const signatureInfo = document.getElementById("inbox-signature-manager-info");
   const notosPathOverlay = document.getElementById("notos-path-overlay");
   const notosPathClose = document.getElementById("notos-path-close");
+  const rtaAuditOverlay = document.getElementById("sunrise-rta-audit-overlay");
+  const rtaAuditClose = document.getElementById("sunrise-rta-audit-close");
   if (notosPathClose && notosPathClose.dataset.boundNotosClose !== "1") {
     notosPathClose.addEventListener("click", () => {
       if (notosPathOverlay) notosPathOverlay.hidden = true;
     });
     notosPathClose.dataset.boundNotosClose = "1";
+  }
+  if (rtaAuditClose && rtaAuditClose.dataset.boundRtaAuditClose !== "1") {
+    rtaAuditClose.addEventListener("click", () => {
+      closeRtaAuditOverlay();
+    });
+    rtaAuditClose.dataset.boundRtaAuditClose = "1";
+  }
+  if (rtaAuditOverlay && rtaAuditOverlay.dataset.boundRtaAuditBackdrop !== "1") {
+    rtaAuditOverlay.addEventListener("click", (event) => {
+      if (event.target === rtaAuditOverlay) closeRtaAuditOverlay();
+    });
+    rtaAuditOverlay.dataset.boundRtaAuditBackdrop = "1";
   }
   if (signatureClose && signatureClose.dataset.boundSigClose !== "1") {
     signatureClose.addEventListener("click", () => {
@@ -9258,6 +9321,27 @@ function bindSunriseControlInteractions() {
     const el = document.getElementById("rta-info");
     if (el) el.textContent = String(message || "");
   };
+
+  function encodeAuditValue(value) {
+    return String(value || "").replace(/&/g, "&amp;").replace(/"/g, "&quot;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
+  }
+
+  function closeRtaAuditOverlay() {
+    if (sunriseRtaAuditOverlay) sunriseRtaAuditOverlay.hidden = true;
+    if (sunriseRtaAuditInfo) sunriseRtaAuditInfo.textContent = "";
+  }
+
+  function openRtaAuditOverlay(assignment) {
+    if (!assignment || !sunriseRtaAuditOverlay || !sunriseRtaAuditBody) return;
+    const titleName = String(assignment.clientName || "Voyager Red Member").trim() || "Voyager Red Member";
+    const auditEntries = buildRtaAuditEntries(assignment);
+    sunriseRtaAuditBody.innerHTML = auditEntries.length
+      ? auditEntries.map((entry, idx) => `<div class="field"><label>Entry ${idx + 1}</label><input class="input" value="${encodeAuditValue(entry)}" readonly></div>`).join("")
+      : `<p class="profileNote">No activity recorded yet for this assignment.</p>`;
+    if (sunriseRtaAuditTitle) sunriseRtaAuditTitle.textContent = `${titleName} Assignment Audit`;
+    if (sunriseRtaAuditInfo) sunriseRtaAuditInfo.textContent = `${auditEntries.length} change${auditEntries.length === 1 ? "" : "s"} logged with operator and UTC timestamp data.`;
+    sunriseRtaAuditOverlay.hidden = false;
+  }
 
   document.addEventListener("click", async (event) => {
     const clickTarget = event.target instanceof Element ? event.target : null;
@@ -9546,8 +9630,22 @@ function bindSunriseControlInteractions() {
       return;
     }
 
+    const rtaAudit = clickTarget.closest("[data-rta-audit]");
+    if (rtaAudit && sunriseControlState) {
+      ensureRtaAssignmentsStore();
+      const clientKey = String(rtaAudit.getAttribute("data-rta-audit") || "").trim().toLowerCase();
+      const assignment = findRtaAssignmentByClientKey(clientKey);
+      if (!assignment) return;
+      openRtaAuditOverlay(assignment);
+      return;
+    }
+
     const rtaSwitch = clickTarget.closest("[data-rta-switch]");
     if (rtaSwitch && sunriseControlState) {
+      if (!canManageRtaSwitch()) {
+        setRtaInfo("Only DA, CA, or Owner can initiate a Red Team switch.");
+        return;
+      }
       ensureRtaAssignmentsStore();
       const clientKey = String(rtaSwitch.getAttribute("data-rta-switch") || "").trim().toLowerCase();
       const assignment = findRtaAssignmentByClientKey(clientKey);
@@ -9584,12 +9682,11 @@ function bindSunriseControlInteractions() {
       if (!assignment) return;
       const selection = readRtaSelection(clientKey);
       if (assignment.pendingAction === "clear") {
-        clearRtaSelection(assignment);
-        clearPublishedRtaSelection(assignment);
-        assignment.status = "Unassigned";
-        assignment.pendingAction = "";
-        assignment.confirmedBy = "";
-        assignment.confirmedAt = "";
+        if (!canEmptyRtaTeam()) {
+          setRtaInfo("Only CA or Owner can confirm Red Team removal.");
+          return;
+        }
+        clearRtaAssignmentState(assignment);
         appendRtaAuditEntry(assignment, `Team cleared by ${buildRtaOperatorLabel()} on ${formatUtcTimestamp(new Date())}`);
         saveSunriseControlState();
         renderCustomSunriseControlPages();
@@ -9612,7 +9709,7 @@ function bindSunriseControlInteractions() {
 
     const rtaRevoke = clickTarget.closest("[data-rta-revoke]");
     if (rtaRevoke && sunriseControlState) {
-      if (!canApproveRtaAssignment()) {
+      if (!canManageRtaSwitch()) {
         setRtaInfo("Only DA, CA, or Owner can revoke Red Team confirmation.");
         return;
       }
@@ -9636,6 +9733,10 @@ function bindSunriseControlInteractions() {
 
     const rtaEmpty = clickTarget.closest("[data-rta-empty]");
     if (rtaEmpty && sunriseControlState) {
+      if (!canEmptyRtaTeam()) {
+        setRtaInfo("Only CA or Owner can empty a Red Team assignment.");
+        return;
+      }
       ensureRtaAssignmentsStore();
       const clientKey = String(rtaEmpty.getAttribute("data-rta-empty") || "").trim().toLowerCase();
       const assignment = findRtaAssignmentByClientKey(clientKey);
@@ -9646,32 +9747,11 @@ function bindSunriseControlInteractions() {
         setRtaInfo("Team is already empty.");
         return;
       }
-      if (canApproveRtaAssignment()) {
-        clearRtaSelection(assignment);
-        clearPublishedRtaSelection(assignment);
-        assignment.status = "Unassigned";
-        assignment.pendingAction = "";
-        assignment.requestedBy = "";
-        assignment.requestedAt = "";
-        assignment.confirmedBy = "";
-        assignment.confirmedAt = "";
-        appendRtaAuditEntry(assignment, `Team cleared by ${buildRtaOperatorLabel()} on ${formatUtcTimestamp(new Date())}`);
-        saveSunriseControlState();
-        renderCustomSunriseControlPages();
-        setRtaInfo("Team emptied.");
-        return;
-      }
-      clearRtaSelection(assignment);
-      assignment.status = "Pending Confirmation";
-      assignment.pendingAction = "clear";
-      assignment.requestedBy = buildRtaOperatorLabel();
-      assignment.requestedAt = formatUtcTimestamp(new Date());
-      assignment.confirmedBy = "";
-      assignment.confirmedAt = "";
-      appendRtaAuditEntry(assignment, `Team removal requested by ${assignment.requestedBy} on ${assignment.requestedAt}`);
+      clearRtaAssignmentState(assignment);
+      appendRtaAuditEntry(assignment, `Team cleared by ${buildRtaOperatorLabel()} on ${formatUtcTimestamp(new Date())}`);
       saveSunriseControlState();
       renderCustomSunriseControlPages();
-      setRtaInfo("Team removal submitted for executive confirmation.");
+      setRtaInfo("Team emptied and removed from the client account view.");
       return;
     }
 

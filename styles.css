@@ -1602,6 +1602,13 @@ body.sunrise-dock-visible main{
   background: rgba(17,9,7,.24);
 }
 
+.sunriseRtaAuditTop{
+  display:flex;
+  align-items:center;
+  justify-content:space-between;
+  gap:12px;
+}
+
 .sunriseRtaAudit p{
   margin:6px 0 0;
   color: rgba(255,220,198,.74);
@@ -1609,8 +1616,15 @@ body.sunrise-dock-visible main{
   line-height:1.48;
 }
 
-.sunriseRtaAudit p:first-of-type{
-  margin-top:8px;
+.sunriseRtaAuditHint{
+  margin:6px 0 0;
+  color: rgba(255,220,198,.74);
+  font-size:12px;
+  line-height:1.48;
+}
+
+.sunriseRtaAuditBtn{
+  min-width:140px;
 }
 
 .sunriseRtaActions{
@@ -1645,6 +1659,18 @@ body.sunrise-dock-visible main{
 .sunriseRtaActionBtn.isDanger:hover{
   border-color: rgba(228,149,136,.54);
   background: rgba(106,34,26,.48);
+}
+
+.sunriseAuditWindow{
+  width:min(820px, calc(100vw - 28px));
+}
+
+.sunriseAuditBody{
+  gap:12px;
+}
+
+.sunriseAuditBody .field{
+  margin:0;
 }
 
 .sunriseSectionTabs{
@@ -3240,6 +3266,8 @@ footer{
   .sunriseRtaActions{min-width:0; width:100%;}
   .sunriseRtaStatusWrap{min-width:0; align-items:flex-start;}
   .sunriseRtaStatusText{text-align:left; max-width:none;}
+  .sunriseRtaAuditTop{flex-direction:column; align-items:flex-start;}
+  .sunriseRtaAuditBtn{width:100%;}
   .sunriseInboxShell{grid-template-columns:1fr;}
   .sunriseInboxComposeGrid{grid-template-columns:1fr;}
   .sunriseInboxDetailGrid{grid-template-columns:1fr;}
