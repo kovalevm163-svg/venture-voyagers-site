@@ -8477,6 +8477,45 @@ function canonicalizeAmpStaffEntries(entries = []) {
   return [...canonicalOwners, ...canonicalOffice, ...passthrough];
 }
 
+function renderAmpOwnerCards(entries = []) {
+  if (!Array.isArray(entries) || !entries.length) return "";
+  const cards = entries.map(([key, account]) => {
+    const lockedForAleks = isAleksAmpRestrictedKey(key);
+    const fullName = `${String(account?.firstName || "").trim()} ${String(account?.lastName || "").trim()}`.trim() || "Owner";
+    const roleTitle = String(account?.roleTitle || "Owner").trim();
+    const vvsLogin = String(account?.email || key || "").trim().toLowerCase();
+    const sunriseLogin = findSunriseCredentialEmailForBaseKey(key, account);
+    const sunriseAccount = sunriseLogin && accounts[sunriseLogin] ? accounts[sunriseLogin] : null;
+    const phone = String(account?.phone || "").trim();
+    const country = formatOptionalCountryDisplay(account?.country || "");
+    const vvsValue = lockedForAleks ? "Restricted" : vvsLogin;
+    const sunriseValue = lockedForAleks ? "Restricted" : String(sunriseLogin || "Not linked").trim().toLowerCase();
+    const phoneValue = lockedForAleks ? "Restricted" : (phone || "Not stored");
+    const countryValue = lockedForAleks ? "Restricted" : (country || "Not stored");
+    const notosValue = lockedForAleks
+      ? "Restricted"
+      : String(sunriseAccount?.notosId || account?.notosId || resolveSunriseOwnerCode(account) || "OW").trim().toUpperCase();
+    return `<article class="ampOwnerCard">
+      <div class="ampOwnerCardTop">
+        <div>
+          <p class="ampSectionEyebrow">Owner</p>
+          <h4>${lockedForAleks ? "Protected Executive Record" : fullName}</h4>
+          <p class="ampOwnerRole">${lockedForAleks ? "Visible identity only. Credential access restricted." : roleTitle}</p>
+        </div>
+        <span class="ampHierarchyCode">OW</span>
+      </div>
+      <div class="ampOwnerGrid">
+        <div class="ampOwnerField"><span>VVS Login</span><strong>${vvsValue}</strong></div>
+        <div class="ampOwnerField"><span>Sunrise Login</span><strong>${sunriseValue}</strong></div>
+        <div class="ampOwnerField"><span>Phone</span><strong>${phoneValue}</strong></div>
+        <div class="ampOwnerField"><span>Country</span><strong>${countryValue}</strong></div>
+        <div class="ampOwnerField ampOwnerFieldWide"><span>NOTOS ID</span><strong>${notosValue}</strong></div>
+      </div>
+    </article>`;
+  }).join("");
+  return `<div class="ampOwnerGridWrap">${cards}</div>`;
+}
+
 function renderAmpOfficeHierarchy(entries = []) {
   if (!Array.isArray(entries) || !entries.length) return "";
   const cards = entries.map(([key, account]) => {
@@ -8498,10 +8537,8 @@ function renderAmpOfficeHierarchy(entries = []) {
   }).join("");
   return `<div class="ampOfficeHierarchy">
     <div class="ampOfficeHierarchyTop">
-      <div>
-        <p class="ampSectionEyebrow">Office Position Hierarchy</p>
-        <p class="opsText">Ordered from highest Sunrise access down to associate level for the office team, with linked VVS and Sunrise logins.</p>
-      </div>
+      <span class="ampOfficeHierarchyTitle">Office Hierarchy</span>
+      <span class="ampOfficeHierarchySummary">${entries.length} linked office roles</span>
     </div>
     <div class="ampHierarchyGrid">${cards}</div>
   </div>`;
@@ -8637,11 +8674,12 @@ function renderAMPPage(filter = "") {
         </div>
         <span class="ampStaffCount">${entries.length} account${entries.length === 1 ? "" : "s"}</span>
       </div>
-      <p class="opsText">${ampStaffGroupDescription(division)}</p>
-      ${division === "Office" ? renderAmpOfficeHierarchy(entries) : ""}
+      ${division === "Owners"
+        ? renderAmpOwnerCards(entries)
+        : `${division === "Office" ? renderAmpOfficeHierarchy(entries) : `<p class="opsText">${ampStaffGroupDescription(division)}</p>`}
       <div class="ampStaffTableWrap">
         <table class="sunriseControlTable"><thead>${staffHeader}</thead><tbody>${renderStaffRows(entries)}</tbody></table>
-      </div>
+      </div>`}
     </article>`)
     .join("");
   const staffHtml = staffGroupsHtml
@@ -8649,7 +8687,7 @@ function renderAMPPage(filter = "") {
         <div class="ampStaffOverviewTop">
           <div>
             <h3>Staff Directory</h3>
-            <p class="opsText">Only Aleks Totev and Mikhail Kovalev appear in Owners. Office accounts are normalized to one canonical record per Sunrise hierarchy level.</p>
+            <p class="opsText">Owners are shown as two executive identities. Office roles remain normalized to one primary record per Sunrise level.</p>
           </div>
           <div class="ampStaffStatsGrid">${staffOverviewStats}</div>
         </div>
@@ -11366,3 +11404,4 @@ forceSubmitOnClick("signup-step1");
 forceSubmitOnClick("signup-step2");
 forceSubmitOnClick("sunrise-step1");
 forceSubmitOnClick("sunrise-step2");
+setupSunriseShortcutMenu();
