@@ -8,7 +8,7 @@
   <meta http-equiv="Expires" content="0" />
   <title>Venture Voyager Services - Concierge</title>
   <meta name="description" content="Venture Voyager Services (VVS) - discreet luxury concierge and private access." />
-  <link rel="stylesheet" href="styles.css?v=20260224-48" />
+  <link rel="stylesheet" href="styles.css?v=20260302-57" />
 </head>
 <body>
   <div class="wrap">
@@ -500,10 +500,29 @@
                       <option value="voyager diamante">Voyager Diamante</option>
                       <option value="voyager noir">Voyager Noir</option>
                       <option value="voyager red">Voyager Red</option>
+                      <option value="staff">Staff</option>
+                      <option value="owner">Owner</option>
                     </select>
                   </div>
                   <div class="viewActions">
                     <button class="btn primary" type="submit">Send Verification Code</button>
+                  </div>
+                </form>
+                <form id="pw-recovery-step2" class="authGrid" hidden novalidate>
+                  <div class="field full">
+                    <label for="pw-rec-code">Email Verification Code</label>
+                    <input class="input" id="pw-rec-code" type="text" inputmode="numeric" required />
+                  </div>
+                  <div class="field">
+                    <label for="pw-rec-new">New Password</label>
+                    <input class="input" id="pw-rec-new" type="password" minlength="12" required />
+                  </div>
+                  <div class="field">
+                    <label for="pw-rec-confirm">Confirm New Password</label>
+                    <input class="input" id="pw-rec-confirm" type="password" minlength="12" required />
+                  </div>
+                  <div class="viewActions">
+                    <button class="btn primary" type="submit">Verify and Reset Password</button>
                   </div>
                 </form>
                 <p class="authInfo" id="password-recovery-info"></p>
@@ -521,6 +540,7 @@
               <div class="viewActions" style="margin-top:0;">
                 <a class="btn ghost" href="#sunrise" data-route="sunrise" id="profile-sunrise-btn" hidden>Access VVS Sunrise</a>
                 <a class="btn ghost" href="#ambassador" data-route="ambassador" id="profile-ambassador-btn" hidden>Red Lounge</a>
+                <button class="btn ghost" type="button" id="profile-account-settings-btn">Account Settings</button>
                 <button class="btn primary" type="button" id="profile-submit-service-top" data-route="contact" onclick="return window.openVvsServiceRequest ? window.openVvsServiceRequest(event) : false;">Request Service</button>
                 <button class="btn ghost" type="button" id="logout-btn">Log Out</button>
                 <a class="btn ghost" href="#home" data-route="home">Back</a>
@@ -576,6 +596,7 @@
 
               <article class="profileCard profileCardWide" id="profile-red-team">
                 <p class="profileLabel">Your Private Team</p>
+                <p class="profileNote" id="profile-red-team-status" hidden></p>
                 <div class="teamGrid">
                   <div class="teamItem"><b>Fleet</b><span id="team-pilot"></span></div>
                   <div class="teamItem"><b>Driver</b><span id="team-driver"></span></div>
@@ -818,6 +839,7 @@
                 <article class="sunriseSummaryCard"><p class="sunriseCategoryTitle">Total Expenses</p><b id="sum-eam-total">$0</b></article>
                 <article class="sunriseSummaryCard"><p class="sunriseCategoryTitle">Total Income</p><b id="sum-ifs-total">$0</b></article>
                 <article class="sunriseSummaryCard"><p class="sunriseCategoryTitle">Employees</p><b id="sum-ecs-count">0</b></article>
+                <article class="sunriseSummaryCard"><p class="sunriseCategoryTitle">RTA Pending</p><b id="sum-rta-pending">0</b></article>
                 <article class="sunriseSummaryCard"><p class="sunriseCategoryTitle">SOC Active Services</p><b id="sum-soc-current">0</b></article>
                 <article class="sunriseSummaryCard"><p class="sunriseCategoryTitle">Notos Sessions</p><b id="sum-lcs-count">0</b></article>
               </div>
@@ -838,6 +860,7 @@
                   <p class="sunriseCategoryTitle">Operations & Delivery</p>
                   <div class="sunriseLaunchGrid">
                     <a class="sunriseLaunchBtn" href="#sunrise-services" data-route="sunrise-services" data-shortcut="srv1"><span class="sunriseShortcutCode">SRV1</span>Services Dashboard</a>
+                    <a class="sunriseLaunchBtn" href="#sunrise-rta" data-route="sunrise-rta" data-shortcut="rta"><span class="sunriseShortcutCode">RTA</span>Red Team Assigning</a>
                     <a class="sunriseLaunchBtn" href="#sunrise-locations" data-route="sunrise-locations" data-shortcut="loc1"><span class="sunriseShortcutCode">LOC1</span>Locations</a>
                     <a class="sunriseLaunchBtn" href="#sunrise-maintenance" data-route="sunrise-maintenance" data-shortcut="mnt1"><span class="sunriseShortcutCode">MNT1</span>Maintenance</a>
                     <a class="sunriseLaunchBtn" href="#sunrise-events" data-route="sunrise-events" data-shortcut="evt1"><span class="sunriseShortcutCode">EVT1</span>Events Planning</a>
@@ -925,6 +948,9 @@
       <section class="routePage" data-page="sunrise-smca" aria-label="Sunrise SMCA Page" hidden>
         <section class="view"><div class="viewInner sunriseShell sunriseDetailShell"><div class="viewTop"><div class="kicker"><span class="dot"></span> Sunrise • SMCA</div><div class="viewActions" style="margin-top:0;"><button class="btn ghost" type="button" data-sunrise-logout>Log Out</button><a class="btn ghost" href="#sunrise" data-route="sunrise">Back</a></div></div><h2 class="viewTitle">Sales & Marketing Commissions Adjustments</h2><div class="sunriseDetailGrid" id="sunrise-smca-grid"></div></div></section>
       </section>
+      <section class="routePage" data-page="sunrise-rta" aria-label="Sunrise RTA Page" hidden>
+        <section class="view"><div class="viewInner sunriseShell sunriseDetailShell"><div class="viewTop"><div class="kicker"><span class="dot"></span> Sunrise • RTA</div><div class="viewActions" style="margin-top:0;"><button class="btn ghost" type="button" data-sunrise-logout>Log Out</button><a class="btn ghost" href="#sunrise" data-route="sunrise">Back</a></div></div><h2 class="viewTitle">Red Team Assigning Menu</h2><div class="sunriseDetailGrid" id="sunrise-rta-grid"></div></div></section>
+      </section>
       <section class="routePage" data-page="sunrise-rim" aria-label="Sunrise RIM Page" hidden>
         <section class="view"><div class="viewInner sunriseShell sunriseDetailShell"><div class="viewTop"><div class="kicker"><span class="dot"></span> Sunrise • RIM</div><div class="viewActions" style="margin-top:0;"><button class="btn ghost" type="button" data-sunrise-logout>Log Out</button><a class="btn ghost" href="#sunrise" data-route="sunrise">Back</a></div></div><h2 class="viewTitle">Red Inviting Menu</h2><div class="sunriseDetailGrid" id="sunrise-rim-grid"></div></div></section>
       </section>
@@ -962,9 +988,9 @@
     <div class="sunriseShortcutDock" id="sunrise-shortcut-dock" hidden>
       <form class="sunriseShortcutDockForm sunriseShortcutForm" id="sunrise-shortcut-dock-form" data-info-target="sunrise-shortcut-dock-info" autocomplete="off">
         <label for="sunrise-shortcut-dock-input">Enter selection:</label>
-        <input class="input sunriseShortcutInput" id="sunrise-shortcut-dock-input" type="text" placeholder="ex: rev1, sls1, mkt1..." onkeydown="if(event.key==='Enter'){event.preventDefault();window.sunriseDockSubmitShortcut&&window.sunriseDockSubmitShortcut();}" />
-        <button class="btn ghost sunriseShortcutBtn" type="submit" onclick="event.preventDefault();window.sunriseDockSubmitShortcut&&window.sunriseDockSubmitShortcut();">Open</button>
-        <button class="btn ghost sunriseShortcutBtn" type="button" id="sunrise-shortcut-help-toggle" onclick="event.preventDefault();window.sunriseDockToggleCodes&&window.sunriseDockToggleCodes();">Codes</button>
+        <input class="input sunriseShortcutInput" id="sunrise-shortcut-dock-input" type="text" placeholder="ex: rev1, sls1, mkt1..." />
+        <button class="btn ghost sunriseShortcutBtn" type="submit">Open</button>
+        <button class="btn ghost sunriseShortcutBtn" type="button" id="sunrise-shortcut-help-toggle">Codes</button>
       </form>
       <div class="sunriseCodeHelp" id="sunrise-code-help" hidden></div>
       <p class="authInfo sunriseDockInfo" id="sunrise-shortcut-dock-info"></p>
@@ -982,6 +1008,162 @@
         <div class="elegantLine" aria-hidden="true"></div>
         <div class="viewActions" style="justify-content:center; margin-top:10px;">
           <button class="btn ghost" type="button" id="contact-overlay-close">Close</button>
+        </div>
+      </div>
+    </div>
+
+    <div class="contactOverlay" id="account-settings-overlay" hidden>
+      <div class="contactWindow sunriseMailWindow accountSettingsWindow">
+        <div class="kicker"><span class="dot" aria-hidden="true"></span> VVS Account Settings</div>
+        <h3 class="mailTitle">Manage Account Settings</h3>
+        <p class="authInfo" id="account-settings-summary"></p>
+        <div class="accountSettingsGrid">
+          <article class="accountSettingsPanel">
+            <div class="accountSettingsPanelTop">
+              <div>
+                <p class="profileLabel">Profile Information</p>
+                <p class="profileNote">Update your VVS identity, contact details, and recovery phrase.</p>
+              </div>
+            </div>
+            <form id="account-settings-form" class="authGrid" novalidate>
+              <div class="field">
+                <label for="account-settings-title">Preferred Title</label>
+                <input class="input" id="account-settings-title" type="text" required />
+              </div>
+              <div class="field">
+                <label for="account-settings-first">First Name</label>
+                <input class="input" id="account-settings-first" type="text" required />
+              </div>
+              <div class="field">
+                <label for="account-settings-last">Last Name</label>
+                <input class="input" id="account-settings-last" type="text" required />
+              </div>
+              <div class="field">
+                <label for="account-settings-country">Country</label>
+                <select class="select" id="account-settings-country" required>
+                  <option value="">Select country</option>
+                </select>
+              </div>
+              <div class="field">
+                <label for="account-settings-phone">Phone Number</label>
+                <input class="input" id="account-settings-phone" type="tel" required />
+              </div>
+              <div class="field full">
+                <label for="account-settings-email">VVS Email</label>
+                <input class="input" id="account-settings-email" type="email" required />
+              </div>
+              <div class="field full">
+                <label for="account-settings-phrase">Secret Phrase</label>
+                <input class="input" id="account-settings-phrase" type="text" required />
+              </div>
+              <div class="field" id="account-settings-membership-wrap">
+                <label for="account-settings-membership">Membership</label>
+                <input class="input" id="account-settings-membership" type="text" readonly />
+              </div>
+              <div class="field" id="account-settings-role-wrap">
+                <label for="account-settings-role">Position</label>
+                <input class="input" id="account-settings-role" type="text" readonly />
+              </div>
+              <div class="field" id="account-settings-access-wrap">
+                <label for="account-settings-access">Sunrise Access</label>
+                <input class="input" id="account-settings-access" type="text" readonly />
+              </div>
+              <div class="viewActions accountSettingsActions">
+                <button class="btn primary" type="submit">Save Changes</button>
+                <button class="btn ghost" type="button" id="account-settings-discard">Discard Changes</button>
+              </div>
+            </form>
+            <p class="authInfo" id="account-settings-info"></p>
+          </article>
+
+          <article class="accountSettingsPanel">
+            <div class="accountSettingsPanelTop">
+              <div>
+                <p class="profileLabel">Password & Recovery</p>
+                <p class="profileNote">Use the same password reset flow available on the VVS log in page.</p>
+              </div>
+              <div class="viewActions accountPasswordModeActions">
+                <button class="authLinkBtn" type="button" data-account-password-mode="change">Change Password</button>
+                <button class="authLinkBtn" type="button" data-account-password-mode="recovery">Forgot your password?</button>
+              </div>
+            </div>
+
+            <form id="account-pw-change-form" class="authGrid" novalidate>
+              <div class="field full">
+                <label for="account-pw-email">Email Address</label>
+                <input class="input" id="account-pw-email" type="email" readonly />
+              </div>
+              <div class="field">
+                <label for="account-pw-current">Current Password</label>
+                <input class="input" id="account-pw-current" type="password" required />
+              </div>
+              <div class="field">
+                <label for="account-pw-new">New Password</label>
+                <input class="input" id="account-pw-new" type="password" minlength="12" required />
+              </div>
+              <div class="field full">
+                <label for="account-pw-confirm">Confirm New Password</label>
+                <input class="input" id="account-pw-confirm" type="password" minlength="12" required />
+              </div>
+              <div class="viewActions">
+                <button class="btn primary" type="submit">Update Password</button>
+              </div>
+            </form>
+
+            <form id="account-pw-recovery-step1" class="authGrid" hidden novalidate>
+              <div class="field full">
+                <label for="account-pw-rec-email">Email Address</label>
+                <input class="input" id="account-pw-rec-email" type="email" readonly />
+              </div>
+              <div class="field full">
+                <label for="account-pw-rec-phrase">Secret Phrase</label>
+                <input class="input" id="account-pw-rec-phrase" type="text" required />
+              </div>
+              <div class="field full">
+                <label for="account-pw-rec-tier">Membership Tier</label>
+                <select class="select" id="account-pw-rec-tier" required>
+                  <option value="">Select tier</option>
+                  <option value="non-member">Non-Member</option>
+                  <option value="voyager cuprum">Voyager Cuprum</option>
+                  <option value="voyager argentum">Voyager Argentum</option>
+                  <option value="voyager aurum">Voyager Aurum</option>
+                  <option value="voyager platinum">Voyager Platinum</option>
+                  <option value="voyager diamante">Voyager Diamante</option>
+                  <option value="voyager noir">Voyager Noir</option>
+                  <option value="voyager red">Voyager Red</option>
+                  <option value="staff">Staff</option>
+                  <option value="owner">Owner</option>
+                </select>
+              </div>
+              <div class="viewActions">
+                <button class="btn primary" type="submit">Send Verification Code</button>
+              </div>
+            </form>
+
+            <form id="account-pw-recovery-step2" class="authGrid" hidden novalidate>
+              <div class="field full">
+                <label for="account-pw-rec-code">Email Verification Code</label>
+                <input class="input" id="account-pw-rec-code" type="text" inputmode="numeric" required />
+              </div>
+              <div class="field">
+                <label for="account-pw-rec-new">New Password</label>
+                <input class="input" id="account-pw-rec-new" type="password" minlength="12" required />
+              </div>
+              <div class="field">
+                <label for="account-pw-rec-confirm">Confirm New Password</label>
+                <input class="input" id="account-pw-rec-confirm" type="password" minlength="12" required />
+              </div>
+              <div class="viewActions">
+                <button class="btn primary" type="submit">Verify and Reset Password</button>
+              </div>
+            </form>
+
+            <p class="authInfo" id="account-password-info"></p>
+            <p class="authInfo" id="account-password-recovery-info"></p>
+          </article>
+        </div>
+        <div class="viewActions" style="justify-content:center; margin-top:10px;">
+          <button class="btn ghost" type="button" id="account-settings-close">Close</button>
         </div>
       </div>
     </div>
@@ -1079,6 +1261,17 @@
         </div>
       </div>
     </div>
+    <div class="contactOverlay" id="sunrise-rta-audit-overlay" hidden>
+      <div class="contactWindow sunriseMailWindow sunriseAuditWindow">
+        <div class="kicker"><span class="dot" aria-hidden="true"></span> Sunrise Red Team Assignment Audit</div>
+        <h3 class="mailTitle" id="sunrise-rta-audit-title">Assignment Audit</h3>
+        <div class="mailFormGrid sunriseAuditBody" id="sunrise-rta-audit-body"></div>
+        <p class="authInfo" id="sunrise-rta-audit-info"></p>
+        <div class="viewActions" style="justify-content:center; margin-top:10px;">
+          <button class="btn ghost" type="button" id="sunrise-rta-audit-close">Close</button>
+        </div>
+      </div>
+    </div>
     <div class="contactOverlay" id="inbox-signature-overlay" hidden>
       <div class="contactWindow sunriseMailWindow">
         <div class="kicker"><span class="dot" aria-hidden="true"></span> Sunrise Signatures</div>
@@ -1109,6 +1302,6 @@
     </footer>
   </div>
 
-  <script src="script.js?v=20260301-85"></script>
+  <script src="script.js?v=20260302-96"></script>
 </body>
 </html>

@@ -860,6 +860,356 @@ const accounts = {
   }
 };
 
+function buildManagedStaffSeed({
+  email = "",
+  password = "",
+  secretPhrase = "",
+  prefix = "Mr.",
+  firstName = "",
+  lastName = "",
+  country = "",
+  sunriseAccessLevel = "STA",
+  notosId = "",
+  roleTitle = "Staff",
+  phone = "",
+  staffDivision = "Office",
+  rtaRoles = []
+} = {}) {
+  return {
+    email,
+    password,
+    secretPhrase,
+    prefix,
+    firstName,
+    lastName,
+    country,
+    phone,
+    membership: "Staff",
+    sunriseAccessLevel,
+    notosId,
+    roleTitle,
+    staffDivision,
+    rtaRoles: Array.isArray(rtaRoles) ? rtaRoles.slice() : [],
+    servicesCompleted: 0,
+    pastService: { title: "N/A", details: "Internal employee account.", endedAt: "N/A" },
+    upcomingService: { title: "N/A", details: "Internal employee account.", startsAt: "N/A" },
+    tips: []
+  };
+}
+
+const managedStaffDirectory = {
+  "concierge.basic@vvs.com": buildManagedStaffSeed({
+    email: "concierge.basic@vvs.com",
+    password: "Concierge#2026",
+    secretPhrase: "MarbleKey",
+    prefix: "Ms.",
+    firstName: "Camille",
+    lastName: "Rowan",
+    country: "United Kingdom",
+    sunriseAccessLevel: "STA",
+    notosId: "NTS-2147C",
+    roleTitle: "Office Concierge Associate",
+    phone: "+44 20 7946 8501",
+    staffDivision: "Office",
+    rtaRoles: ["concierge"]
+  }),
+  "office.associate@vvs.com": buildManagedStaffSeed({
+    email: "office.associate@vvs.com",
+    password: "OfficeAssociate#26",
+    secretPhrase: "HelixLedger",
+    prefix: "Ms.",
+    firstName: "Clara",
+    lastName: "Mensah",
+    country: "United Kingdom",
+    sunriseAccessLevel: "SA",
+    notosId: "NTS-2751A",
+    roleTitle: "Office Client Associate",
+    phone: "+44 20 7946 8514",
+    staffDivision: "Office"
+  }),
+  "office.supervisor@vvs.com": buildManagedStaffSeed({
+    email: "office.supervisor@vvs.com",
+    password: "OfficeSupervisor#26",
+    secretPhrase: "BronzeOrbit",
+    prefix: "Mr.",
+    firstName: "Omar",
+    lastName: "Petrov",
+    country: "Bulgaria",
+    sunriseAccessLevel: "SS",
+    notosId: "NTS-3488S",
+    roleTitle: "Office Service Supervisor",
+    phone: "+359 2 492 5508",
+    staffDivision: "Office"
+  }),
+  "office.management@vvs.com": buildManagedStaffSeed({
+    email: "office.management@vvs.com",
+    password: "OfficeManager#26",
+    secretPhrase: "AmberVector",
+    prefix: "Ms.",
+    firstName: "Sofia",
+    lastName: "Arden",
+    country: "Italy",
+    sunriseAccessLevel: "SM",
+    notosId: "NTS-4160M",
+    roleTitle: "Office Operations Manager",
+    phone: "+39 02 8712 4522",
+    staffDivision: "Office"
+  }),
+  "office.directorate@vvs.com": buildManagedStaffSeed({
+    email: "office.directorate@vvs.com",
+    password: "OfficeDirectorate#26",
+    secretPhrase: "IvoryBridge",
+    prefix: "Mr.",
+    firstName: "Matteo",
+    lastName: "Kruger",
+    country: "Germany",
+    sunriseAccessLevel: "DA",
+    notosId: "NTS-5871D",
+    roleTitle: "Office Directorate Coordinator",
+    phone: "+49 30 2840 7611",
+    staffDivision: "Office"
+  }),
+  "office.chairman@vvs.com": buildManagedStaffSeed({
+    email: "office.chairman@vvs.com",
+    password: "OfficeChairman#26",
+    secretPhrase: "OnyxHarbor",
+    prefix: "Mrs.",
+    firstName: "Evelyn",
+    lastName: "Laurent",
+    country: "France",
+    sunriseAccessLevel: "CA",
+    notosId: "NTS-6405C",
+    roleTitle: "Office Executive Chairman Liaison",
+    phone: "+33 1 84 88 1150",
+    staffDivision: "Office"
+  }),
+  "ssr.supervisor@vvs.com": buildManagedStaffSeed({
+    email: "ssr.supervisor@vvs.com",
+    password: "Ssr!Supervisor26",
+    secretPhrase: "AuroraLock",
+    prefix: "Mr.",
+    firstName: "Rafael",
+    lastName: "Novak",
+    country: "Spain",
+    sunriseAccessLevel: "SS",
+    notosId: "NTS-5802R",
+    roleTitle: "Special Service Requests Supervisor",
+    phone: "+34 91 003 4410",
+    staffDivision: "Special Requests"
+  }),
+  "red.concierge.head@vvs.com": buildManagedStaffSeed({
+    email: "red.concierge.head@vvs.com",
+    password: "RedHead#2626",
+    secretPhrase: "CrimsonCode",
+    prefix: "Mrs.",
+    firstName: "Selena",
+    lastName: "Ward",
+    country: "United Arab Emirates",
+    sunriseAccessLevel: "CA",
+    notosId: "NTS-9346S",
+    roleTitle: "RED Head of Concierge Team",
+    phone: "+971 4 555 7701",
+    staffDivision: "Special Requests",
+    rtaRoles: ["concierge"]
+  }),
+  "ops.director@vvs.com": buildManagedStaffSeed({
+    email: "ops.director@vvs.com",
+    password: "DirectorOps@26",
+    secretPhrase: "AtlasNode",
+    prefix: "Dr.",
+    firstName: "Ibrahim",
+    lastName: "Khaled",
+    country: "Qatar",
+    sunriseAccessLevel: "DA",
+    notosId: "NTS-7024K",
+    roleTitle: "Director of Operations",
+    phone: "+974 4008 2140",
+    staffDivision: "Headquarters"
+  }),
+  "cmo@vvs.com": buildManagedStaffSeed({
+    email: "cmo@vvs.com",
+    password: "CMO!Vision26",
+    secretPhrase: "BloomThread",
+    prefix: "Ms.",
+    firstName: "Gianna",
+    lastName: "Vale",
+    country: "Italy",
+    sunriseAccessLevel: "SM",
+    notosId: "NTS-4475V",
+    roleTitle: "Chief Marketing Officer",
+    phone: "+39 02 8712 4490",
+    staffDivision: "Headquarters"
+  }),
+  "pilot.luca@venture-voyagers.com": buildManagedStaffSeed({
+    email: "pilot.luca@venture-voyagers.com",
+    password: "LucaFleet#26",
+    secretPhrase: "AquilaWing",
+    prefix: "Capt.",
+    firstName: "Luca",
+    lastName: "Ferri",
+    country: "United Arab Emirates",
+    sunriseAccessLevel: "SA",
+    notosId: "NTS-4117L",
+    roleTitle: "Fleet Captain",
+    phone: "+971 50 440 1937",
+    staffDivision: "Field",
+    rtaRoles: ["fleet"]
+  }),
+  "pilot.emilia@venture-voyagers.com": buildManagedStaffSeed({
+    email: "pilot.emilia@venture-voyagers.com",
+    password: "EmiliaFleet#26",
+    secretPhrase: "NorthStar",
+    prefix: "Capt.",
+    firstName: "Emilia",
+    lastName: "Rozen",
+    country: "Lithuania",
+    sunriseAccessLevel: "SA",
+    notosId: "NTS-5221E",
+    roleTitle: "Fleet Captain",
+    phone: "+370 612 440 991",
+    staffDivision: "Field",
+    rtaRoles: ["fleet"]
+  }),
+  "driver.rashid@venture-voyagers.com": buildManagedStaffSeed({
+    email: "driver.rashid@venture-voyagers.com",
+    password: "RashidDrive#26",
+    secretPhrase: "DesertRoute",
+    prefix: "Mr.",
+    firstName: "Rashid",
+    lastName: "Al Nuaimi",
+    country: "United Arab Emirates",
+    sunriseAccessLevel: "STA",
+    notosId: "NTS-6382R",
+    roleTitle: "Executive Driver",
+    phone: "+971 52 771 9024",
+    staffDivision: "Field",
+    rtaRoles: ["driver"]
+  }),
+  "driver.tomas@venture-voyagers.com": buildManagedStaffSeed({
+    email: "driver.tomas@venture-voyagers.com",
+    password: "TomasDrive#26",
+    secretPhrase: "BalticRoute",
+    prefix: "Mr.",
+    firstName: "Tomas",
+    lastName: "Vaitkus",
+    country: "Lithuania",
+    sunriseAccessLevel: "STA",
+    notosId: "NTS-6473T",
+    roleTitle: "Executive Driver",
+    phone: "+370 622 771 204",
+    staffDivision: "Field",
+    rtaRoles: ["driver"]
+  }),
+  "concierge.benedict@venture-voyagers.com": buildManagedStaffSeed({
+    email: "concierge.benedict@venture-voyagers.com",
+    password: "BenedictDesk#26",
+    secretPhrase: "GraniteDesk",
+    prefix: "Mr.",
+    firstName: "Benedict",
+    lastName: "Hale",
+    country: "United Arab Emirates",
+    sunriseAccessLevel: "SS",
+    notosId: "NTS-7714B",
+    roleTitle: "Voyager Red Concierge",
+    phone: "+971 58 006 1183",
+    staffDivision: "Special Requests",
+    rtaRoles: ["concierge"]
+  }),
+  "concierge.selene@venture-voyagers.com": buildManagedStaffSeed({
+    email: "concierge.selene@venture-voyagers.com",
+    password: "SeleneDesk#26",
+    secretPhrase: "MonacoDesk",
+    prefix: "Ms.",
+    firstName: "Selene",
+    lastName: "Marwick",
+    country: "Lithuania",
+    sunriseAccessLevel: "SS",
+    notosId: "NTS-7822S",
+    roleTitle: "Voyager Red Concierge",
+    phone: "+370 655 908 332",
+    staffDivision: "Special Requests",
+    rtaRoles: ["concierge"]
+  }),
+  "security.idris@venture-voyagers.com": buildManagedStaffSeed({
+    email: "security.idris@venture-voyagers.com",
+    password: "IdrisSec#26",
+    secretPhrase: "ShieldLine",
+    prefix: "Mr.",
+    firstName: "Idris",
+    lastName: "Kamel",
+    country: "United Arab Emirates",
+    sunriseAccessLevel: "SS",
+    notosId: "NTS-8106I",
+    roleTitle: "Head of Security",
+    phone: "+971 56 990 7742",
+    staffDivision: "Field",
+    rtaRoles: ["security"]
+  }),
+  "security.aurelijus@venture-voyagers.com": buildManagedStaffSeed({
+    email: "security.aurelijus@venture-voyagers.com",
+    password: "AurelijusSec#26",
+    secretPhrase: "IronRoute",
+    prefix: "Mr.",
+    firstName: "Aurelijus",
+    lastName: "Kazlauskas",
+    country: "Lithuania",
+    sunriseAccessLevel: "SS",
+    notosId: "NTS-8264A",
+    roleTitle: "Head of Security",
+    phone: "+370 669 120 883",
+    staffDivision: "Field",
+    rtaRoles: ["security"]
+  }),
+  "special.requests.lina@venture-voyagers.com": buildManagedStaffSeed({
+    email: "special.requests.lina@venture-voyagers.com",
+    password: "LinaRequests#26",
+    secretPhrase: "VelvetThread",
+    prefix: "Ms.",
+    firstName: "Lina",
+    lastName: "Rossi",
+    country: "Italy",
+    sunriseAccessLevel: "SA",
+    notosId: "NTS-9055L",
+    roleTitle: "Special Requests Concierge",
+    phone: "+39 06 9481 3320",
+    staffDivision: "Special Requests",
+    rtaRoles: ["concierge"]
+  })
+};
+
+function cloneManagedStaffValue(value) {
+  if (Array.isArray(value)) return value.map((item) => cloneManagedStaffValue(item));
+  if (value && typeof value === "object") return JSON.parse(JSON.stringify(value));
+  return value;
+}
+
+function hydrateManagedStaffDirectory() {
+  Object.entries(managedStaffDirectory).forEach(([key, seed]) => {
+    if (!accounts[key]) {
+      accounts[key] = cloneManagedStaffValue(seed);
+      return;
+    }
+    const account = accounts[key];
+    Object.entries(seed).forEach(([field, value]) => {
+      if (field === "rtaRoles") {
+        if (!Array.isArray(account.rtaRoles) || !account.rtaRoles.length) {
+          account.rtaRoles = cloneManagedStaffValue(value);
+        }
+        return;
+      }
+      if (field === "tips" || field === "pastService" || field === "upcomingService") {
+        if (!account[field] || (typeof account[field] === "object" && !Object.keys(account[field]).length)) {
+          account[field] = cloneManagedStaffValue(value);
+        }
+        return;
+      }
+      if (account[field] == null || account[field] === "") {
+        account[field] = cloneManagedStaffValue(value);
+      }
+    });
+  });
+}
+
 function normalizeAccountsObject(raw) {
   if (!raw || typeof raw !== "object") return null;
   const normalized = {};
@@ -875,12 +1225,104 @@ function normalizeAccountsObject(raw) {
   return Object.keys(normalized).length ? normalized : null;
 }
 
+function cleanLegacyServiceDescription(text = "", fallback = "") {
+  const cleaned = String(text || "")
+    .replace(/\bAssigned concierge:[^.]*\.?/gi, " ")
+    .replace(/\bHandled by[^.]*\.?/gi, " ")
+    .replace(/\bPreferred contact via[^.]*\.?/gi, " ")
+    .replace(/\bDesired execution:[^.]*\.?/gi, " ")
+    .replace(/\bExecution window:[^.]*\.?/gi, " ")
+    .replace(/\bStatus:[^.]*\.?/gi, " ")
+    .replace(/\bRequest submitted[^.]*\.?/gi, " ")
+    .replace(/\s+/g, " ")
+    .trim();
+  if (!cleaned || cleaned.length < 4 || /^(n|na|n\/a)$/i.test(cleaned)) {
+    return String(fallback || "").trim();
+  }
+  return cleaned;
+}
+
+function inferLegacyUpcomingStatus(card = {}) {
+  const details = String(card?.details || "");
+  const startsAt = String(card?.startsAt || "");
+  if (/confirmed/i.test(details) || /^confirmed\b/i.test(startsAt)) return "Confirmed";
+  if (/pending confirmation/i.test(details) || /pending confirmation/i.test(startsAt)) return "Pending confirmation";
+  return String(card?.statusText || "").trim();
+}
+
+function inferLegacyPastStatus(card = {}) {
+  const details = String(card?.details || "");
+  const endedAt = String(card?.endedAt || "");
+  if (/completed|closed/i.test(details) || /closed/i.test(endedAt)) return "Completed";
+  return String(card?.statusText || "").trim();
+}
+
+function inferLegacyUpcomingTimeframe(card = {}) {
+  const details = String(card?.details || "");
+  const startsAt = String(card?.startsAt || "").trim();
+  const fromStartsAt = startsAt.match(/(?:confirmed\s*[•-]\s*|pending confirmation\s*\()([^.)]+)\)?/i);
+  if (fromStartsAt && fromStartsAt[1]) return fromStartsAt[1].trim();
+  const fromDetails = details.match(/Desired execution:\s*([^.]*)/i);
+  if (fromDetails && fromDetails[1]) return fromDetails[1].trim();
+  if (startsAt && startsAt !== "N/A" && !/pending confirmation|confirmed/i.test(startsAt)) return startsAt;
+  return "";
+}
+
+function inferLegacyPastTime(card = {}) {
+  const endedAt = String(card?.endedAt || "").trim();
+  if (endedAt && endedAt !== "N/A") return endedAt;
+  return "";
+}
+
+function normalizeClientUpcomingServiceCard(card = {}) {
+  const fallback = defaultClientUpcomingServiceCard();
+  const title = String(card?.title || fallback.title).trim() || fallback.title;
+  const statusText = inferLegacyUpcomingStatus(card);
+  const timeframe = inferLegacyUpcomingTimeframe(card);
+  const details = cleanLegacyServiceDescription(
+    String(card?.details || ""),
+    title === fallback.title ? fallback.details : "Your service arrangements are being coordinated."
+  );
+  return {
+    title,
+    details,
+    startsAt: timeframe || (title === fallback.title ? fallback.startsAt : ""),
+    statusText,
+    timeLabel: timeframe ? "Requested timeframe" : ""
+  };
+}
+
+function normalizeClientPastServiceCard(card = {}) {
+  const fallback = defaultClientPastServiceCard();
+  const title = String(card?.title || fallback.title).trim() || fallback.title;
+  const statusText = inferLegacyPastStatus(card);
+  const completedAt = inferLegacyPastTime(card);
+  const details = cleanLegacyServiceDescription(
+    String(card?.details || ""),
+    title === fallback.title ? fallback.details : "This service has been completed successfully."
+  );
+  return {
+    title,
+    details,
+    endedAt: completedAt || (title === fallback.title ? fallback.endedAt : ""),
+    statusText,
+    timeLabel: completedAt ? "Completed" : ""
+  };
+}
+
+function normalizeAccountServiceCards(account) {
+  if (!account || typeof account !== "object") return account;
+  account.upcomingService = normalizeClientUpcomingServiceCard(account.upcomingService);
+  account.pastService = normalizeClientPastServiceCard(account.pastService);
+  return account;
+}
+
 function replaceAccountsData(nextAccounts) {
   const normalized = normalizeAccountsObject(nextAccounts);
   if (!normalized) return false;
   Object.keys(accounts).forEach((key) => delete accounts[key]);
   Object.entries(normalized).forEach(([key, value]) => {
-    accounts[key] = value;
+    accounts[key] = normalizeAccountServiceCards(value);
   });
   return true;
 }
@@ -985,10 +1427,17 @@ function ensureSunriseCredentials() {
         notosId: String(account.notosId || "").trim().toUpperCase()
       };
     } else {
-      accounts[sunriseEmail].sunriseCredential = true;
-      accounts[sunriseEmail].sunriseLinkedEmail = emailKey;
-      if (account.notosId) accounts[sunriseEmail].notosId = String(account.notosId).trim().toUpperCase();
-      if (account.sunriseAccessLevel) accounts[sunriseEmail].sunriseAccessLevel = String(account.sunriseAccessLevel).trim().toUpperCase();
+      accounts[sunriseEmail] = {
+        ...accounts[sunriseEmail],
+        ...account,
+        email: sunriseEmail,
+        password: String(accounts[sunriseEmail].password || account.password || ""),
+        secretPhrase: String(accounts[sunriseEmail].secretPhrase || account.secretPhrase || ""),
+        sunriseCredential: true,
+        sunriseLinkedEmail: emailKey,
+        notosId: String(account.notosId || accounts[sunriseEmail].notosId || "").trim().toUpperCase(),
+        sunriseAccessLevel: String(account.sunriseAccessLevel || accounts[sunriseEmail].sunriseAccessLevel || "").trim().toUpperCase()
+      };
     }
   });
 }
@@ -1024,6 +1473,7 @@ function pruneDuplicateSunriseCredentials() {
 
 initializeAccountsData();
 removeAutoGeneratedAmpNoise();
+hydrateManagedStaffDirectory();
 ensureSunriseCredentials();
 pruneDuplicateSunriseCredentials();
 persistAccountsData();
@@ -2082,6 +2532,9 @@ const TRANSLATION_REQUEST_TIMEOUT_MS = 3000;
 let activeRefreshTimer = null;
 let pendingServiceRequestKey = "";
 let pendingPreferredConcierge = "";
+let sunriseControlState = null;
+let sunriseHasUnsavedChanges = false;
+let sunriseCommittedStateHash = "";
 let sunriseSessionTicker = null;
 const sunriseModuleRoutes = [
   "sunrise-revenue",
@@ -2102,6 +2555,7 @@ const sunriseModuleRoutes = [
   "sunrise-ifs",
   "sunrise-ecs",
   "sunrise-smca",
+  "sunrise-rta",
   "sunrise-rim",
   "sunrise-soc",
   "sunrise-soc-details",
@@ -2131,6 +2585,7 @@ const sunriseShortcutRouteMap = {
   ifs: "sunrise-ifs",
   ecs: "sunrise-ecs",
   smca: "sunrise-smca",
+  rta: "sunrise-rta",
   rim: "sunrise-rim",
   soc: "sunrise-soc",
   lcs: "sunrise-lcs",
@@ -2146,6 +2601,7 @@ const sunriseShortcutDescriptions = {
   ifs: "Income Flow Spreader",
   ecs: "Employees Control System",
   smca: "Sales & Marketing Commissions Adjustments",
+  rta: "Red Team Assigning Menu",
   rim: "Red Inviting Menu",
   soc: "Services & Operations Control",
   lcs: "Notos - Login Control System",
@@ -2161,7 +2617,7 @@ const sunriseAccessRouteDefaults = {
   STA: ["sunrise", "sunrise-inbox", "sunrise-services", "sunrise-performance"],
   SA: ["sunrise", "sunrise-inbox", "sunrise-services", "sunrise-performance", "sunrise-sales", "sunrise-marketing", "sunrise-locations"],
   SS: ["sunrise", "sunrise-inbox", "sunrise-services", "sunrise-performance", "sunrise-sales", "sunrise-marketing", "sunrise-locations", "sunrise-soc", "sunrise-soc-details", "sunrise-employees", "sunrise-lcs"],
-  SM: ["sunrise", "sunrise-inbox", "sunrise-services", "sunrise-performance", "sunrise-sales", "sunrise-marketing", "sunrise-locations", "sunrise-soc", "sunrise-soc-details", "sunrise-employees", "sunrise-lcs", "sunrise-expenses", "sunrise-income", "sunrise-eam", "sunrise-ifs", "sunrise-smca", "sunrise-surveys", "sunrise-events", "sunrise-maintenance", "sunrise-mcc"],
+  SM: ["sunrise", "sunrise-inbox", "sunrise-services", "sunrise-performance", "sunrise-sales", "sunrise-marketing", "sunrise-locations", "sunrise-soc", "sunrise-soc-details", "sunrise-employees", "sunrise-lcs", "sunrise-expenses", "sunrise-income", "sunrise-eam", "sunrise-ifs", "sunrise-smca", "sunrise-rta", "sunrise-surveys", "sunrise-events", "sunrise-maintenance", "sunrise-mcc"],
   DA: sunriseModuleRoutes.slice(),
   CA: sunriseModuleRoutes.slice(),
   OW: sunriseModuleRoutes.slice()
@@ -2187,6 +2643,7 @@ const sunriseAccessKeywordRoutes = {
   alp: ["sunrise-alp"],
   locations: ["sunrise-locations"],
   maintenance: ["sunrise-maintenance"],
+  rta: ["sunrise-rta"],
   rim: ["sunrise-rim"]
 };
 
@@ -2920,6 +3377,7 @@ function suggestedAccessForShortcut(code, route) {
   if (c === "ws" || c === "wr") return "OW";
   if (c === "amp" || c === "alp" || c === "mcc") return "SM,DA,CA,OW";
   if (c === "lcs" || c === "notos" || r === "sunrise-lcs") return "SS,SM,DA,CA,OW";
+  if (c === "rta" || r === "sunrise-rta") return "SM,DA,CA,OW";
   if (r === "sunrise-soc" || r === "sunrise-soc-details" || r === "sunrise-ecs") return "SS,SM,DA,CA,OW";
   return "SA,SS,SM,DA,CA,OW";
 }
@@ -2961,6 +3419,7 @@ function ensureShortcutCodeRegistry() {
     title: String(row?.title || "").trim(),
     access: String(row?.access || "").trim().toUpperCase() || "OW"
   })).filter((row) => !!row.code);
+  syncSunriseDockCodesPreview(sunriseControlState.shortcutCodes);
   return sunriseControlState.shortcutCodes;
 }
 
@@ -3133,32 +3592,12 @@ function setupSunriseShortcutMenu() {
   if (!forms.length) return;
   const helpToggle = document.getElementById("sunrise-shortcut-help-toggle");
   const helpBox = document.getElementById("sunrise-code-help");
-  const renderShortcutHelp = () => {
-    if (!helpBox) return;
-    const registry = ensureShortcutCodeRegistry();
-    if (registry.length) {
-      helpBox.innerHTML = registry
-        .map((entry) => {
-          const code = String(entry.code || "").toUpperCase();
-          const title = String(entry.title || entry.route || "Shortcut").trim();
-          const route = String(entry.route || "").trim();
-          const access = normalizeCodeAccessList(entry.access).join(", ") || "OW";
-          return `<b>${code}</b><p>${title}${route ? ` • ${route}` : ""}<br><small>Access: ${access}</small></p>`;
-        })
-        .join("");
-      return;
-    }
-    helpBox.innerHTML = Object.entries(sunriseShortcutDescriptions)
-      .map(([code, text]) => `<b>${code.toUpperCase()}</b><p>${text}</p>`)
-      .join("");
-  };
   if (helpBox) {
-    renderShortcutHelp();
+    syncSunriseDockCodesPreview(ensureShortcutCodeRegistry());
   }
   if (helpToggle && helpBox && helpToggle.dataset.boundHelp !== "1") {
     helpToggle.addEventListener("click", () => {
-      renderShortcutHelp();
-      helpBox.hidden = !helpBox.hidden;
+      toggleSunriseDockCodes();
     });
     helpToggle.dataset.boundHelp = "1";
   }
@@ -3415,11 +3854,15 @@ function runSunriseDockShortcut() {
   return true;
 }
 
-function toggleSunriseDockCodes() {
+function syncSunriseDockCodesPreview(registry = []) {
   const helpBox = document.getElementById("sunrise-code-help");
+  const toggleBtn = document.getElementById("sunrise-shortcut-help-toggle");
+  const safeRegistry = Array.isArray(registry) ? registry : [];
+  if (toggleBtn instanceof HTMLElement) {
+    toggleBtn.textContent = `Codes (${safeRegistry.length})`;
+  }
   if (!(helpBox instanceof HTMLElement)) return false;
-  const registry = ensureShortcutCodeRegistry();
-  helpBox.innerHTML = (registry.length ? registry : Object.entries(sunriseShortcutDescriptions).map(([code, text]) => ({
+  helpBox.innerHTML = (safeRegistry.length ? safeRegistry : Object.entries(sunriseShortcutDescriptions).map(([code, text]) => ({
     code: String(code || "").toUpperCase(),
     title: String(text || ""),
     route: "",
@@ -3430,9 +3873,21 @@ function toggleSunriseDockCodes() {
       const title = String(entry.title || entry.route || "Shortcut").trim();
       const route = String(entry.route || "").trim();
       const access = normalizeCodeAccessList(entry.access).join(", ") || "OW";
-      return `<b>${code}</b><p>${title}${route ? ` • ${route}` : ""}<br><small>Access: ${access}</small></p>`;
+      return `<article class="sunriseCodeHelpCard">
+        <b>${code}</b>
+        <p>${title}</p>
+        <span>${route ? `Route: ${route}` : "Route: custom action"}</span>
+        <small>Access: ${access}</small>
+      </article>`;
     })
     .join("");
+  return true;
+}
+
+function toggleSunriseDockCodes() {
+  const helpBox = document.getElementById("sunrise-code-help");
+  if (!(helpBox instanceof HTMLElement)) return false;
+  syncSunriseDockCodesPreview(ensureShortcutCodeRegistry());
   const willShow = helpBox.hidden;
   helpBox.hidden = !willShow;
   helpBox.style.display = willShow ? "block" : "none";
@@ -3444,21 +3899,28 @@ window.sunriseDockToggleCodes = toggleSunriseDockCodes;
 
 function ensureSunriseInboxTopButtons() {
   const targets = ["sunrise", ...sunriseModuleRoutes];
+  const accountSettingsTarget = resolveAccountSettingsTarget();
+  const showAccountSettings = !!accountSettingsTarget && !isOwnerAccount(accountSettingsTarget);
   targets.forEach((route) => {
     const page = document.querySelector(`.routePage[data-page="${route}"]`);
     if (!page) return;
     const actions = page.querySelector(".viewTop .viewActions");
     if (!actions) return;
-    if (actions.querySelector('[data-sunrise-top-inbox="1"]')) return;
-    const inboxBtn = document.createElement("a");
-    inboxBtn.className = "btn ghost";
-    inboxBtn.href = "#sunrise-inbox";
-    inboxBtn.setAttribute("data-route", "sunrise-inbox");
-    inboxBtn.setAttribute("data-sunrise-top-inbox", "1");
-    inboxBtn.textContent = "Inbox";
+    actions.querySelectorAll('[data-sunrise-top-inbox="1"]').forEach((btn) => btn.remove());
+    actions.querySelectorAll('[data-sunrise-account-settings="1"]').forEach((btn) => btn.remove());
     const logoutBtn = actions.querySelector("[data-sunrise-logout]") || actions.querySelector("#sunrise-logout-btn");
-    if (logoutBtn) actions.insertBefore(inboxBtn, logoutBtn);
-    else actions.prepend(inboxBtn);
+    if (!showAccountSettings) return;
+    const settingsBtn = document.createElement("button");
+    settingsBtn.type = "button";
+    settingsBtn.className = "btn ghost";
+    settingsBtn.setAttribute("data-sunrise-account-settings", "1");
+    settingsBtn.textContent = "Account Settings";
+    settingsBtn.addEventListener("click", () => {
+      const targetAccount = resolveAccountSettingsTarget();
+      if (targetAccount) openAccountSettingsOverlay(targetAccount);
+    });
+    if (logoutBtn) actions.insertBefore(settingsBtn, logoutBtn);
+    else actions.prepend(settingsBtn);
   });
 }
 
@@ -3478,6 +3940,7 @@ function updateSunriseShortcutDock(route = currentVisibleRoute()) {
   dock.style.left = "50%";
   dock.style.right = "auto";
   dock.style.top = "auto";
+  syncSunriseDockCodesPreview(ensureShortcutCodeRegistry());
   dock.style.bottom = "12px";
   dock.style.transform = "translateX(-50%)";
   dock.style.width = "min(920px, calc(100% - 24px))";
@@ -3670,7 +4133,7 @@ document.addEventListener("click", (e) => {
     showRoute("contact");
     return;
   }
-  const routeLink = clickTarget.closest("[data-route]");
+  const routeLink = clickTarget.closest("a[data-route], button[data-route], [role='button'][data-route]");
   if (routeLink) {
     e.preventDefault();
     showRoute(routeLink.getAttribute("data-route"));
@@ -3703,6 +4166,7 @@ safeStartupCall("populateAllTierBacks", populateAllTierBacks);
 safeStartupCall("initHeroLocator", initHeroLocator);
 safeStartupCall("populateSignupCountries", populateSignupCountries);
 safeStartupCall("populateIssuedServiceCountries", populateIssuedServiceCountries);
+safeStartupCall("populateAccountSettingsCountry", () => populateCountrySelect(document.getElementById("account-settings-country"), "Select country"));
 safeStartupCall("populateNavLanguageCountries", populateNavLanguageCountries);
 safeStartupCall("setupNavLanguageSelector", setupNavLanguageSelector);
 safeStartupCall("setupSignupCountryPhoneAutofill", setupSignupCountryPhoneAutofill);
@@ -3735,7 +4199,51 @@ const contactOverlay = document.getElementById("contact-overlay");
 const contactSuccessMessage = document.getElementById("contact-success-message");
 const contactOverlayClose = document.getElementById("contact-overlay-close");
 const contactSubmitBtn = document.getElementById("contact-submit-btn");
-const contactPrefillFieldIds = ["first-name", "last-name", "title", "phone", "email"];
+const contactPrefillFieldIds = ["first-name", "last-name", "title", "phone", "email", "country-issued"];
+let contactSubmitInFlight = false;
+
+function ensureContactHiddenField(name, value = "") {
+  if (!contactForm || !name) return null;
+  let input = contactForm.querySelector(`input[type="hidden"][name="${name}"]`);
+  if (!(input instanceof HTMLInputElement)) {
+    input = document.createElement("input");
+    input.type = "hidden";
+    input.name = name;
+    contactForm.appendChild(input);
+  }
+  input.value = String(value || "");
+  return input;
+}
+
+function applyContactFormPublicFallbackState({
+  assignedConcierge = "",
+  clientTier = ""
+} = {}) {
+  if (!contactForm) return;
+  contactForm.setAttribute("method", "post");
+  contactForm.setAttribute("action", "/api/contact-submit");
+  contactForm.removeAttribute("onsubmit");
+  if (contactSubmitBtn instanceof HTMLButtonElement) {
+    contactSubmitBtn.removeAttribute("onclick");
+    contactSubmitBtn.setAttribute("formmethod", "post");
+    contactSubmitBtn.setAttribute("formaction", "/api/contact-submit");
+  }
+  ensureContactHiddenField("assignedConcierge", assignedConcierge || "VVS Concierge Desk");
+  ensureContactHiddenField("clientTier", clientTier || "Non-Member");
+}
+
+function submitContactFormNatively() {
+  if (!contactForm) return false;
+  try {
+    contactForm.dataset.nativeSubmit = "1";
+    HTMLFormElement.prototype.submit.call(contactForm);
+    return true;
+  } catch (error) {
+    console.error("Native contact form submit failed:", error);
+    contactForm.dataset.nativeSubmit = "";
+    return false;
+  }
+}
 
 function contactPrefillStorageKey() {
   if (!activeAccount || !activeAccount.email) return "";
@@ -3745,12 +4253,15 @@ function contactPrefillStorageKey() {
 function saveContactPrefillDraft() {
   const key = contactPrefillStorageKey();
   if (!key) return;
+  const selectedMethod = contactForm?.querySelector('input[name="contactMethod"]:checked');
   const payload = {
     firstName: (document.getElementById("first-name")?.value || "").trim(),
     lastName: (document.getElementById("last-name")?.value || "").trim(),
     title: (document.getElementById("title")?.value || "").trim(),
     phone: (document.getElementById("phone")?.value || "").trim(),
-    email: (document.getElementById("email")?.value || "").trim()
+    email: (document.getElementById("email")?.value || "").trim(),
+    countryIssued: (document.getElementById("country-issued")?.value || "").trim(),
+    contactMethod: selectedMethod instanceof HTMLInputElement ? String(selectedMethod.value || "").trim() : ""
   };
   try {
     localStorage.setItem(key, JSON.stringify(payload));
@@ -3778,7 +4289,9 @@ function applyContactAccountPrefill() {
     lastName: String(activeAccount.lastName || "").trim(),
     title: String(activeAccount.prefix || "Mr.").trim(),
     phone: String(activeAccount.phone || "").trim(),
-    email: String(activeAccount.email || "").trim()
+    email: String(activeAccount.email || "").trim(),
+    countryIssued: resolveCountryCode(activeAccount.country) || "",
+    contactMethod: String(activeAccount.lastContactMethod || (activeAccount.email ? "email" : (activeAccount.phone ? "phone" : ""))).trim()
   };
   const draft = loadContactPrefillDraft() || {};
   const finalData = {
@@ -3786,7 +4299,9 @@ function applyContactAccountPrefill() {
     lastName: draft.lastName || defaults.lastName,
     title: draft.title || defaults.title,
     phone: draft.phone || defaults.phone,
-    email: draft.email || defaults.email
+    email: draft.email || defaults.email,
+    countryIssued: draft.countryIssued || defaults.countryIssued,
+    contactMethod: draft.contactMethod || defaults.contactMethod
   };
 
   const first = document.getElementById("first-name");
@@ -3794,11 +4309,19 @@ function applyContactAccountPrefill() {
   const title = document.getElementById("title");
   const phone = document.getElementById("phone");
   const email = document.getElementById("email");
+  const country = document.getElementById("country-issued");
   if (first) first.value = finalData.firstName;
   if (last) last.value = finalData.lastName;
   if (title) title.value = finalData.title;
   if (phone) phone.value = finalData.phone;
   if (email) email.value = finalData.email;
+  if (country) country.value = finalData.countryIssued;
+  const contactMethodInputs = Array.from(contactForm.querySelectorAll('input[name="contactMethod"]'));
+  contactMethodInputs.forEach((input) => {
+    if (!(input instanceof HTMLInputElement)) return;
+    input.checked = String(input.value || "").trim() === finalData.contactMethod;
+  });
+  setupContactMethodChoices();
   if (pendingPreferredConcierge && contactError) {
     contactError.textContent = `Preferred concierge pre-assigned: ${pendingPreferredConcierge}.`;
   } else if (contactError) {
@@ -4178,26 +4701,940 @@ function pushInboxMessage(payload = {}) {
   saveSunriseControlState({ markDirty: false });
 }
 
-function submitServiceIntoSOC({ serviceType = "", clientName = "", tier = "Non-Member", desiredExecutionTime = "", details = "", assigned = "" } = {}) {
+function formatOptionalCountryDisplay(country = "") {
+  const raw = String(country || "").trim();
+  return raw ? countryDisplayName(raw) : "";
+}
+
+const staffDivisionOrder = ["Headquarters", "Office", "Field", "Special Requests"];
+const ampStaffGroupOrder = ["Owners", ...staffDivisionOrder];
+const ampOwnerPreferredKeys = {
+  "aleks totev": "aleks.totev@vvs.com",
+  "mikhail kovalev": "mikhail.kovalev@vvs.com"
+};
+const ampOfficePreferredKeys = {
+  CA: "office.chairman@vvs.com",
+  DA: "office.directorate@vvs.com",
+  SM: "office.management@vvs.com",
+  SS: "office.supervisor@vvs.com",
+  SA: "office.associate@vvs.com",
+  STA: "concierge.basic@vvs.com"
+};
+const rtaRoleMeta = {
+  fleet: { label: "Fleet", accountKey: "pilot" },
+  driver: { label: "Driver", accountKey: "driver" },
+  concierge: { label: "Concierge", accountKey: "concierge" },
+  security: { label: "Head of Security", accountKey: "security" }
+};
+
+function normalizeStaffDivision(value = "", roleTitle = "") {
+  const raw = String(value || "").trim().toLowerCase();
+  if (raw === "owners" || raw === "owner") return "Owners";
+  if (raw === "headquarters" || raw === "hq") return "Headquarters";
+  if (raw === "office") return "Office";
+  if (raw === "field") return "Field";
+  if (raw === "special requests" || raw === "special-requests" || raw === "special_requests") return "Special Requests";
+  const role = String(roleTitle || "").trim().toLowerCase();
+  if (role.includes("special request")) return "Special Requests";
+  if (role.includes("director") || role.includes("chief") || role.includes("chairman") || role.includes("head of concierge")) return "Headquarters";
+  if (role.includes("fleet") || role.includes("driver") || role.includes("security") || role.includes("captain")) return "Field";
+  return "Office";
+}
+
+function normalizeRtaRoles(value = [], roleTitle = "") {
+  const source = Array.isArray(value)
+    ? value
+    : String(value || "").split(",").map((item) => item.trim()).filter(Boolean);
+  const normalized = source.map((item) => String(item || "").trim().toLowerCase()).filter((item) => !!rtaRoleMeta[item]);
+  if (normalized.length) return Array.from(new Set(normalized));
+  const role = String(roleTitle || "").trim().toLowerCase();
+  const inferred = [];
+  if (role.includes("fleet") || role.includes("pilot") || role.includes("captain")) inferred.push("fleet");
+  if (role.includes("driver") || role.includes("chauffeur")) inferred.push("driver");
+  if (role.includes("concierge")) inferred.push("concierge");
+  if (role.includes("security")) inferred.push("security");
+  return Array.from(new Set(inferred));
+}
+
+function isVoyagerRedAccount(account) {
+  if (!account || account.sunriseCredential) return false;
+  return String(account.membership || "").trim().toLowerCase() === "voyager red";
+}
+
+function rtaRoleLabel(role = "") {
+  return rtaRoleMeta[String(role || "").trim().toLowerCase()]?.label || "Team Role";
+}
+
+function rtaAccountKeyForRole(role = "") {
+  return rtaRoleMeta[String(role || "").trim().toLowerCase()]?.accountKey || String(role || "").trim().toLowerCase();
+}
+
+function rtaEligibleStaffEntries(role = "") {
+  const normalizedRole = String(role || "").trim().toLowerCase();
+  return Object.entries(accounts)
+    .filter(([, account]) => {
+      if (!account || account.sunriseCredential) return false;
+      if (String(account.membership || "").trim().toLowerCase() !== "staff") return false;
+      const roles = normalizeRtaRoles(account.rtaRoles, account.roleTitle);
+      return roles.includes(normalizedRole);
+    })
+    .sort((a, b) => {
+      const aName = `${String(a[1]?.firstName || "").trim()} ${String(a[1]?.lastName || "").trim()}`.trim().toLowerCase();
+      const bName = `${String(b[1]?.firstName || "").trim()} ${String(b[1]?.lastName || "").trim()}`.trim().toLowerCase();
+      return aName.localeCompare(bName);
+    });
+}
+
+function normalizeRtaAssignmentStatus(value = "") {
+  const status = String(value || "").trim().toLowerCase();
+  if (status === "confirmed") return "Confirmed";
+  if (status === "pending confirmation" || status === "pending") return "Pending Confirmation";
+  return "Unassigned";
+}
+
+function normalizeRtaPendingAction(value = "") {
+  const action = String(value || "").trim().toLowerCase();
+  if (["assign", "switch", "clear"].includes(action)) return action;
+  return "";
+}
+
+function currentRtaApprovalLevel(account = getCurrentSunriseOperator()) {
+  if (!account) return "";
+  if (isOwnerAccount(account)) return "OW";
+  return String(account.sunriseAccessLevel || "").trim().toUpperCase();
+}
+
+function canAccessRta(account = getCurrentSunriseOperator()) {
+  const level = currentRtaApprovalLevel(account);
+  return ["SM", "DA", "CA", "OW"].includes(level);
+}
+
+function canApproveRtaAssignment(account = getCurrentSunriseOperator()) {
+  const level = currentRtaApprovalLevel(account);
+  return ["DA", "CA", "OW"].includes(level);
+}
+
+function canManageRtaSwitch(account = getCurrentSunriseOperator()) {
+  const level = currentRtaApprovalLevel(account);
+  return ["DA", "CA", "OW"].includes(level);
+}
+
+function canEmptyRtaTeam(account = getCurrentSunriseOperator()) {
+  const level = currentRtaApprovalLevel(account);
+  return ["CA", "OW"].includes(level);
+}
+
+function redMemberAccountEntries() {
+  return Object.entries(accounts)
+    .filter(([, account]) => isVoyagerRedAccount(account))
+    .sort((a, b) => {
+      const aName = `${String(a[1]?.firstName || "").trim()} ${String(a[1]?.lastName || "").trim()}`.trim().toLowerCase();
+      const bName = `${String(b[1]?.firstName || "").trim()} ${String(b[1]?.lastName || "").trim()}`.trim().toLowerCase();
+      return aName.localeCompare(bName);
+    });
+}
+
+function buildRtaOperatorLabel(account = getCurrentSunriseOperator()) {
+  if (!account) return "";
+  const fullName = `${String(account.firstName || "").trim()} ${String(account.lastName || "").trim()}`.trim();
+  const level = currentRtaApprovalLevel(account) || "STA";
+  return fullName ? `${fullName} (${level})` : level;
+}
+
+function buildRtaTeamAssignmentText(account, role = "") {
+  if (!account) return "";
+  const parts = [];
+  const fullName = `${String(account.firstName || "").trim()} ${String(account.lastName || "").trim()}`.trim();
+  if (fullName) parts.push(fullName);
+  const title = String(account.roleTitle || rtaRoleLabel(role)).trim();
+  if (title) parts.push(title);
+  if (account.email) parts.push(String(account.email).trim().toLowerCase());
+  if (account.phone) parts.push(String(account.phone).trim());
+  return parts.filter(Boolean).join(" | ");
+}
+
+function buildRtaTeamOptionLabel(account, role = "") {
+  if (!account) return "";
+  const fullName = `${String(account.firstName || "").trim()} ${String(account.lastName || "").trim()}`.trim();
+  const title = String(account.roleTitle || rtaRoleLabel(role)).trim();
+  return [fullName, title].filter(Boolean).join(" • ");
+}
+
+function findStaffKeyByLegacyTeamValue(value = "", role = "") {
+  const raw = String(value || "").trim().toLowerCase();
+  if (!raw) return "";
+  const match = rtaEligibleStaffEntries(role).find(([, account]) => {
+    const email = String(account?.email || "").trim().toLowerCase();
+    const fullName = `${String(account?.firstName || "").trim()} ${String(account?.lastName || "").trim()}`.trim().toLowerCase();
+    return (email && raw.includes(email)) || (fullName && raw.includes(fullName));
+  });
+  return match ? match[0] : "";
+}
+
+function normalizeRtaAssignment(row = {}) {
+  return {
+    clientKey: String(row?.clientKey || "").trim().toLowerCase(),
+    clientEmail: String(row?.clientEmail || "").trim(),
+    clientName: String(row?.clientName || "").trim(),
+    clientCountry: String(row?.clientCountry || "").trim(),
+    clientPhone: String(row?.clientPhone || "").trim(),
+    tier: String(row?.tier || "Voyager Red").trim(),
+    fleetStaffKey: String(row?.fleetStaffKey || "").trim().toLowerCase(),
+    driverStaffKey: String(row?.driverStaffKey || "").trim().toLowerCase(),
+    conciergeStaffKey: String(row?.conciergeStaffKey || "").trim().toLowerCase(),
+    securityStaffKey: String(row?.securityStaffKey || "").trim().toLowerCase(),
+    publishedFleetStaffKey: String(row?.publishedFleetStaffKey || "").trim().toLowerCase(),
+    publishedDriverStaffKey: String(row?.publishedDriverStaffKey || "").trim().toLowerCase(),
+    publishedConciergeStaffKey: String(row?.publishedConciergeStaffKey || "").trim().toLowerCase(),
+    publishedSecurityStaffKey: String(row?.publishedSecurityStaffKey || "").trim().toLowerCase(),
+    status: normalizeRtaAssignmentStatus(row?.status),
+    pendingAction: normalizeRtaPendingAction(row?.pendingAction),
+    requestedBy: String(row?.requestedBy || "").trim(),
+    requestedAt: String(row?.requestedAt || "").trim(),
+    confirmedBy: String(row?.confirmedBy || "").trim(),
+    confirmedAt: String(row?.confirmedAt || "").trim(),
+    auditLog: Array.isArray(row?.auditLog)
+      ? row.auditLog.map((item) => String(item || "").trim()).filter(Boolean).slice(0, 12)
+      : []
+  };
+}
+
+function buildSeedRtaAssignmentFromAccount(key, account) {
+  return normalizeRtaAssignment({
+    clientKey: key,
+    clientEmail: String(account?.email || key || "").trim(),
+    clientName: `${String(account?.firstName || "").trim()} ${String(account?.lastName || "").trim()}`.trim(),
+    clientCountry: String(account?.country || "").trim(),
+    clientPhone: String(account?.phone || "").trim(),
+    tier: String(account?.membership || "Voyager Red").trim(),
+    fleetStaffKey: findStaffKeyByLegacyTeamValue(account?.assignedTeam?.pilot, "fleet"),
+    driverStaffKey: findStaffKeyByLegacyTeamValue(account?.assignedTeam?.driver, "driver"),
+    conciergeStaffKey: findStaffKeyByLegacyTeamValue(account?.assignedTeam?.concierge, "concierge"),
+    securityStaffKey: findStaffKeyByLegacyTeamValue(account?.assignedTeam?.security, "security"),
+    publishedFleetStaffKey: findStaffKeyByLegacyTeamValue(account?.assignedTeam?.pilot, "fleet"),
+    publishedDriverStaffKey: findStaffKeyByLegacyTeamValue(account?.assignedTeam?.driver, "driver"),
+    publishedConciergeStaffKey: findStaffKeyByLegacyTeamValue(account?.assignedTeam?.concierge, "concierge"),
+    publishedSecurityStaffKey: findStaffKeyByLegacyTeamValue(account?.assignedTeam?.security, "security"),
+    status: account?.assignedTeam ? "Confirmed" : "Unassigned"
+  });
+}
+
+function ensureRtaAssignmentsStore() {
   if (!sunriseControlState) return;
-  if (!sunriseControlState.socServices) sunriseControlState.socServices = { current: [], past: [], deleted: [] };
-  if (!Array.isArray(sunriseControlState.socServices.current)) sunriseControlState.socServices.current = [];
-  sunriseControlState.socServices.current.unshift({
-    id: generateServiceId(),
+  if (!Array.isArray(sunriseControlState.rtaAssignments)) sunriseControlState.rtaAssignments = [];
+  const existingByClient = new Map();
+  sunriseControlState.rtaAssignments = sunriseControlState.rtaAssignments
+    .map((row) => normalizeRtaAssignment(row))
+    .filter((row) => !!row.clientKey);
+  sunriseControlState.rtaAssignments.forEach((row, idx) => {
+    if (!existingByClient.has(row.clientKey)) existingByClient.set(row.clientKey, idx);
+  });
+  redMemberAccountEntries().forEach(([key, account]) => {
+    if (!existingByClient.has(key)) {
+      sunriseControlState.rtaAssignments.push(buildSeedRtaAssignmentFromAccount(key, account));
+      existingByClient.set(key, sunriseControlState.rtaAssignments.length - 1);
+      return;
+    }
+    const row = sunriseControlState.rtaAssignments[existingByClient.get(key)];
+    row.clientKey = key;
+    row.clientEmail = String(account?.email || row.clientEmail || key || "").trim();
+    row.clientName = `${String(account?.firstName || "").trim()} ${String(account?.lastName || "").trim()}`.trim();
+    row.clientCountry = String(account?.country || row.clientCountry || "").trim();
+    row.clientPhone = String(account?.phone || row.clientPhone || "").trim();
+    row.tier = String(account?.membership || row.tier || "Voyager Red").trim();
+    if (row.status === "Confirmed") {
+      if (!row.publishedFleetStaffKey && row.fleetStaffKey) row.publishedFleetStaffKey = row.fleetStaffKey;
+      if (!row.publishedDriverStaffKey && row.driverStaffKey) row.publishedDriverStaffKey = row.driverStaffKey;
+      if (!row.publishedConciergeStaffKey && row.conciergeStaffKey) row.publishedConciergeStaffKey = row.conciergeStaffKey;
+      if (!row.publishedSecurityStaffKey && row.securityStaffKey) row.publishedSecurityStaffKey = row.securityStaffKey;
+    }
+    const hasPublishedSelection = hasAnyRtaSelection(rtaPublishedSelectionFromAssignment(row));
+    const hasWorkingSelection = hasAnyRtaSelection(rtaSelectionFromAssignment(row));
+    if (!row.requestedBy && !row.requestedAt && !row.confirmedBy && !row.confirmedAt && !row.auditLog.length) {
+      if (!hasWorkingSelection && account?.assignedTeam) {
+        row.fleetStaffKey = findStaffKeyByLegacyTeamValue(account.assignedTeam.pilot, "fleet");
+        row.driverStaffKey = findStaffKeyByLegacyTeamValue(account.assignedTeam.driver, "driver");
+        row.conciergeStaffKey = findStaffKeyByLegacyTeamValue(account.assignedTeam.concierge, "concierge");
+        row.securityStaffKey = findStaffKeyByLegacyTeamValue(account.assignedTeam.security, "security");
+      }
+      if (!hasPublishedSelection && account?.assignedTeam) {
+        row.publishedFleetStaffKey = findStaffKeyByLegacyTeamValue(account.assignedTeam.pilot, "fleet");
+        row.publishedDriverStaffKey = findStaffKeyByLegacyTeamValue(account.assignedTeam.driver, "driver");
+        row.publishedConciergeStaffKey = findStaffKeyByLegacyTeamValue(account.assignedTeam.concierge, "concierge");
+        row.publishedSecurityStaffKey = findStaffKeyByLegacyTeamValue(account.assignedTeam.security, "security");
+      }
+      if (account?.assignedTeam && !hasAnyRtaSelection(rtaPublishedSelectionFromAssignment(row)) && !hasAnyRtaSelection(rtaSelectionFromAssignment(row))) {
+        row.status = "Confirmed";
+      }
+    }
+  });
+}
+
+function findRtaAssignmentByClientKey(clientKey = "") {
+  if (!sunriseControlState || !Array.isArray(sunriseControlState.rtaAssignments)) return null;
+  const key = String(clientKey || "").trim().toLowerCase();
+  return sunriseControlState.rtaAssignments.find((row) => String(row?.clientKey || "").trim().toLowerCase() === key) || null;
+}
+
+function rtaPendingCount() {
+  if (!sunriseControlState || !Array.isArray(sunriseControlState.rtaAssignments)) return 0;
+  return sunriseControlState.rtaAssignments.filter((row) => normalizeRtaAssignmentStatus(row?.status) === "Pending Confirmation").length;
+}
+
+function buildRtaProfileStatusNote(status = "", at = "") {
+  const normalized = normalizeRtaAssignmentStatus(status);
+  const timestamp = String(at || "").trim();
+  if (normalized === "Pending Confirmation") {
+    return timestamp
+      ? `Team update pending executive confirmation since ${timestamp}.`
+      : "Team update pending executive confirmation.";
+  }
+  if (normalized === "Confirmed") {
+    return timestamp
+      ? `Team confirmed and active as of ${timestamp}.`
+      : "Team confirmed and active.";
+  }
+  return "";
+}
+
+function rtaSelectionFromAssignment(assignment = {}) {
+  return {
+    fleetStaffKey: String(assignment?.fleetStaffKey || "").trim().toLowerCase(),
+    driverStaffKey: String(assignment?.driverStaffKey || "").trim().toLowerCase(),
+    conciergeStaffKey: String(assignment?.conciergeStaffKey || "").trim().toLowerCase(),
+    securityStaffKey: String(assignment?.securityStaffKey || "").trim().toLowerCase()
+  };
+}
+
+function rtaPublishedSelectionFromAssignment(assignment = {}) {
+  return {
+    fleetStaffKey: String(assignment?.publishedFleetStaffKey || "").trim().toLowerCase(),
+    driverStaffKey: String(assignment?.publishedDriverStaffKey || "").trim().toLowerCase(),
+    conciergeStaffKey: String(assignment?.publishedConciergeStaffKey || "").trim().toLowerCase(),
+    securityStaffKey: String(assignment?.publishedSecurityStaffKey || "").trim().toLowerCase()
+  };
+}
+
+function applyRtaSelectionToAssignment(assignment, selection = {}) {
+  if (!assignment) return;
+  assignment.fleetStaffKey = String(selection.fleetStaffKey || "").trim().toLowerCase();
+  assignment.driverStaffKey = String(selection.driverStaffKey || "").trim().toLowerCase();
+  assignment.conciergeStaffKey = String(selection.conciergeStaffKey || "").trim().toLowerCase();
+  assignment.securityStaffKey = String(selection.securityStaffKey || "").trim().toLowerCase();
+}
+
+function publishRtaSelection(assignment) {
+  if (!assignment) return;
+  assignment.publishedFleetStaffKey = String(assignment.fleetStaffKey || "").trim().toLowerCase();
+  assignment.publishedDriverStaffKey = String(assignment.driverStaffKey || "").trim().toLowerCase();
+  assignment.publishedConciergeStaffKey = String(assignment.conciergeStaffKey || "").trim().toLowerCase();
+  assignment.publishedSecurityStaffKey = String(assignment.securityStaffKey || "").trim().toLowerCase();
+}
+
+function clearPublishedRtaSelection(assignment) {
+  if (!assignment) return;
+  assignment.publishedFleetStaffKey = "";
+  assignment.publishedDriverStaffKey = "";
+  assignment.publishedConciergeStaffKey = "";
+  assignment.publishedSecurityStaffKey = "";
+}
+
+function clearRtaSelection(assignment) {
+  if (!assignment) return;
+  assignment.fleetStaffKey = "";
+  assignment.driverStaffKey = "";
+  assignment.conciergeStaffKey = "";
+  assignment.securityStaffKey = "";
+}
+
+function clearRtaAssignmentState(assignment) {
+  if (!assignment) return;
+  clearRtaSelection(assignment);
+  clearPublishedRtaSelection(assignment);
+  assignment.status = "Unassigned";
+  assignment.pendingAction = "";
+  assignment.requestedBy = "";
+  assignment.requestedAt = "";
+  assignment.confirmedBy = "";
+  assignment.confirmedAt = "";
+}
+
+function hasAnyRtaSelection(selection = {}) {
+  return !!(selection.fleetStaffKey || selection.driverStaffKey || selection.conciergeStaffKey || selection.securityStaffKey);
+}
+
+function hasCompleteRtaSelection(selection = {}) {
+  return !!(selection.fleetStaffKey && selection.driverStaffKey && selection.conciergeStaffKey && selection.securityStaffKey);
+}
+
+function rtaSelectionsMatch(a = {}, b = {}) {
+  return String(a.fleetStaffKey || "") === String(b.fleetStaffKey || "")
+    && String(a.driverStaffKey || "") === String(b.driverStaffKey || "")
+    && String(a.conciergeStaffKey || "") === String(b.conciergeStaffKey || "")
+    && String(a.securityStaffKey || "") === String(b.securityStaffKey || "");
+}
+
+function buildRtaAuditEntries(assignment = {}) {
+  const explicit = Array.isArray(assignment.auditLog)
+    ? assignment.auditLog.map((item) => String(item || "").trim()).filter(Boolean)
+    : [];
+  if (explicit.length) return explicit;
+  const legacy = [];
+  if (assignment.requestedBy) legacy.push(`Requested by ${assignment.requestedBy}${assignment.requestedAt ? ` on ${assignment.requestedAt}` : ""}`);
+  if (assignment.confirmedBy) legacy.push(`Confirmed by ${assignment.confirmedBy}${assignment.confirmedAt ? ` on ${assignment.confirmedAt}` : ""}`);
+  return legacy;
+}
+
+function appendRtaAuditEntry(assignment, text = "") {
+  if (!assignment) return;
+  if (!Array.isArray(assignment.auditLog)) assignment.auditLog = [];
+  const message = String(text || "").trim();
+  if (!message) return;
+  assignment.auditLog.unshift(message);
+  if (assignment.auditLog.length > 12) assignment.auditLog = assignment.auditLog.slice(0, 12);
+}
+
+function hydrateRtaAssignmentClientFields(assignment, clientKey = "", client = null) {
+  if (!assignment) return;
+  assignment.clientKey = String(clientKey || assignment.clientKey || "").trim().toLowerCase();
+  assignment.clientEmail = String(client?.email || clientKey || assignment.clientEmail || "").trim();
+  assignment.clientName = `${String(client?.firstName || "").trim()} ${String(client?.lastName || "").trim()}`.trim() || String(assignment.clientName || "").trim();
+  assignment.clientCountry = String(client?.country || assignment.clientCountry || "").trim();
+  assignment.clientPhone = String(client?.phone || assignment.clientPhone || "").trim();
+  assignment.tier = String(client?.membership || assignment.tier || "Voyager Red").trim();
+}
+
+function setRtaPendingSubmission(assignment, selection = {}, pendingAction = "assign") {
+  if (!assignment) return;
+  applyRtaSelectionToAssignment(assignment, selection);
+  assignment.status = "Pending Confirmation";
+  assignment.pendingAction = normalizeRtaPendingAction(pendingAction);
+  assignment.requestedBy = buildRtaOperatorLabel();
+  assignment.requestedAt = formatUtcTimestamp(new Date());
+  assignment.confirmedBy = "";
+  assignment.confirmedAt = "";
+}
+
+function confirmRtaSelection(assignment) {
+  if (!assignment) return;
+  assignment.status = "Confirmed";
+  assignment.pendingAction = "";
+  assignment.confirmedBy = buildRtaOperatorLabel();
+  assignment.confirmedAt = formatUtcTimestamp(new Date());
+  if (!assignment.requestedBy) assignment.requestedBy = buildRtaOperatorLabel();
+  if (!assignment.requestedAt) assignment.requestedAt = formatUtcTimestamp(new Date());
+  publishRtaSelection(assignment);
+}
+
+function syncRedTeamAssignmentsToClientAccounts() {
+  if (!sunriseControlState) return;
+  ensureRtaAssignmentsStore();
+  let activeAccountChanged = false;
+  sunriseControlState.rtaAssignments.forEach((assignment) => {
+    const key = String(assignment?.clientKey || "").trim().toLowerCase();
+    if (!key || !accounts[key]) return;
+    const account = accounts[key];
+    if (!isVoyagerRedAccount(account)) return;
+    const nextStatus = normalizeRtaAssignmentStatus(assignment.status);
+    const publishedSelection = rtaPublishedSelectionFromAssignment(assignment);
+    if (nextStatus === "Confirmed" && hasCompleteRtaSelection(rtaSelectionFromAssignment(assignment)) && !hasCompleteRtaSelection(publishedSelection)) {
+      publishRtaSelection(assignment);
+    }
+    const effectiveSelection = nextStatus === "Confirmed"
+      ? rtaSelectionFromAssignment(assignment)
+      : publishedSelection;
+    const fleet = accounts[effectiveSelection.fleetStaffKey] || null;
+    const driver = accounts[effectiveSelection.driverStaffKey] || null;
+    const concierge = accounts[effectiveSelection.conciergeStaffKey] || null;
+    const security = accounts[effectiveSelection.securityStaffKey] || null;
+    const nextTeam = (fleet || driver || concierge || security) ? {
+      pilot: buildRtaTeamAssignmentText(fleet, "fleet"),
+      driver: buildRtaTeamAssignmentText(driver, "driver"),
+      concierge: buildRtaTeamAssignmentText(concierge, "concierge"),
+      security: buildRtaTeamAssignmentText(security, "security")
+    } : null;
+    const nextNote = buildRtaProfileStatusNote(nextStatus, assignment.confirmedAt || assignment.requestedAt);
+    if (nextTeam) {
+      account.assignedTeam = nextTeam;
+      account.redTeamAssignmentStatus = nextStatus;
+      account.redTeamAssignmentNote = nextNote;
+    } else {
+      delete account.assignedTeam;
+      delete account.redTeamAssignmentStatus;
+      delete account.redTeamAssignmentNote;
+    }
+    if (activeAccount && normalizeEmailAddress(activeAccount.email) === key) activeAccountChanged = true;
+  });
+  if (activeAccountChanged && activeAccount) {
+    const activeKey = normalizeEmailAddress(activeAccount.email);
+    if (activeKey && accounts[activeKey]) {
+      activeAccount = accounts[activeKey];
+      persistActiveSession(activeAccount);
+      renderProfile(activeAccount);
+    }
+  }
+}
+
+function resolveAccountByServiceClient({ clientAccountEmail = "", clientEmail = "", clientName = "" } = {}) {
+  const directKeys = [clientAccountEmail, clientEmail]
+    .map((value) => normalizeEmailAddress(value))
+    .filter(Boolean);
+  for (const key of directKeys) {
+    if (accounts[key] && !accounts[key].sunriseCredential) {
+      return { key, account: accounts[key] };
+    }
+  }
+
+  const normalizedClientName = String(clientName || "").trim().toLowerCase();
+  if (!normalizedClientName) {
+    return { key: directKeys[0] || "", account: null };
+  }
+
+  const match = Object.entries(accounts).find(([, account]) => {
+    if (!account || account.sunriseCredential) return false;
+    const fullName = `${String(account.firstName || "").trim()} ${String(account.lastName || "").trim()}`.trim().toLowerCase();
+    return !!fullName && fullName === normalizedClientName;
+  });
+
+  if (!match) return { key: directKeys[0] || "", account: null };
+  return { key: match[0], account: match[1] };
+}
+
+function resolveSocClientCredentials(service = {}) {
+  const match = resolveAccountByServiceClient({
+    clientAccountEmail: service.clientAccountEmail,
+    clientEmail: service.clientEmail,
+    clientName: service.client
+  });
+  const account = match.account;
+  const rawEmail = String(service.clientEmail || account?.email || match.key || "").trim();
+  const rawPhone = String(service.clientPhone || account?.phone || "").trim();
+  const rawCountry = String(service.clientCountry || account?.country || "").trim();
+  const rawMethod = String(
+    service.preferredContactMethod
+    || account?.lastContactMethod
+    || (rawEmail ? "email" : (rawPhone ? "phone" : ""))
+  ).trim().toLowerCase();
+
+  return {
+    clientAccountEmail: normalizeEmailAddress(service.clientAccountEmail || rawEmail || match.key || ""),
+    clientTitle: String(service.clientTitle || account?.prefix || "").trim(),
+    clientEmail: rawEmail,
+    clientPhone: rawPhone,
+    clientCountry: rawCountry ? countryDisplayName(rawCountry) : "",
+    preferredContactMethod: rawMethod
+  };
+}
+
+function createSocServiceRecord({
+  serviceId = "",
+  serviceType = "",
+  clientName = "",
+  tier = "Non-Member",
+  desiredExecutionTime = "",
+  details = "",
+  assigned = "",
+  assignedAt = "",
+  confirmedAt = "",
+  status = "",
+  stage = "Current",
+  budget = 0,
+  steps = null,
+  clientTitle = "",
+  clientEmail = "",
+  clientPhone = "",
+  clientCountry = "",
+  preferredContactMethod = "",
+  clientAccountEmail = ""
+} = {}) {
+  const resolvedAssigned = String(assigned || "").trim() || "Unassigned";
+  const resolvedStatus = String(status || "").trim() || "Awaiting Confirmation";
+  const credentials = resolveSocClientCredentials({
+    client: clientName,
+    clientTitle,
+    clientEmail,
+    clientPhone,
+    clientCountry,
+    preferredContactMethod,
+    clientAccountEmail
+  });
+  return {
+    id: serviceId || generateServiceId(),
     title: serviceType || "Service Request",
     client: clientName || "New Client",
     tier: tier || "Non-Member",
     desiredExecutionTime: desiredExecutionTime || "24h",
     description: details || "",
-    assigned: assigned || "Unassigned",
-    assignedAt: assigned ? formatUtcTimestamp(new Date()) : "",
-    confirmedAt: "",
-    status: "Awaiting Confirmation",
-    stage: "Current",
-    budget: 0,
-    steps: defaultSocSteps()
-  });
+    assigned: resolvedAssigned,
+    assignedAt: assignedAt || (resolvedAssigned.toLowerCase() !== "unassigned" ? formatUtcTimestamp(new Date()) : ""),
+    confirmedAt: confirmedAt || "",
+    status: resolvedStatus,
+    stage: stage || "Current",
+    budget: Number.isFinite(Number(budget)) ? Number(budget) : 0,
+    clientTitle: credentials.clientTitle,
+    clientEmail: credentials.clientEmail,
+    clientPhone: credentials.clientPhone,
+    clientCountry: credentials.clientCountry,
+    preferredContactMethod: credentials.preferredContactMethod,
+    clientAccountEmail: credentials.clientAccountEmail,
+    steps: Array.isArray(steps) ? steps : defaultSocSteps()
+  };
+}
+
+function submitServiceIntoSOC({
+  serviceType = "",
+  clientName = "",
+  tier = "Non-Member",
+  desiredExecutionTime = "",
+  details = "",
+  assigned = "",
+  clientTitle = "",
+  clientEmail = "",
+  clientPhone = "",
+  clientCountry = "",
+  preferredContactMethod = "",
+  clientAccountEmail = ""
+} = {}) {
+  if (!sunriseControlState) return;
+  if (!sunriseControlState.socServices) sunriseControlState.socServices = { current: [], past: [], deleted: [] };
+  if (!Array.isArray(sunriseControlState.socServices.current)) sunriseControlState.socServices.current = [];
+  sunriseControlState.socServices.current.unshift(createSocServiceRecord({
+    serviceType,
+    clientName,
+    tier,
+    desiredExecutionTime,
+    details,
+    assigned,
+    clientTitle,
+    clientEmail,
+    clientPhone,
+    clientCountry,
+    preferredContactMethod,
+    clientAccountEmail
+  }));
   saveSunriseControlState({ markDirty: false });
+}
+
+function normalizeSocServiceStatus(status = "") {
+  const value = String(status || "").trim().toLowerCase();
+  if (value === "closed") return "Closed";
+  if (value === "confirmed") return "Confirmed";
+  if (value === "assigned") return "Assigned";
+  if (value === "awaiting confirmation") return "Awaiting Confirmation";
+  return value ? String(status).trim() : "Awaiting Confirmation";
+}
+
+function defaultClientUpcomingServiceCard() {
+  return {
+    title: "No upcoming service yet",
+    details: "Book your first VVS service to start your schedule.",
+    startsAt: "N/A",
+    statusText: "",
+    timeLabel: ""
+  };
+}
+
+function defaultClientPastServiceCard() {
+  return {
+    title: "No completed service yet",
+    details: "No previous service records available.",
+    endedAt: "N/A",
+    statusText: "",
+    timeLabel: ""
+  };
+}
+
+function socStatusPriority(status = "") {
+  const normalized = normalizeSocServiceStatus(status);
+  if (normalized === "Confirmed") return 3;
+  if (normalized === "Assigned") return 2;
+  if (normalized === "Awaiting Confirmation") return 1;
+  return 0;
+}
+
+function socBucketPriority(bucket = "") {
+  if (bucket === "current") return 2;
+  if (bucket === "past") return 1;
+  return 0;
+}
+
+function compareSocServiceCandidates(a, b) {
+  const statusDiff = socStatusPriority(b?.service?.status) - socStatusPriority(a?.service?.status);
+  if (statusDiff) return statusDiff;
+  const bucketDiff = socBucketPriority(b?.bucket) - socBucketPriority(a?.bucket);
+  if (bucketDiff) return bucketDiff;
+  return Number(a?.idx || 0) - Number(b?.idx || 0);
+}
+
+function buildUpcomingServiceCardFromSoc(service = {}) {
+  const normalizedStatus = normalizeSocServiceStatus(service.status);
+  const description = String(service.description || "").trim() || "Your service request has been received and is being prepared.";
+
+  return {
+    title: String(service.title || "Service Request").trim() || "Service Request",
+    details: description,
+    statusText: normalizedStatus === "Confirmed" ? "Confirmed" : "Pending confirmation",
+    startsAt: String(service.desiredExecutionTime || "").trim(),
+    timeLabel: String(service.desiredExecutionTime || "").trim() ? "Requested timeframe" : ""
+  };
+}
+
+function buildPastServiceCardFromSoc(service = {}) {
+  const description = String(service.description || "").trim() || "This service has been completed successfully.";
+
+  return {
+    title: String(service.title || "Completed Service").trim() || "Completed Service",
+    details: description,
+    statusText: "Completed",
+    endedAt: String(service.confirmedAt || service.assignedAt || "").trim() || "Closed",
+    timeLabel: "Completed"
+  };
+}
+
+function syncSocServicesToClientAccounts() {
+  if (!sunriseControlState) return;
+  const groups = sunriseControlState.socServices || {};
+  const accountStates = new Map();
+  const managedKeys = new Set(
+    Object.entries(accounts)
+      .filter(([, account]) => !!(account?.socUpcomingServiceId || account?.socPastServiceId))
+      .map(([key]) => String(key || "").trim().toLowerCase())
+  );
+
+  ["current", "past"].forEach((bucket) => {
+    const list = Array.isArray(groups[bucket]) ? groups[bucket] : [];
+    list.forEach((service, idx) => {
+      const match = resolveAccountByServiceClient({
+        clientAccountEmail: service?.clientAccountEmail,
+        clientEmail: service?.clientEmail,
+        clientName: service?.client
+      });
+      const key = String(match?.key || "").trim().toLowerCase();
+      const account = key && accounts[key] ? accounts[key] : null;
+      if (!account || account.sunriseCredential || isStaffAccountForAdmin(account)) return;
+      managedKeys.add(key);
+      if (!accountStates.has(key)) {
+        accountStates.set(key, { account, open: [], closed: [] });
+      }
+      const state = accountStates.get(key);
+      const normalizedStatus = normalizeSocServiceStatus(service?.status);
+      const credentials = resolveSocClientCredentials(service || {});
+      if (credentials.clientTitle) state.account.prefix = credentials.clientTitle;
+      if (credentials.clientPhone) state.account.phone = credentials.clientPhone;
+      if (credentials.clientCountry) state.account.country = credentials.clientCountry;
+      if (credentials.preferredContactMethod) state.account.lastContactMethod = credentials.preferredContactMethod;
+      if (service?.assigned && String(service.assigned).trim() && String(service.assigned).trim().toLowerCase() !== "unassigned") {
+        state.account.lastAssignedConcierge = resolveConciergeRecordByName(service.assigned) || {
+          id: "assigned-concierge",
+          name: String(service.assigned).trim(),
+          role: "Assigned Concierge",
+          email: "concierge@venture-voyagers.com",
+          localPhone: ""
+        };
+      }
+      const candidate = { service, bucket, idx };
+      if (normalizedStatus === "Closed") state.closed.push(candidate);
+      else state.open.push(candidate);
+    });
+  });
+
+  let activeAccountChanged = false;
+  managedKeys.forEach((key) => {
+    const account = accounts[key];
+    if (!account || account.sunriseCredential || isStaffAccountForAdmin(account)) return;
+    const state = accountStates.get(key) || { account, open: [], closed: [] };
+    const openCandidate = state.open.slice().sort(compareSocServiceCandidates)[0] || null;
+    const closedCandidate = state.closed.slice().sort(compareSocServiceCandidates)[0] || null;
+
+    if (openCandidate) {
+      const nextUpcoming = buildUpcomingServiceCardFromSoc(openCandidate.service);
+      const changed = !account.upcomingService
+        || account.upcomingService.title !== nextUpcoming.title
+        || account.upcomingService.details !== nextUpcoming.details
+        || account.upcomingService.startsAt !== nextUpcoming.startsAt
+        || String(account.upcomingService.statusText || "") !== String(nextUpcoming.statusText || "")
+        || String(account.upcomingService.timeLabel || "") !== String(nextUpcoming.timeLabel || "")
+        || account.socUpcomingServiceId !== openCandidate.service.id;
+      if (changed) {
+        account.upcomingService = nextUpcoming;
+        account.socUpcomingServiceId = String(openCandidate.service.id || "").trim().toUpperCase();
+        if (activeAccount && normalizeEmailAddress(activeAccount.email) === key) activeAccountChanged = true;
+      }
+    } else if (account.socUpcomingServiceId) {
+      const fallbackUpcoming = defaultClientUpcomingServiceCard();
+      const changed = !account.upcomingService
+        || account.upcomingService.title !== fallbackUpcoming.title
+        || account.upcomingService.details !== fallbackUpcoming.details
+        || account.upcomingService.startsAt !== fallbackUpcoming.startsAt
+        || String(account.upcomingService.statusText || "") !== String(fallbackUpcoming.statusText || "")
+        || String(account.upcomingService.timeLabel || "") !== String(fallbackUpcoming.timeLabel || "");
+      account.upcomingService = fallbackUpcoming;
+      account.socUpcomingServiceId = "";
+      if (changed && activeAccount && normalizeEmailAddress(activeAccount.email) === key) activeAccountChanged = true;
+    }
+
+    if (closedCandidate) {
+      const nextPast = buildPastServiceCardFromSoc(closedCandidate.service);
+      const changed = !account.pastService
+        || account.pastService.title !== nextPast.title
+        || account.pastService.details !== nextPast.details
+        || account.pastService.endedAt !== nextPast.endedAt
+        || String(account.pastService.statusText || "") !== String(nextPast.statusText || "")
+        || String(account.pastService.timeLabel || "") !== String(nextPast.timeLabel || "")
+        || account.socPastServiceId !== closedCandidate.service.id;
+      if (changed) {
+        account.pastService = nextPast;
+        account.socPastServiceId = String(closedCandidate.service.id || "").trim().toUpperCase();
+        if (activeAccount && normalizeEmailAddress(activeAccount.email) === key) activeAccountChanged = true;
+      }
+    } else if (account.socPastServiceId) {
+      const fallbackPast = defaultClientPastServiceCard();
+      const changed = !account.pastService
+        || account.pastService.title !== fallbackPast.title
+        || account.pastService.details !== fallbackPast.details
+        || account.pastService.endedAt !== fallbackPast.endedAt
+        || String(account.pastService.statusText || "") !== String(fallbackPast.statusText || "")
+        || String(account.pastService.timeLabel || "") !== String(fallbackPast.timeLabel || "");
+      account.pastService = fallbackPast;
+      account.socPastServiceId = "";
+      if (changed && activeAccount && normalizeEmailAddress(activeAccount.email) === key) activeAccountChanged = true;
+    }
+  });
+
+  if (activeAccountChanged && activeAccount) {
+    const activeKey = normalizeEmailAddress(activeAccount.email);
+    if (activeKey && accounts[activeKey]) {
+      activeAccount = accounts[activeKey];
+      persistActiveSession(activeAccount);
+      renderProfile(activeAccount);
+    }
+  }
+}
+
+function isLocalPreviewHost() {
+  const host = String(window.location.hostname || "").trim().toLowerCase();
+  return host === "127.0.0.1" || host === "localhost" || host === "";
+}
+
+async function postJsonWithTimeout(url, payload, timeoutMs = 12000) {
+  const controller = new AbortController();
+  const timeoutId = window.setTimeout(() => controller.abort(), timeoutMs);
+  try {
+    const response = await fetch(url, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json"
+      },
+      body: JSON.stringify(payload),
+      signal: controller.signal
+    });
+    const body = await response.json().catch(() => ({}));
+    return { ok: response.ok, status: response.status, body };
+  } catch (error) {
+    return {
+      ok: false,
+      status: 0,
+      body: {},
+      error
+    };
+  } finally {
+    window.clearTimeout(timeoutId);
+  }
+}
+
+function buildContactIntegrationPayload(data = {}, assignedConcierge = "", clientTier = "Non-Member") {
+  return {
+    firstName: data.firstName,
+    lastName: data.lastName,
+    title: data.title,
+    countryIssued: data.countryIssued,
+    phone: data.phone,
+    email: data.email,
+    serviceType: data.serviceType,
+    executionTime: data.executionTime,
+    requestDetails: data.requestDetails,
+    contactMethod: data.selectedMethod?.value || "",
+    assignedConcierge,
+    clientTier
+  };
+}
+
+async function submitContactIntegrations(payload = {}) {
+  const result = await postJsonWithTimeout("/api/contact-submit", payload);
+  if (result.ok) return { ok: true, skipped: false, result };
+  const likelyMissingApi = isLocalPreviewHost() && (result.status === 0 || result.status === 404 || result.status === 405);
+  if (likelyMissingApi) {
+    return {
+      ok: false,
+      skipped: true,
+      message: "Local preview has no Cloudflare Functions runtime."
+    };
+  }
+  return {
+    ok: false,
+    skipped: false,
+    message: String(result.body?.message || "Contact API request failed.").trim(),
+    result
+  };
+}
+
+async function readEmailAttachments(fileInput) {
+  if (!(fileInput instanceof HTMLInputElement) || !fileInput.files) return [];
+  const files = Array.from(fileInput.files).filter(Boolean);
+  const attachments = await Promise.all(files.map((file) => new Promise((resolve) => {
+    const reader = new FileReader();
+    reader.onload = () => {
+      const raw = String(reader.result || "");
+      const [, base64 = ""] = raw.split(",");
+      resolve({
+        filename: file.name,
+        content: base64,
+        contentType: file.type || "application/octet-stream"
+      });
+    };
+    reader.onerror = () => resolve(null);
+    reader.readAsDataURL(file);
+  })));
+  return attachments.filter(Boolean);
+}
+
+async function deliverSunriseEmail({
+  to = "",
+  cc = "",
+  bcc = "",
+  subject = "",
+  html = "",
+  text = "",
+  replyTo = "",
+  from = "",
+  attachments = []
+} = {}) {
+  const result = await postJsonWithTimeout("/api/email-send", {
+    to,
+    cc,
+    bcc,
+    subject,
+    html,
+    text,
+    replyTo,
+    from,
+    attachments
+  });
+  if (result.ok) return { ok: true, skipped: false, result };
+  const likelyMissingApi = isLocalPreviewHost() && (result.status === 0 || result.status === 404 || result.status === 405);
+  if (likelyMissingApi) {
+    return {
+      ok: false,
+      skipped: true,
+      message: "Local preview has no Cloudflare Functions runtime."
+    };
+  }
+  return {
+    ok: false,
+    skipped: false,
+    message: String(result.body?.message || "Email API request failed.").trim(),
+    result
+  };
 }
 
 function collectContactRequestData() {
@@ -4218,8 +5655,18 @@ function collectContactRequestData() {
 
 function validateContactRequest(data) {
   if (!data.selectedMethod) return "Select your preferred contact method (Email or Phone).";
-  if (!data.firstName || !data.lastName || !data.title || !data.countryIssued || !data.phone || !data.email || !data.serviceType || !data.executionTime || !data.requestDetails) {
-    return "Please complete all required contact fields.";
+  const missingLabels = [];
+  if (!data.firstName) missingLabels.push("First Name");
+  if (!data.lastName) missingLabels.push("Last Name");
+  if (!data.title) missingLabels.push("Title");
+  if (!data.countryIssued) missingLabels.push("Country of Issued Service");
+  if (!data.phone) missingLabels.push("Phone Number");
+  if (!data.email) missingLabels.push("Email Address");
+  if (!data.serviceType) missingLabels.push("Service Type");
+  if (!data.executionTime) missingLabels.push("Desired Execution Time");
+  if (!data.requestDetails) missingLabels.push("Request Details");
+  if (missingLabels.length) {
+    return `Please complete: ${missingLabels.join(", ")}.`;
   }
   if (!/.+@.+\..+/.test(data.email)) return "Enter a valid email address.";
   return "";
@@ -4230,75 +5677,201 @@ function showContactSubmissionOverlay(message = "") {
   if (contactOverlay) contactOverlay.hidden = false;
 }
 
-function handleContactSubmit(event) {
+function resolveConciergeRecordByName(name = "") {
+  const target = String(name || "").trim().toLowerCase();
+  if (!target) return null;
+  return conciergeCatalog.find((person) => String(person.name || "").trim().toLowerCase() === target) || null;
+}
+
+function resolveStoredAssignedConcierge(account) {
+  const stored = account?.lastAssignedConcierge;
+  if (!stored) return null;
+  if (typeof stored === "object") {
+    const directName = String(stored.name || "").trim();
+    const catalogMatch = resolveConciergeRecordByName(directName);
+    if (catalogMatch) return catalogMatch;
+    if (!directName) return null;
+    return {
+      id: String(stored.id || "assigned-concierge").trim(),
+      name: directName,
+      role: String(stored.role || "Assigned Concierge").trim(),
+      email: String(stored.email || "concierge@venture-voyagers.com").trim(),
+      localPhone: String(stored.localPhone || "").trim()
+    };
+  }
+  const catalogMatch = resolveConciergeRecordByName(stored);
+  if (catalogMatch) return catalogMatch;
+  const storedName = String(stored || "").trim();
+  if (!storedName) return null;
+  return {
+    id: "assigned-concierge",
+    name: storedName,
+    role: "Assigned Concierge",
+    email: "concierge@venture-voyagers.com",
+    localPhone: ""
+  };
+}
+
+function syncSubmittedRequestIntoActiveAccount({
+  data = {},
+  formattedServiceType = "",
+  assignedConcierge = "",
+  methodText = ""
+} = {}) {
+  if (!activeAccount || !activeAccount.email) return;
+  const accountKey = normalizeEmailAddress(activeAccount.email) || String(activeAccount.email || "").trim().toLowerCase();
+  if (!accountKey || !accounts[accountKey]) return;
+
+  const account = accounts[accountKey];
+  const assignedRecord = currentAssignedConcierge && String(currentAssignedConcierge.name || "").trim() === assignedConcierge
+    ? currentAssignedConcierge
+    : resolveConciergeRecordByName(assignedConcierge);
+
+  account.lastAssignedConcierge = assignedRecord || {
+    id: "assigned-concierge",
+    name: assignedConcierge,
+    role: "Assigned Concierge",
+    email: "concierge@venture-voyagers.com",
+    localPhone: ""
+  };
+  if (data.title) account.prefix = data.title;
+  if (data.firstName) account.firstName = data.firstName;
+  if (data.lastName) account.lastName = data.lastName;
+  if (data.phone) account.phone = data.phone;
+  account.lastContactMethod = String(data.selectedMethod?.value || "").trim();
+  account.upcomingService = {
+    title: formattedServiceType || "Service Request",
+    details: String(data.requestDetails || "").trim() || "Your request has been received and is being reviewed.",
+    startsAt: String(data.executionTime || "").trim(),
+    statusText: "Pending confirmation",
+    timeLabel: String(data.executionTime || "").trim() ? "Requested timeframe" : ""
+  };
+  if (data.countryIssued) {
+    account.country = countryDisplayName(data.countryIssued);
+  }
+
+  accounts[accountKey] = account;
+  activeAccount = account;
+  persistAccountsData();
+  persistActiveSession(activeAccount);
+  renderProfile(activeAccount);
+}
+
+async function handleContactSubmit(event) {
   if (event) event.preventDefault();
   if (!contactForm) return false;
+  if (contactForm.dataset.nativeSubmit === "1") return true;
+  if (contactSubmitInFlight) return false;
+  contactSubmitInFlight = true;
   if (contactError) contactError.textContent = "";
-
-  const data = collectContactRequestData();
-  const validationError = validateContactRequest(data);
-  if (validationError) {
-    if (contactError) contactError.textContent = validationError;
-    return false;
-  }
-
-  const methodText = data.selectedMethod.value === "phone" ? "phone number" : "email address";
-  const assignedConcierge = pendingPreferredConcierge
-    || (currentAssignedConcierge ? currentAssignedConcierge.name : (autoAssignConcierge(activeAccount || { country: "United Arab Emirates" })?.name || "Benedict Hale"));
-  const clientTier = activeAccount ? String(activeAccount.membership || "").trim() || "Non-Member" : "Non-Member";
-  const formattedServiceType = data.serviceType
-    .replace(/_/g, " ")
-    .replace(/\b\w/g, (m) => m.toUpperCase());
-  const clientName = `${data.firstName} ${data.lastName}`.trim();
-  const successMessage =
-    `Dear ${data.title} ${data.lastName}, Concierge ${assignedConcierge} has been assigned to your request. You will be contacted for service details via your ${methodText}, based on your selected preference. Thank you for choosing VVS.`;
+  if (contactSubmitBtn instanceof HTMLButtonElement) contactSubmitBtn.disabled = true;
 
   try {
-    submitServiceIntoSOC({
-      serviceType: formattedServiceType,
-      clientName,
-      tier: clientTier,
-      desiredExecutionTime: data.executionTime,
-      details: data.requestDetails,
-      assigned: assignedConcierge
-    });
-    const intakeSubject = `New Service Submission - ${data.serviceType || "General Request"}`;
-    const intakeBody = `<p><b>Client:</b> ${data.title} ${data.firstName} ${data.lastName}</p><p><b>Phone:</b> ${data.phone}</p><p><b>Service:</b> ${data.serviceType}</p><p><b>Desired:</b> ${data.executionTime}</p><p><b>Assigned concierge:</b> ${assignedConcierge}</p><p><b>Details:</b> ${data.requestDetails || "N/A"}</p>`;
-    routeSunriseInboundCopies({
-      from: data.email || "client@unknown",
-      to: "team@venture-voyagers.com",
-      cc: "management@venture-voyagers.com",
-      bcc: "",
-      subject: intakeSubject,
-      bodyHtml: intakeBody,
-      priority: data.executionTime === "Instant" ? "Urgent" : "High",
-      attachments: []
-    });
-  } catch (err) {
-    console.error("Contact submit routing error:", err);
-  }
+    const data = collectContactRequestData();
+    const validationError = validateContactRequest(data);
+    if (validationError) {
+      if (contactError) contactError.textContent = validationError;
+      return false;
+    }
 
-  showContactSubmissionOverlay(successMessage);
-  refreshActiveLanguageIfNeeded();
-  contactForm.reset();
-  setupContactMethodChoices();
-  pendingPreferredConcierge = "";
-  if (activeAccount) applyContactAccountPrefill();
-  if (instantWarning) instantWarning.hidden = true;
-  return true;
+    const methodText = data.selectedMethod.value === "phone" ? "phone number" : "email address";
+    const assignedConcierge = pendingPreferredConcierge
+      || (currentAssignedConcierge ? currentAssignedConcierge.name : (autoAssignConcierge(activeAccount || { country: "United Arab Emirates" })?.name || "Benedict Hale"));
+    const clientTier = activeAccount ? String(activeAccount.membership || "").trim() || "Non-Member" : "Non-Member";
+    applyContactFormPublicFallbackState({ assignedConcierge, clientTier });
+    const formattedServiceType = data.serviceType
+      .replace(/_/g, " ")
+      .replace(/\b\w/g, (m) => m.toUpperCase());
+    const clientName = `${data.firstName} ${data.lastName}`.trim();
+    const successMessage =
+      `Dear ${data.title} ${data.lastName}, Concierge ${assignedConcierge} has been assigned to your request. You will be contacted for service details via your ${methodText}, based on your selected preference. Thank you for choosing VVS.`;
+
+    try {
+      submitServiceIntoSOC({
+        serviceType: formattedServiceType,
+        clientName,
+        tier: clientTier,
+        desiredExecutionTime: data.executionTime,
+        details: data.requestDetails,
+        assigned: assignedConcierge,
+        clientTitle: data.title,
+        clientEmail: data.email,
+        clientPhone: data.phone,
+        clientCountry: data.countryIssued,
+        preferredContactMethod: String(data.selectedMethod?.value || "").trim(),
+        clientAccountEmail: activeAccount ? normalizeEmailAddress(activeAccount.email) : normalizeEmailAddress(data.email)
+      });
+      const intakeSubject = `New Service Submission - ${data.serviceType || "General Request"}`;
+      const intakeBody = `<p><b>Client:</b> ${data.title} ${data.firstName} ${data.lastName}</p><p><b>Phone:</b> ${data.phone}</p><p><b>Service:</b> ${data.serviceType}</p><p><b>Desired:</b> ${data.executionTime}</p><p><b>Assigned concierge:</b> ${assignedConcierge}</p><p><b>Details:</b> ${data.requestDetails || "N/A"}</p>`;
+      routeSunriseInboundCopies({
+        from: data.email || "client@unknown",
+        to: "team@venture-voyagers.com",
+        cc: "management@venture-voyagers.com",
+        bcc: "",
+        subject: intakeSubject,
+        bodyHtml: intakeBody,
+        priority: data.executionTime === "Instant" ? "Urgent" : "High",
+        attachments: []
+      });
+    } catch (err) {
+      console.error("Contact submit routing error:", err);
+    }
+
+    if (activeAccount) {
+      syncSubmittedRequestIntoActiveAccount({
+        data,
+        formattedServiceType,
+        assignedConcierge,
+        methodText
+      });
+    }
+
+    showContactSubmissionOverlay(successMessage);
+    refreshActiveLanguageIfNeeded();
+    contactForm.reset();
+    pendingPreferredConcierge = "";
+    if (activeAccount) applyContactAccountPrefill();
+    else setupContactMethodChoices();
+    if (instantWarning) instantWarning.hidden = true;
+
+    submitContactIntegrations(
+      buildContactIntegrationPayload(data, assignedConcierge, clientTier)
+    ).then((integration) => {
+      if (!integration.ok && !integration.skipped && contactError) {
+        contactError.textContent = `Request saved locally, but external delivery failed: ${integration.message}`;
+      }
+    }).catch((error) => {
+      if (contactError) contactError.textContent = "Request saved locally, but external delivery failed.";
+      console.error("Contact integration error:", error);
+    });
+
+    return true;
+  } catch (error) {
+    console.error("Contact submit enhancement failed, falling back to native form submit:", error);
+    applyContactFormPublicFallbackState({
+      assignedConcierge: pendingPreferredConcierge || currentAssignedConcierge?.name || "VVS Concierge Desk",
+      clientTier: activeAccount ? String(activeAccount.membership || "").trim() || "Non-Member" : "Non-Member"
+    });
+    if (contactError) contactError.textContent = "Submitting request via secure fallback...";
+    submitContactFormNatively();
+    return true;
+  } finally {
+    if (contactForm.dataset.nativeSubmit !== "1") contactForm.dataset.nativeSubmit = "";
+    contactSubmitInFlight = false;
+    if (contactSubmitBtn instanceof HTMLButtonElement) contactSubmitBtn.disabled = false;
+  }
 }
+
+applyContactFormPublicFallbackState();
 
 if (contactForm) {
   contactForm.addEventListener("submit", handleContactSubmit);
-  contactForm.onsubmit = handleContactSubmit;
 }
 
-if (contactSubmitBtn) {
-  contactSubmitBtn.addEventListener("click", handleContactSubmit);
-  contactSubmitBtn.onclick = handleContactSubmit;
-}
-
-window.submitVvsContactRequest = handleContactSubmit;
+window.submitVvsContactRequest = (event) => {
+  handleContactSubmit(event);
+  return false;
+};
 
 if (contactOverlayClose) {
   contactOverlayClose.addEventListener("click", () => {
@@ -4319,6 +5892,19 @@ const loginInfo = document.getElementById("login-info");
 const signupInfo = document.getElementById("signup-info");
 const passwordInfo = document.getElementById("password-info");
 const passwordRecoveryInfo = document.getElementById("password-recovery-info");
+const profileAccountSettingsBtn = document.getElementById("profile-account-settings-btn");
+const accountSettingsOverlay = document.getElementById("account-settings-overlay");
+const accountSettingsClose = document.getElementById("account-settings-close");
+const accountSettingsForm = document.getElementById("account-settings-form");
+const accountSettingsSummary = document.getElementById("account-settings-summary");
+const accountSettingsInfo = document.getElementById("account-settings-info");
+const accountSettingsDiscard = document.getElementById("account-settings-discard");
+const accountSettingsPasswordInfo = document.getElementById("account-password-info");
+const accountSettingsPasswordRecoveryInfo = document.getElementById("account-password-recovery-info");
+const accountSettingsPasswordModeBtns = Array.from(document.querySelectorAll("[data-account-password-mode]"));
+const accountSettingsPasswordForm = document.getElementById("account-pw-change-form");
+const accountSettingsRecoveryStep1 = document.getElementById("account-pw-recovery-step1");
+const accountSettingsRecoveryStep2 = document.getElementById("account-pw-recovery-step2");
 
 const authState = {
   loginCode: "",
@@ -4334,6 +5920,14 @@ const passwordResetState = {
   code: "",
   account: null
 };
+
+const accountPasswordResetState = {
+  email: "",
+  code: "",
+  account: null
+};
+
+let accountSettingsTargetKey = "";
 
 const sunriseState = {
   unlocked: false,
@@ -4352,6 +5946,267 @@ const SUNRISE_OWNER_CODES = {
 
 function normalizeMembershipTier(value) {
   return String(value || "").trim().toLowerCase().replace(/\s+/g, " ");
+}
+
+function populateCountrySelect(select, placeholder = "Select country") {
+  if (!(select instanceof HTMLSelectElement)) return;
+  const current = String(select.value || "").trim();
+  select.innerHTML = `<option value="">${placeholder}</option>`;
+  getCountryEntriesForSelectors().forEach((entry) => {
+    const option = document.createElement("option");
+    option.value = entry.iso;
+    option.textContent = entry.label;
+    select.appendChild(option);
+  });
+  const resolved = resolveCountryCode(current);
+  if (resolved) select.value = resolved;
+}
+
+function canEditAmpOwnerAccount(rawKey = "") {
+  const key = resolveAccountKey(rawKey);
+  const target = key ? accounts[key] : null;
+  const operator = getCurrentSunriseOperator();
+  if (!target || !isOwnerAccount(target) || !operator) return false;
+  if (isMikhailOwnerAccount(operator)) return true;
+  if (isAleksSunriseOperator()) return isAleksOwnerAccount(target);
+  return false;
+}
+
+function canViewAmpOwnerSensitiveFields(rawKey = "") {
+  return canEditAmpOwnerAccount(rawKey);
+}
+
+function renameBaseAccountKey(rawKey = "", nextEmail = "") {
+  const currentKey = resolveAccountKey(rawKey);
+  const nextKey = normalizeEmailAddress(nextEmail);
+  if (!currentKey || !accounts[currentKey] || !nextKey) return currentKey;
+  const currentAccount = accounts[currentKey];
+  if (nextKey !== currentKey && accounts[nextKey] && accounts[nextKey] !== currentAccount) return currentKey;
+
+  if (nextKey !== currentKey) {
+    accounts[nextKey] = currentAccount;
+    delete accounts[currentKey];
+  }
+  currentAccount.email = nextKey;
+
+  Object.values(accounts).forEach((account) => {
+    if (!account?.sunriseCredential) return;
+    if (normalizeEmailAddress(account.sunriseLinkedEmail || "") === currentKey) {
+      account.sunriseLinkedEmail = nextKey;
+    }
+  });
+
+  return nextKey;
+}
+
+function renameLinkedSunriseCredentialKey(baseKey = "", nextEmail = "") {
+  const resolvedBaseKey = resolveAccountKey(baseKey);
+  const nextKey = normalizeEmailAddress(nextEmail);
+  const baseAccount = resolvedBaseKey ? accounts[resolvedBaseKey] : null;
+  if (!resolvedBaseKey || !baseAccount || !nextKey) return findSunriseCredentialEmailForBaseKey(resolvedBaseKey, baseAccount);
+
+  const currentSunriseKey = findSunriseCredentialEmailForBaseKey(resolvedBaseKey, baseAccount);
+  const sunriseAccount = currentSunriseKey ? accounts[currentSunriseKey] : null;
+  if (!currentSunriseKey || !sunriseAccount) return currentSunriseKey;
+  if (nextKey !== currentSunriseKey && accounts[nextKey] && accounts[nextKey] !== sunriseAccount) return currentSunriseKey;
+
+  if (nextKey !== currentSunriseKey) {
+    accounts[nextKey] = sunriseAccount;
+    delete accounts[currentSunriseKey];
+  }
+  sunriseAccount.email = nextKey;
+  sunriseAccount.sunriseCredential = true;
+  sunriseAccount.sunriseLinkedEmail = resolvedBaseKey;
+  return nextKey;
+}
+
+function syncCredentialFieldAcrossLinkedAccounts(rawKey = "", fieldName = "", value = "") {
+  const keys = relatedAccountKeysForDelete(rawKey);
+  keys.forEach((key) => {
+    const account = accounts[key];
+    if (!account) return;
+    account[fieldName] = value;
+    if (fieldName === "password") {
+      account.altPasswords = [];
+    }
+  });
+}
+
+function syncChangedAccountState(updatedKey = "") {
+  ensureSunriseCredentials();
+  pruneDuplicateSunriseCredentials();
+  persistAccountsData();
+
+  if (activeAccount) {
+    const refreshed = findAccountByEmail(activeAccount.email)
+      || accounts[resolveAccountKey(updatedKey)]
+      || activeAccount;
+    activeAccount = refreshed;
+    persistActiveSession(activeAccount);
+    renderProfile(activeAccount);
+  }
+
+  if (sunriseState.unlocked && sunriseState.account) {
+    const refreshedSunrise = findAccountByEmail(sunriseState.account.email)
+      || sunriseState.account;
+    sunriseState.account = refreshedSunrise;
+    sunriseState.email = normalizeEmailAddress(refreshedSunrise.email || sunriseState.email);
+    persistSunriseSession(sunriseState.account);
+  }
+
+  updateAuthCta();
+  scheduleSunriseAdminRenders();
+}
+
+function resolveAccountSettingsTarget(account = null) {
+  const candidate = account || getCurrentSunriseOperator() || activeAccount || null;
+  if (!candidate) return null;
+  if (!candidate.sunriseCredential) return candidate;
+  const linkedKey = resolveAccountKey(candidate.sunriseLinkedEmail || "");
+  return accounts[linkedKey] || activeAccount || candidate;
+}
+
+function applyStoredPasswordUpdate(account, newPassword = "") {
+  if (!account) return false;
+  const key = resolveAccountKey(account.email || "");
+  if (!key || !accounts[key]) return false;
+  syncCredentialFieldAcrossLinkedAccounts(key, "password", newPassword);
+  syncChangedAccountState(key);
+  return true;
+}
+
+function applyStoredSecretPhraseUpdate(account, nextPhrase = "") {
+  if (!account) return false;
+  const key = resolveAccountKey(account.email || "");
+  if (!key || !accounts[key]) return false;
+  syncCredentialFieldAcrossLinkedAccounts(key, "secretPhrase", nextPhrase);
+  syncChangedAccountState(key);
+  return true;
+}
+
+function submitPasswordChangeFlow({
+  email = "",
+  currentPassword = "",
+  newPassword = "",
+  confirmPassword = "",
+  infoEl = null,
+  onSuccess = null
+} = {}) {
+  const account = findAccountByEmail(email);
+  if (!account) {
+    if (infoEl) infoEl.textContent = "Account not found for this email address.";
+    return false;
+  }
+
+  const allPasswords = [String(account.password), ...((account.altPasswords || []).map((item) => String(item)))];
+  const oldOk = allPasswords.some((stored) => currentPassword === stored || currentPassword.toLowerCase() === stored.toLowerCase());
+  if (!oldOk) {
+    if (infoEl) infoEl.textContent = "Current password is incorrect.";
+    return false;
+  }
+  if (newPassword !== confirmPassword) {
+    if (infoEl) infoEl.textContent = "New password and confirmation do not match.";
+    return false;
+  }
+  if (!isValidSignupPassword(newPassword)) {
+    if (infoEl) infoEl.textContent = "New password must be at least 12 characters with 2 capital letters, 2 numbers, and 2 special symbols.";
+    return false;
+  }
+
+  if (!applyStoredPasswordUpdate(account, newPassword)) {
+    if (infoEl) infoEl.textContent = "Unable to update this password right now.";
+    return false;
+  }
+
+  if (infoEl) infoEl.textContent = "Password updated successfully.";
+  if (typeof onSuccess === "function") onSuccess(account);
+  return true;
+}
+
+function startPasswordRecoveryFlow({
+  email = "",
+  phrase = "",
+  selectedTier = "",
+  infoEl = null,
+  step1Form = null,
+  step2Form = null,
+  state = passwordResetState
+} = {}) {
+  const account = findAccountByEmail(email);
+  if (!account) {
+    if (infoEl) infoEl.textContent = "Account not found for this email address.";
+    return false;
+  }
+  const phraseOk = phrase === String(account.secretPhrase || "").toLowerCase();
+  if (!phraseOk) {
+    if (infoEl) infoEl.textContent = "Secret phrase is incorrect.";
+    return false;
+  }
+  const accountTier = normalizeMembershipTier(account.membership || "");
+  if (!selectedTier || selectedTier !== accountTier) {
+    if (infoEl) infoEl.textContent = "Selected membership tier does not match this account.";
+    return false;
+  }
+
+  state.email = String(account.email || email).trim().toLowerCase();
+  state.account = account;
+  state.code = issueTestEmailCode(state.email);
+  if (step1Form) step1Form.hidden = true;
+  if (step2Form) {
+    step2Form.hidden = false;
+    step2Form.reset();
+  }
+  if (infoEl) infoEl.textContent = `Recovery code sent to ${state.email}. Test code: ${state.code}.`;
+  return true;
+}
+
+function completePasswordRecoveryFlow({
+  code = "",
+  newPassword = "",
+  confirmPassword = "",
+  infoEl = null,
+  step1Form = null,
+  step2Form = null,
+  state = passwordResetState,
+  onSuccess = null
+} = {}) {
+  const account = state.account || findAccountByEmail(state.email);
+  if (!account) {
+    if (infoEl) infoEl.textContent = "Password recovery session expired. Start again.";
+    return false;
+  }
+  if (code !== state.code) {
+    if (infoEl) infoEl.textContent = "Verification code is incorrect.";
+    return false;
+  }
+  if (newPassword !== confirmPassword) {
+    if (infoEl) infoEl.textContent = "New password and confirmation do not match.";
+    return false;
+  }
+  if (!isValidSignupPassword(newPassword)) {
+    if (infoEl) infoEl.textContent = "New password must be at least 12 characters with 2 capital letters, 2 numbers, and 2 special symbols.";
+    return false;
+  }
+
+  if (!applyStoredPasswordUpdate(account, newPassword)) {
+    if (infoEl) infoEl.textContent = "Unable to update this password right now.";
+    return false;
+  }
+
+  if (step2Form) {
+    step2Form.reset();
+    step2Form.hidden = true;
+  }
+  if (step1Form) {
+    step1Form.hidden = false;
+    step1Form.reset();
+  }
+  state.email = "";
+  state.code = "";
+  state.account = null;
+  if (infoEl) infoEl.textContent = "Password updated successfully through email + secret phrase.";
+  if (typeof onSuccess === "function") onSuccess(account);
+  return true;
 }
 
 function activateAuthTab(tabKey) {
@@ -4643,7 +6498,13 @@ function localizePhoneInText(text, country) {
 }
 
 function conciergeToText(person, country) {
-  return `${person.name} | ${person.email} | ${localizePhone(person.localPhone, country)}`;
+  const parts = [
+    String(person?.name || "").trim(),
+    String(person?.email || "").trim()
+  ].filter(Boolean);
+  const phone = String(person?.localPhone || "").trim();
+  if (phone) parts.push(localizePhone(phone, country));
+  return parts.join(" | ");
 }
 
 function autoAssignConcierge(account) {
@@ -4952,7 +6813,7 @@ function restoreActiveSession() {
       if (snapshotRaw) {
         const snapshot = JSON.parse(snapshotRaw);
         if (snapshot && snapshot.email && String(snapshot.email).trim().toLowerCase() === savedEmail) {
-          accounts[savedEmail] = snapshot;
+          accounts[savedEmail] = normalizeAccountServiceCards(snapshot);
           persistAccountsData();
           account = accounts[savedEmail];
         }
@@ -5037,10 +6898,11 @@ function isMikhailOwnerAccount(account) {
 }
 
 function isAleksSunriseOperator() {
-  if (!activeAccount || !isOwnerAccount(activeAccount)) return false;
+  const operator = getCurrentSunriseOperator();
+  if (!operator || !isOwnerAccount(operator)) return false;
   const sessionCode = String(sunriseState?.operatorCode || "").trim().toUpperCase();
   if (sessionCode) return sessionCode === "AO1";
-  return isAleksOwnerAccount(activeAccount);
+  return isAleksOwnerAccount(operator);
 }
 
 function isMikhailCredentialAccount(accountOrKey) {
@@ -5074,7 +6936,8 @@ function isAleksAmpRestrictedKey(rawKey = "") {
 }
 
 function isAleksRestrictedFromMikhailSunrise(targetAccount) {
-  if (!isAleksOwnerAccount(activeAccount)) return false;
+  const operator = getCurrentSunriseOperator();
+  if (!isAleksOwnerAccount(operator)) return false;
   return isMikhailCredentialAccount(targetAccount);
 }
 
@@ -5285,6 +7148,7 @@ function renderVoyagerControl(account) {
 
 function renderSunrise(account) {
   if (!hasSunriseAccess(account)) return;
+  ensureSunriseInboxTopButtons();
   const greetingEl = document.getElementById("sunrise-greeting");
   const subtitleEl = document.getElementById("sunrise-subtitle");
   const panel = document.getElementById("sunrise-panel");
@@ -5360,6 +7224,7 @@ const sunriseStaffRouteLabels = {
   "sunrise-ifs": "Income Flow Spreader",
   "sunrise-ecs": "Employees Control System",
   "sunrise-smca": "Sales & Marketing Commissions",
+  "sunrise-rta": "Red Team Assigning Menu",
   "sunrise-rim": "Red Inviting Menu",
   "sunrise-soc": "Services & Operations Control",
   "sunrise-soc-details": "Service Detail Control",
@@ -5455,6 +7320,7 @@ function renderProfile(account) {
   const upcomingTitleEl = document.getElementById("profile-upcoming-title");
   const upcomingDetailsEl = document.getElementById("profile-upcoming-details");
   const redTeamWrap = document.getElementById("profile-red-team");
+  const redTeamStatusEl = document.getElementById("profile-red-team-status");
   const standardSupport = document.getElementById("profile-standard-support");
   const progressWrap = document.getElementById("profile-progress-wrap");
   const conciergeAutoNote = document.getElementById("profile-concierge-auto-note");
@@ -5507,7 +7373,13 @@ function renderProfile(account) {
   if (pastDetailsEl) {
     pastDetailsEl.textContent = isEmployee && staffDashboardData
       ? `${staffDashboardData.scope}. Position focus: ${String(account.roleTitle || staffDashboardData.accessMeta.title)}.`
-      : `${account.pastService.details} Ended: ${account.pastService.endedAt}.`;
+      : [
+        String(account.pastService.details || "").trim(),
+        account.pastService.statusText ? `Status: ${String(account.pastService.statusText).trim()}.` : "",
+        (account.pastService.endedAt && String(account.pastService.endedAt).trim() && String(account.pastService.endedAt).trim() !== "N/A")
+          ? `${String(account.pastService.timeLabel || "Completed").trim()}: ${String(account.pastService.endedAt).trim()}.`
+          : ""
+      ].filter(Boolean).join(" ");
   }
   if (upcomingTitleEl) {
     upcomingTitleEl.textContent = isEmployee ? "Current Duty Focus" : account.upcomingService.title;
@@ -5515,7 +7387,13 @@ function renderProfile(account) {
   if (upcomingDetailsEl) {
     upcomingDetailsEl.textContent = isEmployee && staffDashboardData
       ? staffDashboardData.focus
-      : `${account.upcomingService.details} Scheduled: ${account.upcomingService.startsAt}.`;
+      : [
+        String(account.upcomingService.details || "").trim(),
+        account.upcomingService.statusText ? `Status: ${String(account.upcomingService.statusText).trim()}.` : "",
+        (account.upcomingService.startsAt && String(account.upcomingService.startsAt).trim() && String(account.upcomingService.startsAt).trim() !== "N/A")
+          ? `${String(account.upcomingService.timeLabel || "Timing").trim()}: ${String(account.upcomingService.startsAt).trim()}.`
+          : ""
+      ].filter(Boolean).join(" ");
   }
 
   if (tipsEl) {
@@ -5545,6 +7423,7 @@ function renderProfile(account) {
 
   if (profileAmbassadorBtn) profileAmbassadorBtn.hidden = !isRed;
   if (profileSunriseBtn) profileSunriseBtn.hidden = !hasSunriseAccess(account);
+  if (profileAccountSettingsBtn) profileAccountSettingsBtn.hidden = !account;
   if (ownerExecutiveTag) ownerExecutiveTag.hidden = !isOwner;
   if (ownerMetricsWrap) ownerMetricsWrap.hidden = !isOwner;
   if (conciergeDeskCard) conciergeDeskCard.hidden = isOwner || isEmployee;
@@ -5601,13 +7480,33 @@ function renderProfile(account) {
     if (driver) driver.textContent = localizePhoneInText(account.assignedTeam.driver, account.country);
     if (concierge) concierge.textContent = localizePhoneInText(account.assignedTeam.concierge, account.country);
     if (security) security.textContent = localizePhoneInText(account.assignedTeam.security, account.country);
+    if (redTeamStatusEl) {
+      const note = String(account.redTeamAssignmentNote || "").trim();
+      redTeamStatusEl.hidden = !note;
+      redTeamStatusEl.textContent = note;
+    }
     currentAssignedConcierge = null;
   } else {
+    if (redTeamStatusEl) {
+      redTeamStatusEl.hidden = true;
+      redTeamStatusEl.textContent = "";
+    }
     const lastCons = document.getElementById("profile-last-concierge");
     const progressFill = document.getElementById("profile-progress-fill");
     const progressText = document.getElementById("profile-progress-text");
-    const isNewAccount = (account.servicesCompleted || 0) <= 0;
-    if (isNewAccount) {
+    const storedAssignedConcierge = resolveStoredAssignedConcierge(account);
+    const isNewAccount = (account.servicesCompleted || 0) <= 0 && !storedAssignedConcierge;
+    if (storedAssignedConcierge) {
+      currentAssignedConcierge = storedAssignedConcierge;
+      if (lastCons) lastCons.textContent = conciergeToText(storedAssignedConcierge, account.country);
+      if (conciergeAutoNote) {
+        const noteRole = String(storedAssignedConcierge.role || "Assigned Concierge").trim();
+        const noteId = String(storedAssignedConcierge.id || "").trim();
+        conciergeAutoNote.textContent = noteId
+          ? `Automatically assigned today: ${noteRole} (${noteId.toUpperCase()}) by VVS dispatch engine.`
+          : `Automatically assigned today: ${noteRole} by VVS dispatch engine.`;
+      }
+    } else if (isNewAccount) {
       currentAssignedConcierge = null;
       if (lastCons) lastCons.textContent = "No concierges were assigned to your services yet, let's find the first one!";
       if (conciergeAutoNote) conciergeAutoNote.textContent = "Submit your first request and VVS dispatch will assign the right concierge instantly.";
@@ -5638,6 +7537,119 @@ function renderProfile(account) {
   refreshActiveLanguageIfNeeded();
 }
 
+function resetAccountSettingsPasswordState() {
+  if (accountSettingsPasswordForm) accountSettingsPasswordForm.reset();
+  if (accountSettingsRecoveryStep1) {
+    accountSettingsRecoveryStep1.hidden = true;
+    accountSettingsRecoveryStep1.reset();
+  }
+  if (accountSettingsRecoveryStep2) {
+    accountSettingsRecoveryStep2.hidden = true;
+    accountSettingsRecoveryStep2.reset();
+  }
+  accountPasswordResetState.email = "";
+  accountPasswordResetState.code = "";
+  accountPasswordResetState.account = null;
+  if (accountSettingsPasswordInfo) accountSettingsPasswordInfo.textContent = "";
+  if (accountSettingsPasswordRecoveryInfo) {
+    accountSettingsPasswordRecoveryInfo.textContent = "Enter your email address, secret phrase, and membership tier to send the recovery code.";
+  }
+}
+
+function activateAccountSettingsPasswordMode(mode = "change") {
+  const normalized = String(mode || "change").trim().toLowerCase() === "recovery" ? "recovery" : "change";
+  accountSettingsPasswordModeBtns.forEach((btn) => {
+    const active = String(btn.getAttribute("data-account-password-mode") || "").trim().toLowerCase() === normalized;
+    btn.classList.toggle("isActive", active);
+    btn.setAttribute("aria-pressed", active ? "true" : "false");
+  });
+
+  if (!accountSettingsPasswordForm || !accountSettingsRecoveryStep1 || !accountSettingsRecoveryStep2) return;
+
+  if (normalized === "recovery") {
+    accountSettingsPasswordForm.hidden = true;
+    if (accountSettingsRecoveryStep2.hidden) {
+      accountSettingsRecoveryStep1.hidden = false;
+    }
+    if (accountSettingsPasswordInfo) accountSettingsPasswordInfo.textContent = "";
+    if (accountSettingsPasswordRecoveryInfo && !accountSettingsPasswordRecoveryInfo.textContent) {
+      accountSettingsPasswordRecoveryInfo.textContent = "Enter your email address, secret phrase, and membership tier to send the recovery code.";
+    }
+    return;
+  }
+
+  accountSettingsPasswordForm.hidden = false;
+  accountSettingsRecoveryStep1.hidden = true;
+  accountSettingsRecoveryStep2.hidden = true;
+  if (accountSettingsPasswordRecoveryInfo) accountSettingsPasswordRecoveryInfo.textContent = "";
+  accountPasswordResetState.email = "";
+  accountPasswordResetState.code = "";
+  accountPasswordResetState.account = null;
+}
+
+function populateAccountSettingsForm(account = activeAccount, options = {}) {
+  if (!account || !accountSettingsForm) return;
+  const resolvedTarget = resolveAccountKey(account.email || "");
+  if (resolvedTarget) accountSettingsTargetKey = resolvedTarget;
+  const shouldResetPasswordTools = options?.resetPasswordTools !== false;
+  const countrySelect = document.getElementById("account-settings-country");
+  if (countrySelect) populateCountrySelect(countrySelect, "Select country");
+  if (shouldResetPasswordTools) resetAccountSettingsPasswordState();
+
+  const setValue = (id, value) => {
+    const el = document.getElementById(id);
+    if (el) el.value = String(value || "");
+  };
+  const accessMeta = hasSunriseAccess(account) ? sunriseAccessMeta(account) : null;
+  const membershipWrap = document.getElementById("account-settings-membership-wrap");
+  const roleWrap = document.getElementById("account-settings-role-wrap");
+  const accessWrap = document.getElementById("account-settings-access-wrap");
+
+  setValue("account-settings-title", account.prefix || "");
+  setValue("account-settings-first", account.firstName || "");
+  setValue("account-settings-last", account.lastName || "");
+  setValue("account-settings-phone", account.phone || "");
+  setValue("account-settings-email", account.email || "");
+  setValue("account-settings-phrase", account.secretPhrase || "");
+  setValue("account-settings-membership", account.membership || "");
+  setValue("account-settings-role", account.roleTitle || "");
+  setValue("account-settings-access", accessMeta ? `${accessMeta.code} - ${accessMeta.title}` : "");
+  if (countrySelect instanceof HTMLSelectElement) {
+    countrySelect.value = resolveCountryCode(account.country || "") || "";
+  }
+
+  if (membershipWrap) membershipWrap.hidden = false;
+  if (roleWrap) roleWrap.hidden = !String(account.roleTitle || "").trim();
+  if (accessWrap) accessWrap.hidden = !accessMeta;
+
+  const passwordEmail = document.getElementById("account-pw-email");
+  const recoveryEmail = document.getElementById("account-pw-rec-email");
+  const recoveryTier = document.getElementById("account-pw-rec-tier");
+  if (passwordEmail) passwordEmail.value = String(account.email || "").trim();
+  if (recoveryEmail) recoveryEmail.value = String(account.email || "").trim();
+  if (recoveryTier instanceof HTMLSelectElement) {
+    recoveryTier.value = normalizeMembershipTier(account.membership || "");
+  }
+
+  if (accountSettingsSummary) {
+    const accountType = isOwnerAccount(account) ? "owner profile" : (accessMeta ? "staff profile" : "client profile");
+    accountSettingsSummary.textContent = `${String(account.firstName || "").trim()} ${String(account.lastName || "").trim()} - ${String(account.email || "").trim()} - ${accountType}.`;
+  }
+  if (accountSettingsInfo) accountSettingsInfo.textContent = "";
+  activateAccountSettingsPasswordMode("change");
+}
+
+function openAccountSettingsOverlay(account = null) {
+  const targetAccount = resolveAccountSettingsTarget(account);
+  if (!targetAccount || !accountSettingsOverlay) return;
+  populateAccountSettingsForm(targetAccount);
+  accountSettingsOverlay.hidden = false;
+}
+
+function closeAccountSettingsOverlay() {
+  if (accountSettingsOverlay) accountSettingsOverlay.hidden = true;
+}
+
 authTabs.forEach((tab) => {
   tab.addEventListener("click", () => activateAuthTab(tab.getAttribute("data-auth-tab")));
 });
@@ -5648,6 +7660,137 @@ document.querySelectorAll("[data-open-password-tab]").forEach((btn) => {
     activateAuthTab(mode === "recovery" ? "password-recovery" : "password");
   });
 });
+
+if (profileAccountSettingsBtn) {
+  profileAccountSettingsBtn.addEventListener("click", () => openAccountSettingsOverlay());
+}
+
+if (accountSettingsClose) {
+  accountSettingsClose.addEventListener("click", () => closeAccountSettingsOverlay());
+}
+
+if (accountSettingsOverlay && accountSettingsOverlay.dataset.boundDismiss !== "1") {
+  accountSettingsOverlay.addEventListener("click", (event) => {
+    if (event.target === accountSettingsOverlay) closeAccountSettingsOverlay();
+  });
+  accountSettingsOverlay.dataset.boundDismiss = "1";
+}
+
+accountSettingsPasswordModeBtns.forEach((btn) => {
+  btn.addEventListener("click", () => {
+    const mode = String(btn.getAttribute("data-account-password-mode") || "change").trim().toLowerCase();
+    activateAccountSettingsPasswordMode(mode);
+  });
+});
+
+if (accountSettingsForm) {
+  accountSettingsForm.addEventListener("submit", (event) => {
+    event.preventDefault();
+    if (!accountSettingsForm.reportValidity()) return;
+
+    const currentKey = resolveAccountKey(accountSettingsTargetKey || activeAccount?.email || "");
+    const account = accounts[currentKey] || resolveAccountSettingsTarget();
+    const nextEmail = normalizeEmailAddress(document.getElementById("account-settings-email")?.value || "");
+    const nextCountryCode = String(document.getElementById("account-settings-country")?.value || "").trim();
+    const nextPhrase = String(document.getElementById("account-settings-phrase")?.value || "").trim();
+
+    if (!currentKey || !accounts[currentKey] || !account) {
+      if (accountSettingsInfo) accountSettingsInfo.textContent = "Unable to load the active account for editing.";
+      return;
+    }
+    if (!nextEmail) {
+      if (accountSettingsInfo) accountSettingsInfo.textContent = "Enter a valid VVS email address.";
+      return;
+    }
+    if (nextEmail !== currentKey && accounts[nextEmail] && accounts[nextEmail] !== account) {
+      if (accountSettingsInfo) accountSettingsInfo.textContent = "That email is already linked to another VVS account.";
+      return;
+    }
+
+    account.prefix = String(document.getElementById("account-settings-title")?.value || "").trim();
+    account.firstName = String(document.getElementById("account-settings-first")?.value || "").trim();
+    account.lastName = String(document.getElementById("account-settings-last")?.value || "").trim();
+    account.phone = String(document.getElementById("account-settings-phone")?.value || "").trim();
+    account.country = nextCountryCode ? countryDisplayName(nextCountryCode) : "";
+    account.secretPhrase = nextPhrase;
+
+    const updatedKey = renameBaseAccountKey(currentKey, nextEmail);
+    accountSettingsTargetKey = resolveAccountKey(updatedKey);
+    syncCredentialFieldAcrossLinkedAccounts(updatedKey, "secretPhrase", nextPhrase);
+    syncChangedAccountState(updatedKey);
+    populateAccountSettingsForm(accounts[resolveAccountKey(updatedKey)] || resolveAccountSettingsTarget(), { resetPasswordTools: false });
+    if (accountSettingsInfo) accountSettingsInfo.textContent = "Account details updated successfully.";
+  });
+}
+
+if (accountSettingsDiscard) {
+  accountSettingsDiscard.addEventListener("click", () => {
+    const targetAccount = accounts[resolveAccountKey(accountSettingsTargetKey)] || resolveAccountSettingsTarget();
+    if (!targetAccount) return;
+    populateAccountSettingsForm(targetAccount);
+    if (accountSettingsInfo) accountSettingsInfo.textContent = "Changes discarded.";
+  });
+}
+
+if (accountSettingsPasswordForm) {
+  accountSettingsPasswordForm.addEventListener("submit", (event) => {
+    event.preventDefault();
+    if (!accountSettingsPasswordForm.reportValidity()) return;
+    submitPasswordChangeFlow({
+      email: (document.getElementById("account-pw-email")?.value || "").trim(),
+      currentPassword: (document.getElementById("account-pw-current")?.value || "").trim(),
+      newPassword: (document.getElementById("account-pw-new")?.value || "").trim(),
+      confirmPassword: (document.getElementById("account-pw-confirm")?.value || "").trim(),
+      infoEl: accountSettingsPasswordInfo,
+      onSuccess: () => {
+        accountSettingsPasswordForm.reset();
+        const emailField = document.getElementById("account-pw-email");
+        const targetAccount = accounts[resolveAccountKey(accountSettingsTargetKey)] || resolveAccountSettingsTarget();
+        if (emailField) emailField.value = String(targetAccount?.email || activeAccount?.email || "").trim();
+      }
+    });
+  });
+}
+
+if (accountSettingsRecoveryStep1) {
+  accountSettingsRecoveryStep1.addEventListener("submit", (event) => {
+    event.preventDefault();
+    if (!accountSettingsRecoveryStep1.reportValidity()) return;
+    startPasswordRecoveryFlow({
+      email: (document.getElementById("account-pw-rec-email")?.value || "").trim(),
+      phrase: (document.getElementById("account-pw-rec-phrase")?.value || "").trim().toLowerCase(),
+      selectedTier: normalizeMembershipTier(document.getElementById("account-pw-rec-tier")?.value || ""),
+      infoEl: accountSettingsPasswordRecoveryInfo,
+      step1Form: accountSettingsRecoveryStep1,
+      step2Form: accountSettingsRecoveryStep2,
+      state: accountPasswordResetState
+    });
+  });
+}
+
+if (accountSettingsRecoveryStep2) {
+  accountSettingsRecoveryStep2.addEventListener("submit", (event) => {
+    event.preventDefault();
+    if (!accountSettingsRecoveryStep2.reportValidity()) return;
+    completePasswordRecoveryFlow({
+      code: (document.getElementById("account-pw-rec-code")?.value || "").trim(),
+      newPassword: (document.getElementById("account-pw-rec-new")?.value || "").trim(),
+      confirmPassword: (document.getElementById("account-pw-rec-confirm")?.value || "").trim(),
+      infoEl: accountSettingsPasswordRecoveryInfo,
+      step1Form: accountSettingsRecoveryStep1,
+      step2Form: accountSettingsRecoveryStep2,
+      state: accountPasswordResetState,
+      onSuccess: (account) => {
+        const email = String(account?.email || activeAccount?.email || "").trim();
+        const tier = normalizeMembershipTier(account?.membership || activeAccount?.membership || "");
+        const emailField = document.getElementById("account-pw-rec-email");
+        const tierField = document.getElementById("account-pw-rec-tier");
+        if (emailField) emailField.value = email;
+        if (tierField instanceof HTMLSelectElement) tierField.value = tier;
+      }
+    });
+  });
+}
 
 if (loginStep1) {
   loginStep1.addEventListener("submit", (event) => {
@@ -5821,43 +7964,15 @@ if (pwOldForm) {
   pwOldForm.addEventListener("submit", (event) => {
     event.preventDefault();
     if (!pwOldForm.reportValidity()) return;
-
-    const email = (document.getElementById("pw-old-email")?.value || "").trim();
-    const oldPassword = (document.getElementById("pw-old-password")?.value || "").trim();
-    const newPassword = (document.getElementById("pw-old-new")?.value || "").trim();
-    const confirmPassword = (document.getElementById("pw-old-confirm")?.value || "").trim();
-
-    const account = findAccountByEmail(email);
-    if (!account) {
-      if (passwordInfo) passwordInfo.textContent = "Account not found for this email address.";
-      return;
-    }
-
-    const allPasswords = [String(account.password), ...((account.altPasswords || []).map((item) => String(item)))];
-    const oldOk = allPasswords.some((stored) => oldPassword === stored || oldPassword.toLowerCase() === stored.toLowerCase());
-    if (!oldOk) {
-      if (passwordInfo) passwordInfo.textContent = "Current password is incorrect.";
-      return;
-    }
-    if (newPassword !== confirmPassword) {
-      if (passwordInfo) passwordInfo.textContent = "New password and confirmation do not match.";
-      return;
-    }
-    if (!isValidSignupPassword(newPassword)) {
-      if (passwordInfo) passwordInfo.textContent = "New password must be at least 12 characters with 2 capital letters, 2 numbers, and 2 special symbols.";
-      return;
-    }
-
-    account.password = newPassword;
-    account.altPasswords = [];
-    persistAccountsData();
-    if (activeAccount && String(activeAccount.email || "").trim().toLowerCase() === String(account.email || "").trim().toLowerCase()) {
-      activeAccount.password = newPassword;
-      activeAccount.altPasswords = [];
-      persistActiveSession(activeAccount);
-    }
-    if (passwordInfo) passwordInfo.textContent = "Password updated successfully.";
-    pwOldForm.reset();
+    const changed = submitPasswordChangeFlow({
+      email: (document.getElementById("pw-old-email")?.value || "").trim(),
+      currentPassword: (document.getElementById("pw-old-password")?.value || "").trim(),
+      newPassword: (document.getElementById("pw-old-new")?.value || "").trim(),
+      confirmPassword: (document.getElementById("pw-old-confirm")?.value || "").trim(),
+      infoEl: passwordInfo,
+      onSuccess: () => pwOldForm.reset()
+    });
+    if (!changed) return;
   });
 }
 
@@ -5865,34 +7980,15 @@ if (pwRecoveryStep1) {
   pwRecoveryStep1.addEventListener("submit", (event) => {
     event.preventDefault();
     if (!pwRecoveryStep1.reportValidity()) return;
-
-    const email = (document.getElementById("pw-rec-email")?.value || "").trim();
-    const phrase = (document.getElementById("pw-rec-phrase")?.value || "").trim().toLowerCase();
-    const selectedTier = normalizeMembershipTier(document.getElementById("pw-rec-tier")?.value || "");
-    const account = findAccountByEmail(email);
-    if (!account) {
-      if (passwordRecoveryInfo) passwordRecoveryInfo.textContent = "Account not found for this email address.";
-      return;
-    }
-    const phraseOk = phrase === String(account.secretPhrase || "").toLowerCase();
-    if (!phraseOk) {
-      if (passwordRecoveryInfo) passwordRecoveryInfo.textContent = "Secret phrase is incorrect.";
-      return;
-    }
-    const accountTier = normalizeMembershipTier(account.membership || "");
-    if (!selectedTier || selectedTier !== accountTier) {
-      if (passwordRecoveryInfo) passwordRecoveryInfo.textContent = "Selected membership tier does not match this account.";
-      return;
-    }
-
-    passwordResetState.email = String(account.email || email).trim().toLowerCase();
-    passwordResetState.account = account;
-    passwordResetState.code = issueTestEmailCode(passwordResetState.email);
-    if (pwRecoveryStep2) {
-      pwRecoveryStep2.hidden = true;
-      pwRecoveryStep2.reset();
-    }
-    if (passwordRecoveryInfo) passwordRecoveryInfo.textContent = `Recovery code sent to ${passwordResetState.email}. Test code: ${passwordResetState.code}.`;
+    startPasswordRecoveryFlow({
+      email: (document.getElementById("pw-rec-email")?.value || "").trim(),
+      phrase: (document.getElementById("pw-rec-phrase")?.value || "").trim().toLowerCase(),
+      selectedTier: normalizeMembershipTier(document.getElementById("pw-rec-tier")?.value || ""),
+      infoEl: passwordRecoveryInfo,
+      step1Form: pwRecoveryStep1,
+      step2Form: pwRecoveryStep2,
+      state: passwordResetState
+    });
   });
 }
 
@@ -5900,45 +7996,15 @@ if (pwRecoveryStep2) {
   pwRecoveryStep2.addEventListener("submit", (event) => {
     event.preventDefault();
     if (!pwRecoveryStep2.reportValidity()) return;
-
-    const code = (document.getElementById("pw-rec-code")?.value || "").trim();
-    const newPassword = (document.getElementById("pw-rec-new")?.value || "").trim();
-    const confirmPassword = (document.getElementById("pw-rec-confirm")?.value || "").trim();
-    const account = passwordResetState.account || findAccountByEmail(passwordResetState.email);
-
-    if (!account) {
-      if (passwordInfo) passwordInfo.textContent = "Password recovery session expired. Start again.";
-      return;
-    }
-    if (code !== passwordResetState.code) {
-      if (passwordInfo) passwordInfo.textContent = "Verification code is incorrect.";
-      return;
-    }
-    if (newPassword !== confirmPassword) {
-      if (passwordInfo) passwordInfo.textContent = "New password and confirmation do not match.";
-      return;
-    }
-    if (!isValidSignupPassword(newPassword)) {
-      if (passwordInfo) passwordInfo.textContent = "New password must be at least 12 characters with 2 capital letters, 2 numbers, and 2 special symbols.";
-      return;
-    }
-
-    account.password = newPassword;
-    account.altPasswords = [];
-    persistAccountsData();
-    if (activeAccount && String(activeAccount.email || "").trim().toLowerCase() === String(account.email || "").trim().toLowerCase()) {
-      activeAccount.password = newPassword;
-      activeAccount.altPasswords = [];
-      persistActiveSession(activeAccount);
-    }
-    if (passwordInfo) passwordInfo.textContent = "Password updated successfully through email + secret phrase.";
-    pwRecoveryStep2.reset();
-    pwRecoveryStep2.hidden = true;
-    pwRecoveryStep1.hidden = false;
-    pwRecoveryStep1.reset();
-    passwordResetState.email = "";
-    passwordResetState.code = "";
-    passwordResetState.account = null;
+    completePasswordRecoveryFlow({
+      code: (document.getElementById("pw-rec-code")?.value || "").trim(),
+      newPassword: (document.getElementById("pw-rec-new")?.value || "").trim(),
+      confirmPassword: (document.getElementById("pw-rec-confirm")?.value || "").trim(),
+      infoEl: passwordRecoveryInfo,
+      step1Form: pwRecoveryStep1,
+      step2Form: pwRecoveryStep2,
+      state: passwordResetState
+    });
   });
 }
 
@@ -5962,6 +8028,11 @@ const sunriseUnsavedOverlay = document.getElementById("sunrise-unsaved-overlay")
 const sunriseUnsavedSaveBtn = document.getElementById("sunrise-unsaved-save");
 const sunriseUnsavedDiscardBtn = document.getElementById("sunrise-unsaved-discard");
 const sunriseUnsavedStayBtn = document.getElementById("sunrise-unsaved-stay");
+const sunriseRtaAuditOverlay = document.getElementById("sunrise-rta-audit-overlay");
+const sunriseRtaAuditTitle = document.getElementById("sunrise-rta-audit-title");
+const sunriseRtaAuditBody = document.getElementById("sunrise-rta-audit-body");
+const sunriseRtaAuditInfo = document.getElementById("sunrise-rta-audit-info");
+const sunriseRtaAuditClose = document.getElementById("sunrise-rta-audit-close");
 const logoutBtn = document.getElementById("logout-btn");
 
 const sunriseControlDefaults = {
@@ -5983,8 +8054,9 @@ const sunriseControlDefaults = {
     { id: "SM-102", name: "Selena Marwick", role: "Marketing", position: "Growth Marketing Lead", commission: 4.2 }
   ],
   ecsEmployees: [
-    { id: "EMP-101", name: "Camille Mendes", role: "Concierge", position: "Lead Concierge", salary: 12500, hours: 176, bonus: 1200, commission: 4.5, status: "Active", email: "camille.mendes@venture-voyagers.com", login: "camille.mendes", permission: "Tier-3" }
+    { id: "EMP-101", name: "Camille Mendes", role: "Concierge", position: "Lead Concierge", division: "Office", rtaRoles: ["concierge"], salary: 12500, hours: 176, bonus: 1200, commission: 4.5, status: "Active", email: "camille.mendes@venture-voyagers.com", login: "camille.mendes", permission: "Tier-3" }
   ],
+  rtaAssignments: [],
   rimInvites: [
     { id: "RIM-001", name: "Prospect One", email: "prospect.one@example.com", country: "UAE", team: "Aquila Team", status: "Draft" }
   ],
@@ -6094,8 +8166,6 @@ const sunriseControlDefaults = {
   socSelectedServiceId: ""
 };
 
-let sunriseControlState = null;
-
 function cloneDefaultSunriseControlState() {
   return JSON.parse(JSON.stringify(sunriseControlDefaults));
 }
@@ -6111,9 +8181,14 @@ function loadSunriseControlState() {
       ? parsed.ecsEmployees.map((row) => ({
           ...row,
           role: String(row?.role || "Concierge"),
-          position: String(row?.position || row?.role || "Concierge Associate")
+          position: String(row?.position || row?.role || "Concierge Associate"),
+          division: normalizeStaffDivision(row?.division, row?.position || row?.role),
+          rtaRoles: normalizeRtaRoles(row?.rtaRoles, row?.position || row?.role)
         }))
       : fallback.ecsEmployees;
+    const rtaAssignments = Array.isArray(parsed.rtaAssignments)
+      ? parsed.rtaAssignments.map((row) => normalizeRtaAssignment(row))
+      : fallback.rtaAssignments;
     const normalizeSocService = (row = {}) => {
       const steps = Array.isArray(row.steps) && row.steps.length
         ? row.steps.map((step, index) => ({
@@ -6222,6 +8297,7 @@ function loadSunriseControlState() {
       ...fallback,
       ...parsed,
       ecsEmployees,
+      rtaAssignments,
       socServices,
       lcsSessions,
       deletedAccounts,
@@ -6235,9 +8311,7 @@ function loadSunriseControlState() {
 let sunrisePersistTimer = 0;
 let sunrisePersistQueued = false;
 const SUNRISE_PERSIST_DEBOUNCE_MS = 140;
-let sunriseHasUnsavedChanges = false;
 let sunriseUnsavedModalPendingAction = null;
-let sunriseCommittedStateHash = "";
 
 function snapshotSunriseControlState() {
   try {
@@ -6278,6 +8352,8 @@ function queueSunriseControlStatePersist() {
 
 function saveSunriseControlState(options = {}) {
   if (!sunriseControlState) return;
+  syncRedTeamAssignmentsToClientAccounts();
+  syncSocServicesToClientAccounts();
   const markDirty = options?.markDirty !== false;
   if (markDirty) {
     refreshSunriseDirtyFlag();
@@ -6324,6 +8400,7 @@ function ensureSunriseSaveButtons() {
     "sunrise-ifs",
     "sunrise-ecs",
     "sunrise-smca",
+    "sunrise-rta",
     "sunrise-rim",
     "sunrise-soc",
     "sunrise-soc-details",
@@ -6464,6 +8541,7 @@ function renderSunriseControlSummary() {
   setText("sum-eam-total", money(expTotal));
   setText("sum-ifs-total", money(incTotal));
   setText("sum-ecs-count", String((sunriseControlState.ecsEmployees || []).length));
+  setText("sum-rta-pending", String(rtaPendingCount()));
   setText("sum-soc-current", String(((sunriseControlState.socServices || {}).current || []).length));
   setText("sum-lcs-count", String((sunriseControlState.lcsSessions || []).length));
 }
@@ -6532,27 +8610,139 @@ function renderECSPage() {
       <td><input class="input" type="number" data-ecs-hours="${idx}" value="${Number(row.hours || 0)}"></td><td><input class="input" type="number" data-ecs-bonus="${idx}" value="${Number(row.bonus || 0)}"></td>
       <td><input class="input" type="number" step="0.1" data-ecs-commission="${idx}" value="${Number(row.commission || 0)}"></td>
       <td><input class="input" data-ecs-position="${idx}" value="${row.position || ""}"></td>
+      <td><select class="select" data-ecs-division="${idx}">${staffDivisionOrder.map((division) => `<option ${normalizeStaffDivision(row.division, row.position) === division ? "selected" : ""}>${division}</option>`).join("")}</select></td>
+      <td><input class="input" data-ecs-rta="${idx}" value="${normalizeRtaRoles(row.rtaRoles, row.position).map((role) => rtaRoleLabel(role)).join(", ")}" placeholder="Fleet, Driver, Concierge, Head of Security"></td>
       <td><select class="select" data-ecs-status="${idx}"><option ${row.status==="Active"?"selected":""}>Active</option><option ${row.status==="Promoted"?"selected":""}>Promoted</option><option ${row.status==="Fired"?"selected":""}>Fired</option></select></td>
       <td><input class="input" data-ecs-email="${idx}" value="${row.email || ""}"></td><td><input class="input" data-ecs-login="${idx}" value="${row.login || ""}"></td>
       <td><input class="input" data-ecs-permission="${idx}" value="${row.permission || ""}"></td>
       <td><button class="sunriseMiniBtn" type="button" data-ecs-mail="${idx}">Email</button><button class="sunriseMiniBtn" type="button" data-ecs-del="${idx}">Delete</button></td>
     </tr>
   `).join("");
-  grid.innerHTML = `<article class="sunriseControlCard sunriseDetailWide"><h3>Employees Control System</h3><table class="sunriseControlTable"><thead><tr><th>ID</th><th>Name</th><th>Salary</th><th>Hours</th><th>Bonus</th><th>Comm%</th><th>Position</th><th>Status</th><th>Email</th><th>Login</th><th>Permission</th><th>Actions</th></tr></thead><tbody>${rows}</tbody></table><div class="sunriseControlActions"><button class="sunriseMiniBtn" type="button" data-ecs-add>Add Employee</button></div></article>`;
+  grid.innerHTML = `<article class="sunriseControlCard sunriseDetailWide"><h3>Employees Control System</h3><table class="sunriseControlTable"><thead><tr><th>ID</th><th>Name</th><th>Salary</th><th>Hours</th><th>Bonus</th><th>Comm%</th><th>Position</th><th>Division</th><th>Red Team Role</th><th>Status</th><th>Email</th><th>Login</th><th>Permission</th><th>Actions</th></tr></thead><tbody>${rows}</tbody></table><div class="sunriseControlActions"><button class="sunriseMiniBtn" type="button" data-ecs-add>Add Employee</button></div></article>`;
+}
+
+function renderRTAPage() {
+  const grid = document.getElementById("sunrise-rta-grid");
+  if (!grid || !sunriseControlState) return;
+  ensureRtaAssignmentsStore();
+  const assignments = redMemberAccountEntries().map(([key, account]) => findRtaAssignmentByClientKey(key) || buildSeedRtaAssignmentFromAccount(key, account));
+  const approved = canApproveRtaAssignment();
+  const canSwitch = canManageRtaSwitch();
+  const canEmpty = canEmptyRtaTeam();
+  const cards = assignments.map((assignment) => {
+    const clientKey = String(assignment.clientKey || "").trim().toLowerCase();
+    const client = accounts[clientKey] || null;
+    const domKey = clientKey.replace(/[^a-z0-9]+/gi, "-");
+    const clientName = assignment.clientName || `${String(client?.firstName || "").trim()} ${String(client?.lastName || "").trim()}`.trim();
+    const currentStatus = normalizeRtaAssignmentStatus(assignment.status);
+    const pendingAction = normalizeRtaPendingAction(assignment.pendingAction);
+    const statusClass = currentStatus === "Confirmed"
+      ? "isConfirmed"
+      : (currentStatus === "Pending Confirmation" ? "isPending" : "isUnassigned");
+    const selectForRole = (role) => {
+      const fieldKey = `${role}StaffKey`;
+      const selected = String(assignment[fieldKey] || "").trim().toLowerCase();
+      const selectedAccount = accounts[selected] || null;
+      const options = rtaEligibleStaffEntries(role).map(([staffKey, staffAccount]) => {
+        const label = buildRtaTeamOptionLabel(staffAccount, role);
+        return `<option value="${staffKey}" ${selected === staffKey ? "selected" : ""}>${label}</option>`;
+      }).join("");
+      const detail = selectedAccount
+        ? `<p class="sunriseRtaRoleMeta">${[
+            String(selectedAccount.email || "").trim().toLowerCase(),
+            String(selectedAccount.phone || "").trim()
+          ].filter(Boolean).join(" · ")}</p>`
+        : `<p class="sunriseRtaRoleMeta">No ${rtaRoleLabel(role).toLowerCase()} selected.</p>`;
+      return `<label class="sunriseRtaRoleCard"><span class="sunriseRtaRoleLabel">${rtaRoleLabel(role)}</span><select class="select sunriseRtaSelect" id="rta-${role}-${domKey}"><option value="">Select ${rtaRoleLabel(role)}</option>${options}</select>${detail}</label>`;
+    };
+    const statusMeta = currentStatus === "Pending Confirmation"
+      ? (pendingAction === "switch"
+        ? "Team switch is waiting for DA, CA, or Owner confirmation."
+        : (pendingAction === "clear"
+          ? "Team removal is waiting for CA or Owner confirmation."
+          : "Waiting for DA, CA, or Owner confirmation before publication to the client account."))
+      : (currentStatus === "Confirmed" ? "Team is active and already visible on the client account page." : "No team has been assigned yet.");
+    const auditParts = buildRtaAuditEntries(assignment);
+    const credentials = [
+      assignment.clientEmail || client?.email || "",
+      assignment.clientPhone || client?.phone || "",
+      formatOptionalCountryDisplay(assignment.clientCountry || client?.country || "")
+    ].filter(Boolean);
+    const primaryAction = currentStatus === "Confirmed"
+      ? (canSwitch ? `<button class="sunriseMiniBtn sunriseRtaActionBtn" type="button" data-rta-switch="${clientKey}">Initiate Team Switch</button>` : "")
+      : `<button class="sunriseMiniBtn sunriseRtaActionBtn" type="button" data-rta-save="${clientKey}">${approved ? "Assign Team" : "Submit for Confirmation"}</button>`;
+    const showEmpty = hasAnyRtaSelection(rtaSelectionFromAssignment(assignment)) || hasAnyRtaSelection(rtaPublishedSelectionFromAssignment(assignment));
+    return `<article class="sunriseControlCard sunriseDetailWide sunriseRtaCard">
+      <div class="sunriseRtaCardTop">
+        <div>
+          <p class="sunriseRtaEyebrow">Voyager Red Member</p>
+          <h3 class="sunriseRtaClientName">${clientName || "Voyager Red Member"}</h3>
+          <p class="sunriseRtaClientTier">${String(assignment.tier || client?.membership || "Voyager Red").trim()}</p>
+        </div>
+        <div class="sunriseRtaStatusWrap">
+          <span class="sunriseRtaBadge ${statusClass}">${currentStatus}</span>
+          <p class="sunriseRtaStatusText">${statusMeta}</p>
+        </div>
+      </div>
+      <div class="sunriseRtaInfoStrip">
+        ${credentials.length ? credentials.map((item) => `<span>${item}</span>`).join("") : "<span>No client credentials stored yet.</span>"}
+      </div>
+      <div class="sunriseRtaRolesGrid">
+        ${selectForRole("fleet")}
+        ${selectForRole("driver")}
+        ${selectForRole("concierge")}
+        ${selectForRole("security")}
+      </div>
+      <div class="sunriseRtaFoot">
+        <div class="sunriseRtaAudit">
+          <div class="sunriseRtaAuditTop">
+            <div>
+              <p class="sunriseRtaSectionLabel">Assignment Audit</p>
+              <p class="sunriseRtaAuditHint">${auditParts.length ? `${auditParts.length} logged change${auditParts.length === 1 ? "" : "s"} available.` : "No activity recorded yet."}</p>
+            </div>
+            <button class="sunriseMiniBtn sunriseRtaAuditBtn" type="button" data-rta-audit="${clientKey}">Open Audit</button>
+          </div>
+        </div>
+        <div class="sunriseRtaActions">
+          ${primaryAction}
+          ${approved && currentStatus === "Pending Confirmation" && (pendingAction !== "clear" || canEmpty) ? `<button class="sunriseMiniBtn sunriseRtaActionBtn" type="button" data-rta-confirm="${clientKey}">Confirm</button>` : ""}
+          ${canSwitch && currentStatus === "Confirmed" ? `<button class="sunriseMiniBtn sunriseRtaActionBtn isWarn" type="button" data-rta-revoke="${clientKey}">Revoke Confirmation</button>` : ""}
+          ${canEmpty && showEmpty ? `<button class="sunriseMiniBtn sunriseRtaActionBtn isDanger" type="button" data-rta-empty="${clientKey}">Empty Team</button>` : ""}
+        </div>
+      </div>
+    </article>`;
+  }).join("");
+  grid.innerHTML = `<article class="sunriseControlCard sunriseDetailWide sunriseRtaHero">
+    <div class="sunriseRtaHeroTop">
+      <div>
+        <h3>Red Team Assigning Menu</h3>
+        <p class="opsText">Assign Fleet, Driver, Concierge, and Head of Security for each Voyager Red member. Confirmed teams publish to the client account automatically.</p>
+      </div>
+      <div class="sunriseRtaStatGrid">
+        <div class="sunriseRtaStat"><span>Voyager Red Members</span><b>${assignments.length}</b></div>
+        <div class="sunriseRtaStat"><span>Pending Confirmation</span><b>${rtaPendingCount()}</b></div>
+        <div class="sunriseRtaStat"><span>Confirmed Teams</span><b>${assignments.filter((row) => normalizeRtaAssignmentStatus(row.status) === "Confirmed").length}</b></div>
+      </div>
+    </div>
+    <p class="authInfo" id="rta-info"></p>
+  </article>
+  <section class="sunriseRtaBoard">
+    ${cards || `<article class="sunriseControlCard sunriseDetailWide"><p class="profileNote">No Voyager Red members available.</p></article>`}
+  </section>`;
 }
 
 function renderRIMPage() {
   const grid = document.getElementById("sunrise-rim-grid");
   if (!grid || !sunriseControlState) return;
-  const rows = (sunriseControlState.rimInvites || []).map((row, idx) => `<tr><td><input class="input" data-rim-id="${idx}" value="${row.id || ""}"></td><td><input class="input" data-rim-name="${idx}" value="${row.name || ""}"></td><td><input class="input" data-rim-email="${idx}" value="${row.email || ""}"></td><td><input class="input" data-rim-country="${idx}" value="${row.country || ""}"></td><td><input class="input" data-rim-team="${idx}" value="${row.team || ""}"></td><td><select class="select" data-rim-status="${idx}"><option ${row.status==="Draft"?"selected":""}>Draft</option><option ${row.status==="Sent"?"selected":""}>Sent</option><option ${row.status==="Accepted"?"selected":""}>Accepted</option></select></td><td><button class="sunriseMiniBtn" type="button" data-rim-del="${idx}">Delete</button></td></tr>`).join("");
-  grid.innerHTML = `<article class="sunriseControlCard sunriseDetailWide"><h3>Red Invitations and Team Assignment</h3><table class="sunriseControlTable"><thead><tr><th>ID</th><th>Name</th><th>Email</th><th>Country</th><th>Assigned Team</th><th>Status</th><th>Action</th></tr></thead><tbody>${rows}</tbody></table><div class="sunriseControlActions"><button class="sunriseMiniBtn" type="button" data-rim-add>Add Invitation</button></div></article>`;
+  const rows = (sunriseControlState.rimInvites || []).map((row, idx) => `<tr><td><input class="input" data-rim-id="${idx}" value="${row.id || ""}"></td><td><input class="input" data-rim-name="${idx}" value="${row.name || ""}"></td><td><input class="input" data-rim-email="${idx}" value="${row.email || ""}"></td><td><input class="input" data-rim-country="${idx}" value="${row.country || ""}"></td><td><select class="select" data-rim-status="${idx}"><option ${row.status==="Draft"?"selected":""}>Draft</option><option ${row.status==="Sent"?"selected":""}>Sent</option><option ${row.status==="Accepted"?"selected":""}>Accepted</option></select></td><td><button class="sunriseMiniBtn" type="button" data-rim-del="${idx}">Delete</button></td></tr>`).join("");
+  grid.innerHTML = `<article class="sunriseControlCard sunriseDetailWide"><h3>Red Invitation Register</h3><p class="opsText">Track invitation records without internal team assignment fields.</p><table class="sunriseControlTable"><thead><tr><th>ID</th><th>Name</th><th>Email</th><th>Country</th><th>Status</th><th>Action</th></tr></thead><tbody>${rows || "<tr><td colspan='6'>No invitations available.</td></tr>"}</tbody></table><div class="sunriseControlActions"><button class="sunriseMiniBtn" type="button" data-rim-add>Add Invitation</button></div></article>`;
 }
 
 function renderSOCPage() {
   const grid = document.getElementById("sunrise-soc-grid");
   if (!grid || !sunriseControlState) return;
   const soc = sunriseControlState.socServices || { current: [], past: [], deleted: [] };
-  const renderRows = (bucket, restoreMode = false) => (soc[bucket] || []).map((row, idx) => `<tr><td><input class="input" data-soc-id="${bucket}:${idx}" value="${row.id || ""}"></td><td><input class="input" data-soc-title="${bucket}:${idx}" value="${row.title || ""}"></td><td><input class="input" data-soc-client="${bucket}:${idx}" value="${row.client || ""}"></td><td><select class="select" data-soc-tier="${bucket}:${idx}"><option ${row.tier==="Non-Member"?"selected":""}>Non-Member</option><option ${row.tier==="Voyager Cuprum"?"selected":""}>Voyager Cuprum</option><option ${row.tier==="Voyager Argentum"?"selected":""}>Voyager Argentum</option><option ${row.tier==="Voyager Aurum"?"selected":""}>Voyager Aurum</option><option ${row.tier==="Voyager Platinum"?"selected":""}>Voyager Platinum</option><option ${row.tier==="Voyager Diamante"?"selected":""}>Voyager Diamante</option><option ${row.tier==="Voyager Noir"?"selected":""}>Voyager Noir</option><option ${row.tier==="Voyager Red"?"selected":""}>Voyager Red</option></select></td><td><select class="select" data-soc-desired="${bucket}:${idx}"><option ${row.desiredExecutionTime==="Instant"?"selected":""}>Instant</option><option ${row.desiredExecutionTime==="24h"?"selected":""}>24h</option><option ${row.desiredExecutionTime==="48h"?"selected":""}>48h</option><option ${row.desiredExecutionTime==="72h"?"selected":""}>72h</option><option ${row.desiredExecutionTime==="Within a week"?"selected":""}>Within a week</option><option ${row.desiredExecutionTime==="Within a month"?"selected":""}>Within a month</option><option ${row.desiredExecutionTime==="2 months"?"selected":""}>2 months</option><option ${row.desiredExecutionTime==="3 months"?"selected":""}>3 months</option><option ${row.desiredExecutionTime==="6 months"?"selected":""}>6 months</option></select></td><td><input class="input" data-soc-assigned="${bucket}:${idx}" value="${row.assigned || ""}"></td><td><input class="input" data-soc-assigned-at="${bucket}:${idx}" value="${row.assignedAt || ""}" placeholder="YYYY-MM-DD HH:MM TZ"></td><td><input class="input" data-soc-confirmed-at="${bucket}:${idx}" value="${row.confirmedAt || ""}" placeholder="YYYY-MM-DD HH:MM TZ"></td><td><select class="select" data-soc-status="${bucket}:${idx}"><option ${row.status==="Assigned"?"selected":""}>Assigned</option><option ${row.status==="Confirmed"?"selected":""}>Confirmed</option><option ${row.status==="Closed"?"selected":""}>Closed</option></select></td><td>${restoreMode ? `<button class="sunriseMiniBtn" type="button" data-soc-restore="${idx}">Restore</button>` : `<button class="sunriseMiniBtn" type="button" data-soc-delete="${bucket}:${idx}">Delete</button><button class="sunriseMiniBtn" type="button" data-soc-open="${row.id}">Details</button>`}</td></tr>`).join("");
+  const renderRows = (bucket, restoreMode = false) => (soc[bucket] || []).map((row, idx) => `<tr><td><input class="input" data-soc-id="${bucket}:${idx}" value="${row.id || ""}"></td><td><input class="input" data-soc-title="${bucket}:${idx}" value="${row.title || ""}"></td><td><input class="input" data-soc-client="${bucket}:${idx}" value="${row.client || ""}"></td><td><select class="select" data-soc-tier="${bucket}:${idx}"><option ${row.tier==="Non-Member"?"selected":""}>Non-Member</option><option ${row.tier==="Voyager Cuprum"?"selected":""}>Voyager Cuprum</option><option ${row.tier==="Voyager Argentum"?"selected":""}>Voyager Argentum</option><option ${row.tier==="Voyager Aurum"?"selected":""}>Voyager Aurum</option><option ${row.tier==="Voyager Platinum"?"selected":""}>Voyager Platinum</option><option ${row.tier==="Voyager Diamante"?"selected":""}>Voyager Diamante</option><option ${row.tier==="Voyager Noir"?"selected":""}>Voyager Noir</option><option ${row.tier==="Voyager Red"?"selected":""}>Voyager Red</option></select></td><td><select class="select" data-soc-desired="${bucket}:${idx}"><option ${row.desiredExecutionTime==="Instant"?"selected":""}>Instant</option><option ${row.desiredExecutionTime==="24h"?"selected":""}>24h</option><option ${row.desiredExecutionTime==="48h"?"selected":""}>48h</option><option ${row.desiredExecutionTime==="72h"?"selected":""}>72h</option><option ${row.desiredExecutionTime==="Within a week"?"selected":""}>Within a week</option><option ${row.desiredExecutionTime==="Within a month"?"selected":""}>Within a month</option><option ${row.desiredExecutionTime==="2 months"?"selected":""}>2 months</option><option ${row.desiredExecutionTime==="3 months"?"selected":""}>3 months</option><option ${row.desiredExecutionTime==="6 months"?"selected":""}>6 months</option></select></td><td><input class="input" data-soc-assigned="${bucket}:${idx}" value="${row.assigned || ""}"></td><td><input class="input" data-soc-assigned-at="${bucket}:${idx}" value="${row.assignedAt || ""}" placeholder="YYYY-MM-DD HH:MM TZ"></td><td><input class="input" data-soc-confirmed-at="${bucket}:${idx}" value="${row.confirmedAt || ""}" placeholder="YYYY-MM-DD HH:MM TZ"></td><td><select class="select" data-soc-status="${bucket}:${idx}"><option ${row.status==="Awaiting Confirmation"?"selected":""}>Awaiting Confirmation</option><option ${row.status==="Assigned"?"selected":""}>Assigned</option><option ${row.status==="Confirmed"?"selected":""}>Confirmed</option><option ${row.status==="Closed"?"selected":""}>Closed</option></select></td><td>${restoreMode ? `<button class="sunriseMiniBtn" type="button" data-soc-restore="${idx}">Restore</button>` : `<button class="sunriseMiniBtn" type="button" data-soc-delete="${bucket}:${idx}">Delete</button><button class="sunriseMiniBtn" type="button" data-soc-open="${row.id}">Details</button>`}</td></tr>`).join("");
   grid.innerHTML = `<article class="sunriseControlCard sunriseDetailWide"><h3>Service Registration</h3><div class="sunriseControlActions"><input class="input" id="soc-new-title" placeholder="Service title"><input class="input" id="soc-new-client" placeholder="Client"><select class="select" id="soc-new-tier"><option>Non-Member</option><option>Voyager Cuprum</option><option>Voyager Argentum</option><option>Voyager Aurum</option><option>Voyager Platinum</option><option>Voyager Diamante</option><option>Voyager Noir</option><option>Voyager Red</option></select><select class="select" id="soc-new-desired"><option>Instant</option><option selected>24h</option><option>48h</option><option>72h</option><option>Within a week</option><option>Within a month</option><option>2 months</option><option>3 months</option><option>6 months</option></select><button class="sunriseMiniBtn" type="button" id="soc-add-service">Register Service</button></div></article><article class="sunriseControlCard sunriseDetailWide"><h3>Current Services</h3><table class="sunriseControlTable"><thead><tr><th>ID</th><th>Title</th><th>Client</th><th>Tier</th><th>Desired Execution</th><th>Assigned To</th><th>Assigned At</th><th>Confirmed At</th><th>Status</th><th>Actions</th></tr></thead><tbody>${renderRows("current") || "<tr><td colspan='10'>No current services.</td></tr>"}</tbody></table></article><article class="sunriseControlCard sunriseDetailWide"><h3>Past Services</h3><table class="sunriseControlTable"><thead><tr><th>ID</th><th>Title</th><th>Client</th><th>Tier</th><th>Desired Execution</th><th>Assigned To</th><th>Assigned At</th><th>Confirmed At</th><th>Status</th><th>Actions</th></tr></thead><tbody>${renderRows("past") || "<tr><td colspan='10'>No past services.</td></tr>"}</tbody></table></article><article class="sunriseControlCard sunriseDetailWide"><h3>Recently Deleted</h3><table class="sunriseControlTable"><thead><tr><th>ID</th><th>Title</th><th>Client</th><th>Tier</th><th>Desired Execution</th><th>Assigned To</th><th>Assigned At</th><th>Confirmed At</th><th>Status</th><th>Action</th></tr></thead><tbody>${renderRows("deleted", true) || "<tr><td colspan='10'>No deleted services.</td></tr>"}</tbody></table></article>`;
 }
 
@@ -6565,9 +8755,10 @@ function renderSOCDetailsPage() {
     grid.innerHTML = `<article class="sunriseControlCard sunriseDetailWide"><h3>No Selected Service</h3><p class="opsText">Open a service from SOC list or use shortcut with service ID (example: A1234567).</p></article>`;
     return;
   }
+  const clientCredentials = resolveSocClientCredentials(selected);
   const steps = Array.isArray(selected.steps) ? selected.steps : [];
   const stepRows = steps.map((step, idx) => `<tr><td><input class="input" data-socd-step-id="${idx}" value="${step.id || `S${idx + 1}`}"></td><td><input class="input" data-socd-action="${idx}" value="${step.action || ""}"></td><td><input class="input" data-socd-details="${idx}" value="${step.details || ""}"></td><td><select class="select" data-socd-status="${idx}"><option ${step.status==="Pending"?"selected":""}>Pending</option><option ${step.status==="In Progress"?"selected":""}>In Progress</option><option ${step.status==="Done"?"selected":""}>Done</option><option ${step.status==="Blocked"?"selected":""}>Blocked</option></select></td><td><button class="sunriseMiniBtn" type="button" data-socd-del="${idx}">Delete</button></td></tr>`).join("");
-  grid.innerHTML = `<article class="sunriseControlCard sunriseDetailWide"><h3>Core Service Profile</h3><table class="sunriseControlTable"><tbody><tr><th style="width:220px;">Service ID</th><td><input class="input" data-socd-id value="${selected.id || ""}"></td></tr><tr><th>Service Title</th><td><input class="input" data-socd-title value="${selected.title || ""}"></td></tr><tr><th>Client</th><td><input class="input" data-socd-client value="${selected.client || ""}"></td></tr><tr><th>Client Tier</th><td><select class="select" data-socd-tier><option ${selected.tier==="Non-Member"?"selected":""}>Non-Member</option><option ${selected.tier==="Voyager Cuprum"?"selected":""}>Voyager Cuprum</option><option ${selected.tier==="Voyager Argentum"?"selected":""}>Voyager Argentum</option><option ${selected.tier==="Voyager Aurum"?"selected":""}>Voyager Aurum</option><option ${selected.tier==="Voyager Platinum"?"selected":""}>Voyager Platinum</option><option ${selected.tier==="Voyager Diamante"?"selected":""}>Voyager Diamante</option><option ${selected.tier==="Voyager Noir"?"selected":""}>Voyager Noir</option><option ${selected.tier==="Voyager Red"?"selected":""}>Voyager Red</option></select></td></tr><tr><th>Desired Execution Time</th><td><select class="select" data-socd-desired><option ${selected.desiredExecutionTime==="Instant"?"selected":""}>Instant</option><option ${selected.desiredExecutionTime==="24h"?"selected":""}>24h</option><option ${selected.desiredExecutionTime==="48h"?"selected":""}>48h</option><option ${selected.desiredExecutionTime==="72h"?"selected":""}>72h</option><option ${selected.desiredExecutionTime==="Within a week"?"selected":""}>Within a week</option><option ${selected.desiredExecutionTime==="Within a month"?"selected":""}>Within a month</option><option ${selected.desiredExecutionTime==="2 months"?"selected":""}>2 months</option><option ${selected.desiredExecutionTime==="3 months"?"selected":""}>3 months</option><option ${selected.desiredExecutionTime==="6 months"?"selected":""}>6 months</option></select></td></tr><tr><th>Assigned Concierge / Team</th><td><input class="input" data-socd-assigned value="${selected.assigned || ""}"></td></tr><tr><th>Assigned At</th><td><input class="input" data-socd-assigned-at value="${selected.assignedAt || ""}" placeholder="YYYY-MM-DD HH:MM TZ"></td></tr><tr><th>Confirmed At</th><td><input class="input" data-socd-confirmed-at value="${selected.confirmedAt || ""}" placeholder="YYYY-MM-DD HH:MM TZ"></td></tr><tr><th>Status</th><td><select class="select" data-socd-status-main><option ${selected.status==="Assigned"?"selected":""}>Assigned</option><option ${selected.status==="Confirmed"?"selected":""}>Confirmed</option><option ${selected.status==="Closed"?"selected":""}>Closed</option></select></td></tr><tr><th>Service Description</th><td><textarea class="input mailTextarea" data-socd-description>${selected.description || ""}</textarea></td></tr></tbody></table></article><article class="sunriseControlCard sunriseDetailWide"><h3>Step-by-Step Actions</h3><table class="sunriseControlTable"><thead><tr><th>Step</th><th>Action</th><th>Concrete Details</th><th>Status</th><th>Action</th></tr></thead><tbody>${stepRows || "<tr><td colspan='5'>No steps yet.</td></tr>"}</tbody></table><div class="sunriseControlActions"><button class="sunriseMiniBtn" type="button" data-socd-add-step>Add Step</button></div></article>`;
+  grid.innerHTML = `<article class="sunriseControlCard sunriseDetailWide"><h3>Core Service Profile</h3><table class="sunriseControlTable"><tbody><tr><th style="width:220px;">Service ID</th><td><input class="input" data-socd-id value="${selected.id || ""}"></td></tr><tr><th>Service Title</th><td><input class="input" data-socd-title value="${selected.title || ""}"></td></tr><tr><th>Client</th><td><input class="input" data-socd-client value="${selected.client || ""}"></td></tr><tr><th>Client Title</th><td><input class="input" data-socd-client-title value="${clientCredentials.clientTitle || ""}"></td></tr><tr><th>Client Email</th><td><input class="input" data-socd-client-email value="${clientCredentials.clientEmail || ""}"></td></tr><tr><th>Client Phone</th><td><input class="input" data-socd-client-phone value="${clientCredentials.clientPhone || ""}"></td></tr><tr><th>Client Country</th><td><input class="input" data-socd-client-country value="${clientCredentials.clientCountry || ""}"></td></tr><tr><th>Preferred Contact</th><td><select class="select" data-socd-client-contact><option value="" ${!clientCredentials.preferredContactMethod?"selected":""}>Not set</option><option value="email" ${clientCredentials.preferredContactMethod==="email"?"selected":""}>Email</option><option value="phone" ${clientCredentials.preferredContactMethod==="phone"?"selected":""}>Phone</option></select></td></tr><tr><th>Client Tier</th><td><select class="select" data-socd-tier><option ${selected.tier==="Non-Member"?"selected":""}>Non-Member</option><option ${selected.tier==="Voyager Cuprum"?"selected":""}>Voyager Cuprum</option><option ${selected.tier==="Voyager Argentum"?"selected":""}>Voyager Argentum</option><option ${selected.tier==="Voyager Aurum"?"selected":""}>Voyager Aurum</option><option ${selected.tier==="Voyager Platinum"?"selected":""}>Voyager Platinum</option><option ${selected.tier==="Voyager Diamante"?"selected":""}>Voyager Diamante</option><option ${selected.tier==="Voyager Noir"?"selected":""}>Voyager Noir</option><option ${selected.tier==="Voyager Red"?"selected":""}>Voyager Red</option></select></td></tr><tr><th>Desired Execution Time</th><td><select class="select" data-socd-desired><option ${selected.desiredExecutionTime==="Instant"?"selected":""}>Instant</option><option ${selected.desiredExecutionTime==="24h"?"selected":""}>24h</option><option ${selected.desiredExecutionTime==="48h"?"selected":""}>48h</option><option ${selected.desiredExecutionTime==="72h"?"selected":""}>72h</option><option ${selected.desiredExecutionTime==="Within a week"?"selected":""}>Within a week</option><option ${selected.desiredExecutionTime==="Within a month"?"selected":""}>Within a month</option><option ${selected.desiredExecutionTime==="2 months"?"selected":""}>2 months</option><option ${selected.desiredExecutionTime==="3 months"?"selected":""}>3 months</option><option ${selected.desiredExecutionTime==="6 months"?"selected":""}>6 months</option></select></td></tr><tr><th>Assigned Concierge / Team</th><td><input class="input" data-socd-assigned value="${selected.assigned || ""}"></td></tr><tr><th>Assigned At</th><td><input class="input" data-socd-assigned-at value="${selected.assignedAt || ""}" placeholder="YYYY-MM-DD HH:MM TZ"></td></tr><tr><th>Confirmed At</th><td><input class="input" data-socd-confirmed-at value="${selected.confirmedAt || ""}" placeholder="YYYY-MM-DD HH:MM TZ"></td></tr><tr><th>Status</th><td><select class="select" data-socd-status-main><option ${selected.status==="Awaiting Confirmation"?"selected":""}>Awaiting Confirmation</option><option ${selected.status==="Assigned"?"selected":""}>Assigned</option><option ${selected.status==="Confirmed"?"selected":""}>Confirmed</option><option ${selected.status==="Closed"?"selected":""}>Closed</option></select></td></tr><tr><th>Service Description</th><td><textarea class="input mailTextarea" data-socd-description>${selected.description || ""}</textarea></td></tr></tbody></table></article><article class="sunriseControlCard sunriseDetailWide"><h3>Step-by-Step Actions</h3><table class="sunriseControlTable"><thead><tr><th>Step</th><th>Action</th><th>Concrete Details</th><th>Status</th><th>Action</th></tr></thead><tbody>${stepRows || "<tr><td colspan='5'>No steps yet.</td></tr>"}</tbody></table><div class="sunriseControlActions"><button class="sunriseMiniBtn" type="button" data-socd-add-step>Add Step</button></div></article>`;
 }
 
 function renderLCSPage(filter = "") {
@@ -6614,6 +8805,7 @@ function scheduleSunriseAdminRenders() {
     renderAMPPage(ampQuery);
     renderALPPage(alpQuery);
     renderMCCPage(mccQuery);
+    syncSunriseDockCodesPreview(ensureShortcutCodeRegistry());
   }, 60);
 }
 
@@ -6656,6 +8848,179 @@ function staffAccessCode(account) {
   return String(account?.sunriseAccessLevel || "STA").trim().toUpperCase();
 }
 
+function ampStaffGroupName(account) {
+  if (isOwnerAccount(account)) return "Owners";
+  if (staffAccessCode(account) === "CA") return "Headquarters";
+  return normalizeStaffDivision(account?.staffDivision, account?.roleTitle);
+}
+
+function ampStaffGroupDescription(group = "") {
+  if (group === "Owners") return "Executive owner identities and primary control accounts.";
+  if (group === "Headquarters") return "Strategic leadership and command-level staff roles.";
+  if (group === "Office") return "Directorate office roles and linked Sunrise access accounts.";
+  if (group === "Field") return "Deployment-side staff for movement, protection, and on-ground execution.";
+  if (group === "Special Requests") return "Special handling staff for concierge-intensive and bespoke execution.";
+  return "Operational staff accounts.";
+}
+
+function sunriseAccessMetaByCode(code = "") {
+  const normalized = String(code || "").trim().toUpperCase();
+  const row = Array.isArray(sunriseControlState?.accessLevels)
+    ? sunriseControlState.accessLevels.find((item) => String(item?.code || "").trim().toUpperCase() === normalized)
+    : null;
+  return {
+    code: normalized || "STA",
+    title: String(row?.title || normalized || "Staff").trim(),
+    access: String(row?.access || "").trim()
+  };
+}
+
+function findSunriseCredentialEmailForBaseKey(baseKey = "", account = null) {
+  const key = String(baseKey || "").trim().toLowerCase();
+  if (!key) return "";
+  const linked = Object.entries(accounts).find(([candidateKey, candidateAccount]) => {
+    if (!candidateAccount?.sunriseCredential) return false;
+    return String(candidateAccount.sunriseLinkedEmail || "").trim().toLowerCase() === key
+      || String(candidateKey || "").trim().toLowerCase() === preferredSunriseEmailForBase(key, account || accounts[key] || null);
+  });
+  return linked ? String(linked[0] || "").trim().toLowerCase() : preferredSunriseEmailForBase(key, account || accounts[key] || null);
+}
+
+function choosePreferredAmpEntry(entries = [], preferredKey = "") {
+  return entries
+    .slice()
+    .sort((a, b) => {
+      const aKey = String(a?.[0] || "").trim().toLowerCase();
+      const bKey = String(b?.[0] || "").trim().toLowerCase();
+      const preferred = String(preferredKey || "").trim().toLowerCase();
+      const aScore = aKey === preferred ? 0 : (aKey.startsWith("office.") ? 1 : (aKey.includes(".totev@") || aKey.includes(".kovalev@") ? 1 : 2));
+      const bScore = bKey === preferred ? 0 : (bKey.startsWith("office.") ? 1 : (bKey.includes(".totev@") || bKey.includes(".kovalev@") ? 1 : 2));
+      if (aScore !== bScore) return aScore - bScore;
+      return aKey.localeCompare(bKey);
+    })[0] || null;
+}
+
+function canonicalizeAmpStaffEntries(entries = []) {
+  const ownersByPerson = new Map();
+  const officeByAccess = new Map();
+  const passthrough = [];
+
+  entries.forEach((entry) => {
+    const [key, account] = entry;
+    if (!account) return;
+    if (isOwnerAccount(account)) {
+      const fullName = `${String(account.firstName || "").trim()} ${String(account.lastName || "").trim()}`.trim().toLowerCase() || String(key || "").trim().toLowerCase();
+      if (!ownersByPerson.has(fullName)) ownersByPerson.set(fullName, []);
+      ownersByPerson.get(fullName).push(entry);
+      return;
+    }
+    if (ampStaffGroupName(account) === "Office") {
+      const accessCode = staffAccessCode(account) || "STA";
+      if (!officeByAccess.has(accessCode)) officeByAccess.set(accessCode, []);
+      officeByAccess.get(accessCode).push(entry);
+      return;
+    }
+    passthrough.push(entry);
+  });
+
+  const canonicalOwners = Array.from(ownersByPerson.entries())
+    .map(([personKey, ownerEntries]) => choosePreferredAmpEntry(ownerEntries, ampOwnerPreferredKeys[personKey] || ""))
+    .filter(Boolean);
+  const canonicalOffice = sunriseHierarchyOrder()
+    .filter((code) => code !== "OW")
+    .map((code) => {
+      const officeEntries = officeByAccess.get(code) || [];
+      if (!officeEntries.length) return null;
+      return choosePreferredAmpEntry(officeEntries, ampOfficePreferredKeys[code] || "");
+    })
+    .filter(Boolean);
+
+  return [...canonicalOwners, ...canonicalOffice, ...passthrough];
+}
+
+function renderAmpOwnerCards(entries = []) {
+  if (!Array.isArray(entries) || !entries.length) return "";
+  const cards = entries.map(([key, account]) => {
+    const editable = canEditAmpOwnerAccount(key);
+    const canViewSensitive = canViewAmpOwnerSensitiveFields(key);
+    const fullName = `${String(account?.firstName || "").trim()} ${String(account?.lastName || "").trim()}`.trim() || "Owner";
+    const roleTitle = String(account?.roleTitle || "Owner").trim();
+    const titleValue = String(account?.prefix || "").trim();
+    const vvsLogin = String(account?.email || key || "").trim().toLowerCase();
+    const sunriseLogin = findSunriseCredentialEmailForBaseKey(key, account);
+    const sunriseAccount = sunriseLogin && accounts[sunriseLogin] ? accounts[sunriseLogin] : null;
+    const phone = String(account?.phone || "").trim();
+    const country = formatOptionalCountryDisplay(account?.country || "");
+    const secretPhrase = canViewSensitive ? String(account?.secretPhrase || "") : "Restricted";
+    const vvsValue = vvsLogin || "Not stored";
+    const sunriseValue = canViewSensitive ? String(sunriseLogin || "Not linked").trim().toLowerCase() : "Restricted";
+    const phoneValue = canViewSensitive ? (phone || "Not stored") : "Restricted";
+    const countryValue = country || "Not stored";
+    const passwordValue = canViewSensitive ? String(account?.password || "") : "Restricted";
+    const notosValue = canViewSensitive
+      ? String(sunriseAccount?.notosId || account?.notosId || resolveSunriseOwnerCode(account) || "OW").trim().toUpperCase()
+      : "Restricted";
+    const mutableAttr = (attr) => editable ? `${attr}="${key}"` : "readonly";
+    return `<article class="ampOwnerCard">
+      <div class="ampOwnerCardTop">
+        <div>
+          <p class="ampSectionEyebrow">Owner</p>
+          <h4>${fullName}</h4>
+          <p class="ampOwnerRole">${roleTitle}</p>
+        </div>
+        <span class="ampHierarchyCode">OW</span>
+      </div>
+      <div class="ampOwnerMetaRow">
+        <span class="ampOwnerMetaChip"><b>VVS</b> ${vvsValue}</span>
+        <span class="ampOwnerMetaChip"><b>Sunrise</b> ${sunriseValue}</span>
+        <span class="ampOwnerMetaChip"><b>Country</b> ${countryValue}</span>
+      </div>
+      <div class="ampOwnerGrid">
+        <div class="ampOwnerField"><span>Preferred Title</span><input class="input" ${mutableAttr("data-amp-title")} value="${titleValue}"></div>
+        <div class="ampOwnerField"><span>Full Name</span><input class="input" ${mutableAttr("data-amp-name")} value="${fullName}"></div>
+        <div class="ampOwnerField"><span>Position</span><input class="input" ${mutableAttr("data-amp-role")} value="${roleTitle}"></div>
+        <div class="ampOwnerField"><span>VVS Email</span><input class="input" ${editable ? `data-amp-email="${key}"` : "readonly"} value="${vvsValue}"></div>
+        <div class="ampOwnerField"><span>Sunrise Email</span><input class="input" ${editable ? `data-amp-sunrise-email="${key}"` : "readonly"} value="${sunriseValue}"></div>
+        <div class="ampOwnerField"><span>Phone</span><input class="input" ${editable ? `data-amp-phone="${key}"` : "readonly"} value="${phoneValue}"></div>
+        <div class="ampOwnerField"><span>Country</span><input class="input" ${editable ? `data-amp-country="${key}"` : "readonly"} value="${countryValue}"></div>
+        <div class="ampOwnerField"><span>Password</span><input class="input" ${editable ? `data-amp-password="${key}"` : "readonly"} value="${passwordValue}"></div>
+        <div class="ampOwnerField"><span>Secret Phrase</span><input class="input" ${editable ? `data-amp-secret="${key}"` : "readonly"} value="${secretPhrase}"></div>
+        <div class="ampOwnerField"><span>NOTOS ID</span><input class="input" ${editable ? `data-amp-notos="${key}"` : "readonly"} value="${notosValue}"></div>
+      </div>
+    </article>`;
+  }).join("");
+  return `<div class="ampOwnerGridWrap">${cards}</div>`;
+}
+
+function renderAmpOfficeHierarchy(entries = []) {
+  const directorateEntries = (Array.isArray(entries) ? entries : []).filter(([, account]) => staffAccessCode(account) === "DA");
+  if (!directorateEntries.length) return "";
+  const cards = directorateEntries.map(([key, account]) => {
+    const accessMeta = sunriseAccessMetaByCode(staffAccessCode(account));
+    const fullName = `${String(account?.firstName || "").trim()} ${String(account?.lastName || "").trim()}`.trim() || "Staff Member";
+    const position = String(account?.roleTitle || "Staff").trim();
+    const sunriseLogin = findSunriseCredentialEmailForBaseKey(key, account);
+    const accessLine = accessMeta.access || accessMeta.title;
+    return `<article class="ampHierarchyCard">
+      <span class="ampHierarchyCode">${accessMeta.code}</span>
+      <b>${position}</b>
+      <p>${fullName}</p>
+      <span class="ampHierarchyMeta">${accessLine}</span>
+      <div class="ampHierarchyCredentials">
+        <span><b>VVS</b> ${String(account?.email || key || "").trim().toLowerCase()}</span>
+        <span><b>Sunrise</b> ${sunriseLogin}</span>
+      </div>
+    </article>`;
+  }).join("");
+  return `<div class="ampOfficeHierarchy">
+    <div class="ampOfficeHierarchyTop">
+      <span class="ampOfficeHierarchyTitle">Directorate Access</span>
+      <span class="ampOfficeHierarchySummary">${directorateEntries.length} linked role${directorateEntries.length === 1 ? "" : "s"}</span>
+    </div>
+    <div class="ampHierarchyGrid">${cards}</div>
+  </div>`;
+}
+
 function renderAMPPage(filter = "") {
   const grid = document.getElementById("sunrise-amp-grid");
   if (!grid) return;
@@ -6671,8 +9036,12 @@ function renderAMPPage(filter = "") {
     .filter(([, account]) => !account?.sunriseCredential)
     .filter(([, account]) => matchesSearch([
       account.email,
+      account.phone,
       account.firstName,
       account.lastName,
+      account.roleTitle,
+      account.staffDivision,
+      account.prefix,
       account.membership,
       account.sunriseAccessLevel,
       account.notosId,
@@ -6688,41 +9057,53 @@ function renderAMPPage(filter = "") {
       const secretPhraseDisplay = ownerRestricted || lockedForAleks ? "RESTRICTED" : String(account.secretPhrase || "");
       const readOnly = lockedForAleks ? "readonly" : "";
       const disabled = lockedForAleks ? "disabled" : "";
+      const displayCountry = formatOptionalCountryDisplay(account.country);
       const deleteCell = lockedForAleks
         ? `<span class="profileNote">Restricted</span>`
         : `<button class="sunriseMiniBtn" type="button" data-amp-del="${key}">Delete</button>`;
       return `<tr>
       <td><input class="input" data-amp-key="${key}" value="${key}" ${readOnly}></td>
       <td><input class="input" data-amp-email="${key}" value="${account.email || ""}" ${readOnly}></td>
+      <td><input class="input" data-amp-phone="${key}" value="${account.phone || ""}" ${readOnly}></td>
+      <td><input class="input" data-amp-country="${key}" value="${displayCountry}" ${readOnly}></td>
+      <td><input class="input" data-amp-title="${key}" value="${account.prefix || ""}" ${readOnly}></td>
+      <td><input class="input" data-amp-name="${key}" value="${(account.firstName || "") + " " + (account.lastName || "")}" ${readOnly}></td>
       <td><input class="input" data-amp-password="${key}" value="${passwordDisplay}" ${(ownerRestricted || lockedForAleks) ? "readonly" : ""}></td>
       <td><input class="input" data-amp-secret="${key}" value="${secretPhraseDisplay}" ${(ownerRestricted || lockedForAleks) ? "readonly" : ""}></td>
-      <td><input class="input" data-amp-name="${key}" value="${(account.firstName || "") + " " + (account.lastName || "")}" ${readOnly}></td>
       <td><select class="select" data-amp-tier="${key}" ${disabled}>${tierList.map((tier) => `<option ${tier === selectedTier ? "selected" : ""}>${tier}</option>`).join("")}</select></td>
       <td>${deleteCell}</td>
     </tr>`;
     }).join("");
 
+  const viewerAccount = getCurrentSunriseOperator() || activeAccount || null;
+  const viewerIsOwner = isOwnerAccount(viewerAccount);
   const renderStaffRows = (entries) => entries.map(([key, account]) => {
       const selectedAccess = String(account.sunriseAccessLevel || "").trim().toUpperCase();
-      const selectedTier = String(account.membership || "").trim();
       const accessList = accessOptions.includes(selectedAccess) ? accessOptions : [...accessOptions, selectedAccess];
-      const tierList = tierOptions.includes(selectedTier) ? tierOptions : [...tierOptions, selectedTier];
-      const ownerRestricted = isOwnerAccount(account);
       const lockedForAleks = isAleksAmpRestrictedKey(key);
-      const passwordDisplay = ownerRestricted ? "RESTRICTED" : String(account.password || "");
-      const secretPhraseDisplay = ownerRestricted || lockedForAleks ? "RESTRICTED" : String(account.secretPhrase || "");
       const readOnly = lockedForAleks ? "readonly" : "";
       const disabled = lockedForAleks ? "disabled" : "";
+      const displayCountry = formatOptionalCountryDisplay(account.country);
+      const division = ampStaffGroupName(account);
+      const sunriseLogin = findSunriseCredentialEmailForBaseKey(key, account);
       const deleteCell = lockedForAleks
         ? `<span class="profileNote">Restricted</span>`
         : `<button class="sunriseMiniBtn" type="button" data-amp-del="${key}">Delete</button>`;
+      const sensitiveCells = viewerIsOwner
+        ? `<td><input class="input" data-amp-email="${key}" value="${account.email || ""}" ${readOnly}></td>
+      <td><input class="input" value="${sunriseLogin}" readonly></td>
+      <td><input class="input" data-amp-phone="${key}" value="${account.phone || ""}" ${readOnly}></td>
+      <td><input class="input" data-amp-country="${key}" value="${displayCountry}" ${readOnly}></td>
+      <td><input class="input" data-amp-password="${key}" value="${String(account.password || "")}" ${lockedForAleks ? "readonly" : ""}></td>
+      <td><input class="input" data-amp-secret="${key}" value="${lockedForAleks ? "RESTRICTED" : String(account.secretPhrase || "")}" ${lockedForAleks ? "readonly" : ""}></td>`
+        : "";
       return `<tr>
       <td><input class="input" data-amp-key="${key}" value="${key}" ${readOnly}></td>
-      <td><input class="input" data-amp-email="${key}" value="${account.email || ""}" ${readOnly}></td>
-      <td><input class="input" data-amp-password="${key}" value="${passwordDisplay}" ${(ownerRestricted || lockedForAleks) ? "readonly" : ""}></td>
-      <td><input class="input" data-amp-secret="${key}" value="${secretPhraseDisplay}" ${(ownerRestricted || lockedForAleks) ? "readonly" : ""}></td>
+      <td><input class="input" data-amp-title="${key}" value="${account.prefix || ""}" ${readOnly}></td>
       <td><input class="input" data-amp-name="${key}" value="${(account.firstName || "") + " " + (account.lastName || "")}" ${readOnly}></td>
-      <td><select class="select" data-amp-tier="${key}" ${disabled}>${tierList.map((tier) => `<option ${tier === selectedTier ? "selected" : ""}>${tier}</option>`).join("")}</select></td>
+      <td><input class="input" data-amp-role="${key}" value="${account.roleTitle || ""}" ${readOnly}></td>
+      <td><input class="input" value="${division}" readonly></td>
+      ${sensitiveCells}
       <td><select class="select" data-amp-access="${key}" ${disabled}>${accessList.map((code) => `<option value="${code}" ${code === selectedAccess ? "selected" : ""}>${code || "None"}</option>`).join("")}</select></td>
       <td><input class="input" data-amp-notos="${key}" value="${account.notosId || ""}" ${readOnly}></td>
       <td>${deleteCell}</td>
@@ -6730,25 +9111,65 @@ function renderAMPPage(filter = "") {
     }).join("");
 
   const customerEntries = accountEntries.filter(([, account]) => !isStaffAccountForAdmin(account));
-  const staffEntries = accountEntries.filter(([, account]) => isStaffAccountForAdmin(account));
-  const customersHtml = `<article class="sunriseControlCard sunriseDetailWide"><h3>Customers List</h3><table class="sunriseControlTable"><thead><tr><th>Code</th><th>Email</th><th>Password</th><th>Secret Phrase</th><th>Name</th><th>Tier/Status</th><th>Action</th></tr></thead><tbody>${renderCustomerRows(customerEntries) || "<tr><td colspan='7'>No customer accounts found.</td></tr>"}</tbody></table></article>`;
+  const staffEntries = canonicalizeAmpStaffEntries(accountEntries.filter(([, account]) => isStaffAccountForAdmin(account)));
+  const customersHtml = `<article class="sunriseControlCard sunriseDetailWide"><h3>Customers List</h3><table class="sunriseControlTable"><thead><tr><th>Code</th><th>Email</th><th>Phone</th><th>Country</th><th>Title</th><th>Name</th><th>Password</th><th>Secret Phrase</th><th>Tier/Status</th><th>Action</th></tr></thead><tbody>${renderCustomerRows(customerEntries) || "<tr><td colspan='10'>No customer accounts found.</td></tr>"}</tbody></table></article>`;
 
-  const hierarchyCodes = sunriseHierarchyOrder();
-  const levelTitleByCode = new Map((sunriseControlState?.accessLevels || []).map((row) => [String(row.code || "").toUpperCase(), String(row.title || "").trim()]));
   const groupedStaff = new Map();
-  hierarchyCodes.forEach((code) => groupedStaff.set(code, []));
+  ampStaffGroupOrder.forEach((division) => groupedStaff.set(division, []));
   staffEntries
-    .sort((a, b) => hierarchySortIndex(staffAccessCode(a[1])) - hierarchySortIndex(staffAccessCode(b[1])))
+    .sort((a, b) => {
+      const divisionDiff = ampStaffGroupOrder.indexOf(ampStaffGroupName(a[1])) - ampStaffGroupOrder.indexOf(ampStaffGroupName(b[1]));
+      if (divisionDiff) return divisionDiff;
+      const levelDiff = hierarchySortIndex(staffAccessCode(a[1])) - hierarchySortIndex(staffAccessCode(b[1]));
+      if (levelDiff) return levelDiff;
+      const roleDiff = String(a[1]?.roleTitle || "").trim().toLowerCase().localeCompare(String(b[1]?.roleTitle || "").trim().toLowerCase());
+      if (roleDiff) return roleDiff;
+      const aName = `${String(a[1]?.firstName || "").trim()} ${String(a[1]?.lastName || "").trim()}`.trim().toLowerCase();
+      const bName = `${String(b[1]?.firstName || "").trim()} ${String(b[1]?.lastName || "").trim()}`.trim().toLowerCase();
+      return aName.localeCompare(bName);
+    })
     .forEach((entry) => {
-      const code = staffAccessCode(entry[1]);
-      if (!groupedStaff.has(code)) groupedStaff.set(code, []);
-      groupedStaff.get(code).push(entry);
+      const division = ampStaffGroupName(entry[1]);
+      if (!groupedStaff.has(division)) groupedStaff.set(division, []);
+      groupedStaff.get(division).push(entry);
     });
+  const staffHeader = viewerIsOwner
+    ? "<tr><th>Code</th><th>Honorific</th><th>Name</th><th>Position</th><th>Division</th><th>VVS Login</th><th>Sunrise Login</th><th>Phone</th><th>Country</th><th>Password</th><th>Secret Phrase</th><th>Sunrise Access</th><th>NOTOS ID</th><th>Action</th></tr>"
+    : "<tr><th>Code</th><th>Honorific</th><th>Name</th><th>Position</th><th>Division</th><th>Sunrise Access</th><th>NOTOS ID</th><th>Action</th></tr>";
+  const staffOverviewStats = ampStaffGroupOrder
+    .map((division) => ({ division, count: groupedStaff.get(division)?.length || 0 }))
+    .filter((item) => item.count > 0)
+    .map((item) => `<div class="ampStaffStat"><span>${item.division}</span><b>${item.count}</b></div>`)
+    .join("");
   const staffGroupsHtml = Array.from(groupedStaff.entries())
     .filter(([, entries]) => entries.length)
-    .map(([code, entries]) => `<article class="sunriseControlCard sunriseDetailWide"><h3>${code} · ${levelTitleByCode.get(code) || "Staff Level"}</h3><table class="sunriseControlTable"><thead><tr><th>Code</th><th>Email</th><th>Password</th><th>Secret Phrase</th><th>Name</th><th>Tier/Status</th><th>Sunrise Access</th><th>NOTOS ID</th><th>Action</th></tr></thead><tbody>${renderStaffRows(entries)}</tbody></table></article>`)
+    .map(([division, entries]) => `<article class="sunriseControlCard sunriseDetailWide ampStaffSection">
+      <div class="ampStaffSectionTop">
+        <div>
+          <p class="ampSectionEyebrow">AMP Staff</p>
+          <h3>${division}</h3>
+        </div>
+        <span class="ampStaffCount">${entries.length} account${entries.length === 1 ? "" : "s"}</span>
+      </div>
+      ${division === "Owners"
+        ? renderAmpOwnerCards(entries)
+        : `${division === "Office" ? renderAmpOfficeHierarchy(entries) : `<p class="opsText">${ampStaffGroupDescription(division)}</p>`}
+      <div class="ampStaffTableWrap">
+        <table class="sunriseControlTable"><thead>${staffHeader}</thead><tbody>${renderStaffRows(entries)}</tbody></table>
+      </div>`}
+    </article>`)
     .join("");
-  const staffHtml = staffGroupsHtml || `<article class="sunriseControlCard sunriseDetailWide"><h3>Staff Hierarchy</h3><p class="profileNote">No staff accounts found.</p></article>`;
+  const staffHtml = staffGroupsHtml
+    ? `<article class="sunriseControlCard sunriseDetailWide ampStaffOverview">
+        <div class="ampStaffOverviewTop">
+          <div>
+            <h3>Staff Directory</h3>
+            <p class="opsText">Owners stay compact, CA operators are grouped under Headquarters, and Office highlights Directorate access only.</p>
+          </div>
+          <div class="ampStaffStatsGrid">${staffOverviewStats}</div>
+        </div>
+      </article>${staffGroupsHtml}`
+    : `<article class="sunriseControlCard sunriseDetailWide"><h3>Staff Hierarchy</h3><p class="profileNote">No staff accounts found.</p></article>`;
   const deletedRows = (Array.isArray(sunriseControlState?.deletedAccounts) ? sunriseControlState.deletedAccounts : [])
     .filter((row) => matchesSearch([row.email, row.name, row.role, row.membership, row.sunriseAccessLevel, row.notosId], filter))
     .map((row, idx) => {
@@ -6956,15 +9377,62 @@ function renderALPPage(filter = "") {
 
 function renderShortcutCodeAdminCard(context = "MCC", filter = "", searchId = "mcc-search", searchAttr = "data-mcc-search", addAttr = "data-mcc-add") {
   const allAccess = sunriseAccessCodesList();
-  const rows = ensureShortcutCodeRegistry()
+  const filteredCodes = ensureShortcutCodeRegistry()
     .map((row, originalIdx) => ({ row, originalIdx }))
-    .filter(({ row }) => matchesSearch([row.code, row.title, row.route, row.access], filter))
+    .filter(({ row }) => matchesSearch([row.code, row.title, row.route, row.access], filter));
+  const rows = filteredCodes
     .map(({ row, originalIdx }) => {
       const selected = normalizeCodeAccessList(row.access);
       const accessOptions = allAccess.map((code) => `<option value="${code}" ${selected.includes(code) ? "selected" : ""}>${code}</option>`).join("");
-      return `<tr><td><input class="input" data-code-key="${originalIdx}" value="${row.code || ""}"></td><td><input class="input" data-code-title="${originalIdx}" value="${row.title || ""}"></td><td><input class="input" data-code-route="${originalIdx}" value="${row.route || ""}" placeholder="sunrise-... route"></td><td><select class="select" multiple size="4" data-code-access="${originalIdx}">${accessOptions}</select></td><td><button class="sunriseMiniBtn" type="button" data-code-del="${originalIdx}">Delete</button></td></tr>`;
+      return `<article class="sunriseControlCard mccCodeCard">
+        <div class="mccCodeCardTop">
+          <div>
+            <p class="ampSectionEyebrow">${context} Shortcut</p>
+            <span class="mccCodeBadge">${row.code || "NEW"}</span>
+          </div>
+          <button class="sunriseMiniBtn" type="button" data-code-del="${originalIdx}">Delete</button>
+        </div>
+        <div class="mccFieldGrid">
+          <label class="mccField">
+            <span>Code</span>
+            <input class="input" data-code-key="${originalIdx}" value="${row.code || ""}">
+          </label>
+          <label class="mccField">
+            <span>Title</span>
+            <input class="input" data-code-title="${originalIdx}" value="${row.title || ""}">
+          </label>
+          <label class="mccField mccFieldWide">
+            <span>Route</span>
+            <input class="input" data-code-route="${originalIdx}" value="${row.route || ""}" placeholder="sunrise-... route">
+          </label>
+          <label class="mccField mccFieldWide">
+            <span>Allowed Access</span>
+            <select class="select mccAccessSelect" multiple size="${Math.max(4, Math.min(allAccess.length, 7))}" data-code-access="${originalIdx}">${accessOptions}</select>
+            <small>Use Cmd/Ctrl to select multiple Sunrise access levels.</small>
+          </label>
+        </div>
+      </article>`;
     }).join("");
-  return `<article class="sunriseControlCard sunriseDetailWide"><h3>Shortcut Codes Access (${context})</h3><div class="sunriseControlActions"><input class="input" id="${searchId}" placeholder="Search code/title/route/access, use / to narrow" value="${String(filter || "").replace(/"/g, "&quot;")}"><button class="sunriseMiniBtn" type="button" ${searchAttr}>Search</button><button class="sunriseMiniBtn" type="button" ${addAttr}>Add Code</button><a class="sunriseMiniBtn" href="#sunrise-mcc" data-route="sunrise-mcc">Open MCC</a></div><table class="sunriseControlTable"><thead><tr><th>Code</th><th>Title</th><th>Route</th><th>Allowed Access</th><th>Action</th></tr></thead><tbody>${rows || "<tr><td colspan='5'>No shortcut codes found.</td></tr>"}</tbody></table></article>`;
+  return `<article class="sunriseControlCard sunriseDetailWide mccRegistryHero">
+    <div class="mccRegistryTop">
+      <div>
+        <h3>Manage &amp; Create Codes</h3>
+        <p class="opsText">Maintain Sunrise shortcut codes with route targets and allowed access levels in a cleaner control layout.</p>
+      </div>
+      <div class="mccRegistryStats">
+        <div class="mccRegistryStat"><span>Visible Codes</span><b>${filteredCodes.length}</b></div>
+        <div class="mccRegistryStat"><span>Access Levels</span><b>${allAccess.length}</b></div>
+      </div>
+    </div>
+    <div class="mccControlBar">
+      <input class="input" id="${searchId}" placeholder="Search code/title/route/access, use / to narrow" value="${String(filter || "").replace(/"/g, "&quot;")}">
+      <button class="sunriseMiniBtn" type="button" ${searchAttr}>Search</button>
+      <button class="sunriseMiniBtn" type="button" ${addAttr}>Add Code</button>
+    </div>
+  </article>
+  <section class="mccCodeGrid">
+    ${rows || `<article class="sunriseControlCard sunriseDetailWide"><p class="profileNote">No shortcut codes found.</p></article>`}
+  </section>`;
 }
 
 function renderMCCPage(filter = "") {
@@ -7137,6 +9605,10 @@ function renderCustomSunriseControlPages() {
     renderSMCAPage();
     return;
   }
+  if (route === "sunrise-rta") {
+    renderRTAPage();
+    return;
+  }
   if (route === "sunrise-rim") {
     renderRIMPage();
     return;
@@ -7184,11 +9656,25 @@ function bindSunriseControlInteractions() {
   const signatureInfo = document.getElementById("inbox-signature-manager-info");
   const notosPathOverlay = document.getElementById("notos-path-overlay");
   const notosPathClose = document.getElementById("notos-path-close");
+  const rtaAuditOverlay = document.getElementById("sunrise-rta-audit-overlay");
+  const rtaAuditClose = document.getElementById("sunrise-rta-audit-close");
   if (notosPathClose && notosPathClose.dataset.boundNotosClose !== "1") {
     notosPathClose.addEventListener("click", () => {
       if (notosPathOverlay) notosPathOverlay.hidden = true;
     });
     notosPathClose.dataset.boundNotosClose = "1";
+  }
+  if (rtaAuditClose && rtaAuditClose.dataset.boundRtaAuditClose !== "1") {
+    rtaAuditClose.addEventListener("click", () => {
+      closeRtaAuditOverlay();
+    });
+    rtaAuditClose.dataset.boundRtaAuditClose = "1";
+  }
+  if (rtaAuditOverlay && rtaAuditOverlay.dataset.boundRtaAuditBackdrop !== "1") {
+    rtaAuditOverlay.addEventListener("click", (event) => {
+      if (event.target === rtaAuditOverlay) closeRtaAuditOverlay();
+    });
+    rtaAuditOverlay.dataset.boundRtaAuditBackdrop = "1";
   }
   if (signatureClose && signatureClose.dataset.boundSigClose !== "1") {
     signatureClose.addEventListener("click", () => {
@@ -7335,7 +9821,44 @@ function bindSunriseControlInteractions() {
     return { key: a, idx: Number(b) };
   };
 
-  document.addEventListener("click", (event) => {
+  const readRtaSelection = (clientKey) => {
+    const key = String(clientKey || "").trim().toLowerCase();
+    const domKey = key.replace(/[^a-z0-9]+/gi, "-");
+    return {
+      fleetStaffKey: String(document.getElementById(`rta-fleet-${domKey}`)?.value || "").trim().toLowerCase(),
+      driverStaffKey: String(document.getElementById(`rta-driver-${domKey}`)?.value || "").trim().toLowerCase(),
+      conciergeStaffKey: String(document.getElementById(`rta-concierge-${domKey}`)?.value || "").trim().toLowerCase(),
+      securityStaffKey: String(document.getElementById(`rta-security-${domKey}`)?.value || "").trim().toLowerCase()
+    };
+  };
+
+  const setRtaInfo = (message) => {
+    const el = document.getElementById("rta-info");
+    if (el) el.textContent = String(message || "");
+  };
+
+  function encodeAuditValue(value) {
+    return String(value || "").replace(/&/g, "&amp;").replace(/"/g, "&quot;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
+  }
+
+  function closeRtaAuditOverlay() {
+    if (sunriseRtaAuditOverlay) sunriseRtaAuditOverlay.hidden = true;
+    if (sunriseRtaAuditInfo) sunriseRtaAuditInfo.textContent = "";
+  }
+
+  function openRtaAuditOverlay(assignment) {
+    if (!assignment || !sunriseRtaAuditOverlay || !sunriseRtaAuditBody) return;
+    const titleName = String(assignment.clientName || "Voyager Red Member").trim() || "Voyager Red Member";
+    const auditEntries = buildRtaAuditEntries(assignment);
+    sunriseRtaAuditBody.innerHTML = auditEntries.length
+      ? auditEntries.map((entry, idx) => `<div class="field"><label>Entry ${idx + 1}</label><input class="input" value="${encodeAuditValue(entry)}" readonly></div>`).join("")
+      : `<p class="profileNote">No activity recorded yet for this assignment.</p>`;
+    if (sunriseRtaAuditTitle) sunriseRtaAuditTitle.textContent = `${titleName} Assignment Audit`;
+    if (sunriseRtaAuditInfo) sunriseRtaAuditInfo.textContent = `${auditEntries.length} change${auditEntries.length === 1 ? "" : "s"} logged with operator and UTC timestamp data.`;
+    sunriseRtaAuditOverlay.hidden = false;
+  }
+
+  document.addEventListener("click", async (event) => {
     const clickTarget = event.target instanceof Element ? event.target : null;
     if (!clickTarget) return;
 
@@ -7438,7 +9961,7 @@ function bindSunriseControlInteractions() {
 
     const ecsAdd = clickTarget.closest("[data-ecs-add]");
     if (ecsAdd && sunriseControlState) {
-      sunriseControlState.ecsEmployees.push({ id: `EMP-${Math.floor(Math.random() * 900 + 100)}`, name: "New Employee", role: "Concierge", position: "Concierge Associate", salary: 0, hours: 0, bonus: 0, commission: 0, status: "Active", email: "", login: "", permission: "Tier-1" });
+      sunriseControlState.ecsEmployees.push({ id: `EMP-${Math.floor(Math.random() * 900 + 100)}`, name: "New Employee", role: "Concierge", position: "Concierge Associate", division: "Office", rtaRoles: ["concierge"], salary: 0, hours: 0, bonus: 0, commission: 0, status: "Active", email: "", login: "", permission: "Tier-1" });
       saveSunriseControlState();
       renderCustomSunriseControlPages();
       return;
@@ -7503,9 +10026,27 @@ function bindSunriseControlInteractions() {
       const senderMailbox = activeSunriseMailbox();
       const folder = scheduledAt ? "sending" : "sent";
       const html = `<p style="font-family:${font};font-size:${fontSize}px;">${body.replace(/\n/g, "<br>")}</p>`;
+      const attachmentPayload = await readEmailAttachments(sunriseMailAttach);
       pushInboxMessage({ mailbox: senderMailbox, folder, from: sender, to, cc, bcc, subject, bodyHtml: html, priority, scheduledAt, attachments });
       routeSunriseInboundCopies({ senderMailbox, from: sender, to, cc, bcc, subject, bodyHtml: html, priority, attachments });
-      if (sunriseMailInfo) sunriseMailInfo.textContent = `Message sent to ${recipients || to}.`;
+      const delivery = await deliverSunriseEmail({
+        to,
+        cc,
+        bcc,
+        subject,
+        html,
+        text: body,
+        from: sender,
+        replyTo: sender,
+        attachments: attachmentPayload
+      });
+      if (sunriseMailInfo) {
+        sunriseMailInfo.textContent = delivery.ok
+          ? `Message sent to ${recipients || to}.`
+          : (delivery.skipped
+            ? `Message stored locally for ${recipients || to}. External delivery will work in Cloudflare Pages runtime.`
+            : `Message stored locally, but external delivery failed: ${delivery.message}`);
+      }
       clearSunriseComposeDraftBaseline();
       window.setTimeout(() => {
         closeSunriseEmailComposer();
@@ -7572,9 +10113,166 @@ function bindSunriseControlInteractions() {
       return;
     }
 
+    const rtaSave = clickTarget.closest("[data-rta-save]");
+    if (rtaSave && sunriseControlState) {
+      ensureRtaAssignmentsStore();
+      const clientKey = String(rtaSave.getAttribute("data-rta-save") || "").trim().toLowerCase();
+      const assignment = findRtaAssignmentByClientKey(clientKey);
+      const client = accounts[clientKey] || null;
+      if (!assignment || !client) return;
+      const selection = readRtaSelection(clientKey);
+      if (!hasCompleteRtaSelection(selection)) {
+        setRtaInfo("Select Fleet, Driver, Concierge, and Head of Security before saving.");
+        return;
+      }
+      hydrateRtaAssignmentClientFields(assignment, clientKey, client);
+      let infoMessage = "";
+      if (canApproveRtaAssignment()) {
+        applyRtaSelectionToAssignment(assignment, selection);
+        assignment.requestedBy = buildRtaOperatorLabel();
+        assignment.requestedAt = formatUtcTimestamp(new Date());
+        confirmRtaSelection(assignment);
+        appendRtaAuditEntry(assignment, `Team assigned and confirmed by ${buildRtaOperatorLabel()} on ${assignment.confirmedAt}`);
+        infoMessage = "Red team assigned and confirmed.";
+      } else {
+        setRtaPendingSubmission(assignment, selection, "assign");
+        appendRtaAuditEntry(assignment, `Assignment submitted for confirmation by ${assignment.requestedBy} on ${assignment.requestedAt}`);
+        infoMessage = "Red team submitted for executive confirmation.";
+      }
+      saveSunriseControlState();
+      renderCustomSunriseControlPages();
+      setRtaInfo(infoMessage);
+      return;
+    }
+
+    const rtaAudit = clickTarget.closest("[data-rta-audit]");
+    if (rtaAudit && sunriseControlState) {
+      ensureRtaAssignmentsStore();
+      const clientKey = String(rtaAudit.getAttribute("data-rta-audit") || "").trim().toLowerCase();
+      const assignment = findRtaAssignmentByClientKey(clientKey);
+      if (!assignment) return;
+      openRtaAuditOverlay(assignment);
+      return;
+    }
+
+    const rtaSwitch = clickTarget.closest("[data-rta-switch]");
+    if (rtaSwitch && sunriseControlState) {
+      if (!canManageRtaSwitch()) {
+        setRtaInfo("Only DA, CA, or Owner can initiate a Red Team switch.");
+        return;
+      }
+      ensureRtaAssignmentsStore();
+      const clientKey = String(rtaSwitch.getAttribute("data-rta-switch") || "").trim().toLowerCase();
+      const assignment = findRtaAssignmentByClientKey(clientKey);
+      const client = accounts[clientKey] || null;
+      if (!assignment || !client) return;
+      const selection = readRtaSelection(clientKey);
+      if (!hasCompleteRtaSelection(selection)) {
+        setRtaInfo("Complete all four Red Team roles before initiating a team switch.");
+        return;
+      }
+      const currentSelection = rtaSelectionFromAssignment(assignment);
+      if (rtaSelectionsMatch(selection, currentSelection)) {
+        setRtaInfo("Select at least one different team member before initiating a switch.");
+        return;
+      }
+      hydrateRtaAssignmentClientFields(assignment, clientKey, client);
+      setRtaPendingSubmission(assignment, selection, "switch");
+      appendRtaAuditEntry(assignment, `Team switch initiated by ${assignment.requestedBy} on ${assignment.requestedAt}`);
+      saveSunriseControlState();
+      renderCustomSunriseControlPages();
+      setRtaInfo("Team switch submitted for executive confirmation.");
+      return;
+    }
+
+    const rtaConfirm = clickTarget.closest("[data-rta-confirm]");
+    if (rtaConfirm && sunriseControlState) {
+      if (!canApproveRtaAssignment()) {
+        setRtaInfo("Only DA, CA, or Owner can confirm Red Team assignments.");
+        return;
+      }
+      ensureRtaAssignmentsStore();
+      const clientKey = String(rtaConfirm.getAttribute("data-rta-confirm") || "").trim().toLowerCase();
+      const assignment = findRtaAssignmentByClientKey(clientKey);
+      if (!assignment) return;
+      const selection = readRtaSelection(clientKey);
+      if (assignment.pendingAction === "clear") {
+        if (!canEmptyRtaTeam()) {
+          setRtaInfo("Only CA or Owner can confirm Red Team removal.");
+          return;
+        }
+        clearRtaAssignmentState(assignment);
+        appendRtaAuditEntry(assignment, `Team cleared by ${buildRtaOperatorLabel()} on ${formatUtcTimestamp(new Date())}`);
+        saveSunriseControlState();
+        renderCustomSunriseControlPages();
+        setRtaInfo("Pending team removal confirmed.");
+        return;
+      }
+      if (!hasCompleteRtaSelection(selection)) {
+        setRtaInfo("Complete all four Red Team roles before confirming.");
+        return;
+      }
+      applyRtaSelectionToAssignment(assignment, selection);
+      confirmRtaSelection(assignment);
+      appendRtaAuditEntry(assignment, `Pending Red Team assignment confirmed by ${assignment.confirmedBy} on ${assignment.confirmedAt}`);
+      const infoMessage = "Pending Red Team assignment confirmed.";
+      saveSunriseControlState();
+      renderCustomSunriseControlPages();
+      setRtaInfo(infoMessage);
+      return;
+    }
+
+    const rtaRevoke = clickTarget.closest("[data-rta-revoke]");
+    if (rtaRevoke && sunriseControlState) {
+      if (!canManageRtaSwitch()) {
+        setRtaInfo("Only DA, CA, or Owner can revoke Red Team confirmation.");
+        return;
+      }
+      ensureRtaAssignmentsStore();
+      const clientKey = String(rtaRevoke.getAttribute("data-rta-revoke") || "").trim().toLowerCase();
+      const assignment = findRtaAssignmentByClientKey(clientKey);
+      if (!assignment) return;
+      assignment.status = "Pending Confirmation";
+      assignment.pendingAction = "assign";
+      assignment.requestedBy = buildRtaOperatorLabel();
+      assignment.requestedAt = formatUtcTimestamp(new Date());
+      assignment.confirmedBy = "";
+      assignment.confirmedAt = "";
+      clearPublishedRtaSelection(assignment);
+      appendRtaAuditEntry(assignment, `Confirmation revoked by ${assignment.requestedBy} on ${assignment.requestedAt}`);
+      saveSunriseControlState();
+      renderCustomSunriseControlPages();
+      setRtaInfo("Team confirmation revoked. The assignment now requires executive confirmation again.");
+      return;
+    }
+
+    const rtaEmpty = clickTarget.closest("[data-rta-empty]");
+    if (rtaEmpty && sunriseControlState) {
+      if (!canEmptyRtaTeam()) {
+        setRtaInfo("Only CA or Owner can empty a Red Team assignment.");
+        return;
+      }
+      ensureRtaAssignmentsStore();
+      const clientKey = String(rtaEmpty.getAttribute("data-rta-empty") || "").trim().toLowerCase();
+      const assignment = findRtaAssignmentByClientKey(clientKey);
+      if (!assignment) return;
+      const currentSelection = rtaSelectionFromAssignment(assignment);
+      const publishedSelection = rtaPublishedSelectionFromAssignment(assignment);
+      if (!hasAnyRtaSelection(currentSelection) && !hasAnyRtaSelection(publishedSelection)) {
+        setRtaInfo("Team is already empty.");
+        return;
+      }
+      clearRtaAssignmentState(assignment);
+      appendRtaAuditEntry(assignment, `Team cleared by ${buildRtaOperatorLabel()} on ${formatUtcTimestamp(new Date())}`);
+      saveSunriseControlState();
+      renderCustomSunriseControlPages();
+      setRtaInfo("Team emptied and removed from the client account view.");
+      return;
+    }
+
     const rimAdd = clickTarget.closest("[data-rim-add]");
     if (rimAdd && sunriseControlState) {
-      sunriseControlState.rimInvites.push({ id: `RIM-${Math.floor(Math.random() * 900 + 100)}`, name: "New Invite", email: "", country: "", team: "", status: "Draft" });
+      sunriseControlState.rimInvites.push({ id: `RIM-${Math.floor(Math.random() * 900 + 100)}`, name: "New Invite", email: "", country: "", status: "Draft" });
       saveSunriseControlState();
       renderCustomSunriseControlPages();
       return;
@@ -7617,21 +10315,13 @@ function bindSunriseControlInteractions() {
       const tier = (document.getElementById("soc-new-tier")?.value || "Non-Member").trim();
       const desiredExecutionTime = (document.getElementById("soc-new-desired")?.value || "24h").trim();
       if (!title || !client) return;
-      sunriseControlState.socServices.current.push({
-        id: generateServiceId(),
-        title,
-        client,
+      sunriseControlState.socServices.current.push(createSocServiceRecord({
+        serviceType: title,
+        clientName: client,
         tier,
         desiredExecutionTime,
-        description: "",
-        assigned: "Unassigned",
-        assignedAt: "",
-        confirmedAt: "",
-        status: "Assigned",
-        stage: "Current",
-        budget: 0,
-        steps: defaultSocSteps()
-      });
+        status: "Assigned"
+      }));
       saveSunriseControlState();
       renderCustomSunriseControlPages();
       return;
@@ -8074,6 +10764,7 @@ function bindSunriseControlInteractions() {
         firstName: "",
         lastName: "",
         country: "",
+        phone: "",
         membership: isStaffSection ? "Staff" : "Non-Member",
         sunriseAccessLevel: isStaffSection ? "STA" : "",
         notosId: "",
@@ -8211,6 +10902,7 @@ function bindSunriseControlInteractions() {
         route: "sunrise",
         access: "SM,DA,CA,OW"
       });
+      syncSunriseDockCodesPreview(sunriseControlState.shortcutCodes);
       saveSunriseControlState();
       scheduleSunriseAdminRenders();
       return;
@@ -8222,6 +10914,7 @@ function bindSunriseControlInteractions() {
       const idx = Number(delCodeBtn.getAttribute("data-code-del"));
       if (!Number.isInteger(idx) || idx < 0 || idx >= sunriseControlState.shortcutCodes.length) return;
       sunriseControlState.shortcutCodes.splice(idx, 1);
+      syncSunriseDockCodesPreview(sunriseControlState.shortcutCodes);
       saveSunriseControlState();
       scheduleSunriseAdminRenders();
       return;
@@ -8309,6 +11002,8 @@ function bindSunriseControlInteractions() {
     if (updateField("data-ecs-bonus", (raw) => { sunriseControlState.ecsEmployees[Number(raw)].bonus = Number(t.value || 0); })) return;
     if (updateField("data-ecs-commission", (raw) => { sunriseControlState.ecsEmployees[Number(raw)].commission = Number(t.value || 0); })) return;
     if (updateField("data-ecs-position", (raw) => { sunriseControlState.ecsEmployees[Number(raw)].position = t.value; })) return;
+    if (updateField("data-ecs-division", (raw) => { sunriseControlState.ecsEmployees[Number(raw)].division = normalizeStaffDivision(t.value, sunriseControlState.ecsEmployees[Number(raw)]?.position || ""); })) return;
+    if (updateField("data-ecs-rta", (raw) => { sunriseControlState.ecsEmployees[Number(raw)].rtaRoles = normalizeRtaRoles(t.value, sunriseControlState.ecsEmployees[Number(raw)]?.position || ""); })) return;
     if (updateField("data-ecs-status", (raw) => { sunriseControlState.ecsEmployees[Number(raw)].status = t.value; })) return;
     if (updateField("data-ecs-email", (raw) => { sunriseControlState.ecsEmployees[Number(raw)].email = t.value; })) return;
     if (updateField("data-ecs-login", (raw) => { sunriseControlState.ecsEmployees[Number(raw)].login = t.value; })) return;
@@ -8412,6 +11107,32 @@ function bindSunriseControlInteractions() {
       if (meta) meta.service.client = t.value;
       renderSOCPage();
     })) return;
+    if (updateField("data-socd-client-title", () => {
+      const meta = findServiceMetaById(sunriseControlState.socSelectedServiceId);
+      if (meta) meta.service.clientTitle = t.value.trim();
+    })) return;
+    if (updateField("data-socd-client-email", () => {
+      const meta = findServiceMetaById(sunriseControlState.socSelectedServiceId);
+      if (meta) {
+        meta.service.clientEmail = t.value.trim();
+        meta.service.clientAccountEmail = normalizeEmailAddress(t.value);
+      }
+    })) return;
+    if (updateField("data-socd-client-phone", () => {
+      const meta = findServiceMetaById(sunriseControlState.socSelectedServiceId);
+      if (meta) meta.service.clientPhone = t.value.trim();
+    })) return;
+    if (updateField("data-socd-client-country", () => {
+      const meta = findServiceMetaById(sunriseControlState.socSelectedServiceId);
+      if (meta) {
+        const nextCountry = t.value.trim();
+        meta.service.clientCountry = nextCountry ? countryDisplayName(nextCountry) : "";
+      }
+    })) return;
+    if (updateField("data-socd-client-contact", () => {
+      const meta = findServiceMetaById(sunriseControlState.socSelectedServiceId);
+      if (meta) meta.service.preferredContactMethod = t.value.trim().toLowerCase();
+    })) return;
     if (updateField("data-socd-tier", () => {
       const meta = findServiceMetaById(sunriseControlState.socSelectedServiceId);
       if (meta) meta.service.tier = t.value;
@@ -8488,23 +11209,18 @@ function bindSunriseControlInteractions() {
     if (updateField("data-lcs-path", (raw) => { sunriseControlState.lcsSessions[Number(raw)].path = t.value; })) return;
     if (updateField("data-lcs-permission", (raw) => { sunriseControlState.lcsSessions[Number(raw)].permission = t.value; })) return;
 
-    const syncUpdatedAccount = (updatedKey) => {
-      const key = String(updatedKey || "").trim().toLowerCase();
-      if (!key || !accounts[key]) return;
-      if (activeAccount && String(activeAccount.email || "").trim().toLowerCase() === key) {
-        activeAccount = accounts[key];
-        persistActiveSession(activeAccount);
-        renderProfile(activeAccount);
-      }
-      updateAuthCta();
-      scheduleSunriseAdminRenders();
-    };
+    const syncUpdatedAccount = (updatedKey) => syncChangedAccountState(updatedKey);
 
     const updateAccountField = (attr, handler) => {
       const raw = t.getAttribute(attr);
       if (raw == null) return false;
       const key = String(raw).trim().toLowerCase();
       if (!accounts[key]) return false;
+      if (attr.startsWith("data-amp-") && isOwnerAccount(accounts[key]) && !canEditAmpOwnerAccount(key)) {
+        if (sunriseInfo) sunriseInfo.textContent = "Access restricted: owner credentials are not editable from this Sunrise session.";
+        scheduleSunriseAdminRenders();
+        return true;
+      }
       if (attr.startsWith("data-amp-") && isAleksAmpRestrictedKey(key)) {
         if (sunriseInfo) sunriseInfo.textContent = "Access restricted: Mikhail credentials are protected for Aleks Sunrise access.";
         scheduleSunriseAdminRenders();
@@ -8517,32 +11233,42 @@ function bindSunriseControlInteractions() {
     };
     if (updateAccountField("data-amp-key", (key) => {
       const nextKey = String(t.value || "").trim().toLowerCase();
-      if (!nextKey || nextKey === key || accounts[nextKey]) return key;
-      accounts[nextKey] = accounts[key];
-      delete accounts[key];
-      if (String(accounts[nextKey].email || "").trim().toLowerCase() !== nextKey) {
-        accounts[nextKey].email = nextKey;
-      }
-      return nextKey;
+      if (!nextKey || nextKey === key) return key;
+      return renameBaseAccountKey(key, nextKey);
     })) return;
     if (updateAccountField("data-amp-email", (key) => {
       const nextEmail = String(t.value || "").trim().toLowerCase();
       if (!nextEmail) return key;
-      accounts[key].email = nextEmail;
-      if (nextEmail !== key && !accounts[nextEmail]) {
-        accounts[nextEmail] = accounts[key];
-        delete accounts[key];
-        return nextEmail;
-      }
+      return renameBaseAccountKey(key, nextEmail);
+    })) return;
+    if (updateAccountField("data-amp-sunrise-email", (key) => {
+      const nextEmail = String(t.value || "").trim().toLowerCase();
+      if (!nextEmail) return key;
+      renameLinkedSunriseCredentialKey(key, nextEmail);
       return key;
     })) return;
+    if (updateAccountField("data-amp-phone", (key) => {
+      accounts[key].phone = String(t.value || "").trim();
+    })) return;
+    if (updateAccountField("data-amp-country", (key) => {
+      const nextCountry = String(t.value || "").trim();
+      accounts[key].country = nextCountry ? countryDisplayName(nextCountry) : "";
+    })) return;
+    if (updateAccountField("data-amp-title", (key) => {
+      accounts[key].prefix = String(t.value || "").trim();
+    })) return;
+    if (updateAccountField("data-amp-role", (key) => {
+      accounts[key].roleTitle = String(t.value || "").trim();
+    })) return;
     if (updateAccountField("data-amp-password", (key) => {
-      if (isOwnerAccount(accounts[key])) return;
-      accounts[key].password = t.value;
+      if (isOwnerAccount(accounts[key]) && !canEditAmpOwnerAccount(key)) return key;
+      syncCredentialFieldAcrossLinkedAccounts(key, "password", t.value);
+      return key;
     })) return;
     if (updateAccountField("data-amp-secret", (key) => {
-      if (isOwnerAccount(accounts[key])) return;
-      accounts[key].secretPhrase = t.value;
+      if (isOwnerAccount(accounts[key]) && !canEditAmpOwnerAccount(key)) return key;
+      syncCredentialFieldAcrossLinkedAccounts(key, "secretPhrase", t.value);
+      return key;
     })) return;
     if (updateAccountField("data-amp-name", (key) => {
       const [first = "", ...rest] = String(t.value || "").trim().split(/\s+/);
@@ -8585,6 +11311,7 @@ function bindSunriseControlInteractions() {
       const idx = Number(raw);
       if (!sunriseControlState.shortcutCodes[idx]) return;
       sunriseControlState.shortcutCodes[idx].code = String(t.value || "").trim().toUpperCase();
+      syncSunriseDockCodesPreview(sunriseControlState.shortcutCodes);
       scheduleSunriseAdminRenders();
     })) return;
     if (updateField("data-code-title", (raw) => {
@@ -8592,6 +11319,7 @@ function bindSunriseControlInteractions() {
       const idx = Number(raw);
       if (!sunriseControlState.shortcutCodes[idx]) return;
       sunriseControlState.shortcutCodes[idx].title = String(t.value || "").trim();
+      syncSunriseDockCodesPreview(sunriseControlState.shortcutCodes);
       scheduleSunriseAdminRenders();
     })) return;
     if (updateField("data-code-route", (raw) => {
@@ -8599,6 +11327,7 @@ function bindSunriseControlInteractions() {
       const idx = Number(raw);
       if (!sunriseControlState.shortcutCodes[idx]) return;
       sunriseControlState.shortcutCodes[idx].route = String(t.value || "").trim();
+      syncSunriseDockCodesPreview(sunriseControlState.shortcutCodes);
       scheduleSunriseAdminRenders();
     })) return;
     if (updateField("data-code-access", (raw) => {
@@ -8611,6 +11340,7 @@ function bindSunriseControlInteractions() {
       } else {
         sunriseControlState.shortcutCodes[idx].access = String(t.value || "").trim().toUpperCase();
       }
+      syncSunriseDockCodesPreview(sunriseControlState.shortcutCodes);
       scheduleSunriseAdminRenders();
     })) return;
   });
@@ -8654,6 +11384,8 @@ function syncEcsWithStaffAccounts() {
     if (!email) return;
     const fullName = `${String(account.firstName || "").trim()} ${String(account.lastName || "").trim()}`.trim() || "Staff Member";
     const position = String(account.roleTitle || "Staff").trim();
+    const division = normalizeStaffDivision(account.staffDivision, position);
+    const rtaRoles = normalizeRtaRoles(account.rtaRoles, position);
     if (existingByEmail.has(email)) {
       const row = sunriseControlState.ecsEmployees[existingByEmail.get(email)];
       if (!row) return;
@@ -8661,6 +11393,8 @@ function syncEcsWithStaffAccounts() {
       if (row.name !== fullName) { row.name = fullName; changed = true; }
       if (row.position !== position) { row.position = position; changed = true; }
       if (row.role !== position) { row.role = position; changed = true; }
+      if (row.division !== division) { row.division = division; changed = true; }
+      if (JSON.stringify(normalizeRtaRoles(row.rtaRoles, row.position)) !== JSON.stringify(rtaRoles)) { row.rtaRoles = rtaRoles; changed = true; }
       if (row.login !== email) { row.login = email; changed = true; }
       if (row.permission !== nextPermission) { row.permission = nextPermission; changed = true; }
       if (!row.status) { row.status = "Active"; changed = true; }
@@ -8672,6 +11406,8 @@ function syncEcsWithStaffAccounts() {
       name: fullName,
       role: position,
       position,
+      division,
+      rtaRoles,
       salary: 0,
       hours: 0,
       bonus: 0,
@@ -8811,22 +11547,37 @@ function bindSunriseReplyForms() {
   const forms = Array.from(document.querySelectorAll(".sunriseClientReplyForm"));
   forms.forEach((form) => {
     if (form.dataset.boundReply === "1") return;
-    form.addEventListener("submit", (event) => {
+    form.addEventListener("submit", async (event) => {
       event.preventDefault();
       if (!form.reportValidity()) return;
       const email = form.querySelector(".sunrise-client-email");
       const info = form.parentElement ? form.parentElement.querySelector(".sunrise-reply-info") : null;
       const address = email ? email.value.trim() : "client";
+      const bodyText = String(form.querySelector(".sunrise-client-reply")?.value || "");
       pushInboxMessage({
         mailbox: activeSunriseMailbox(),
         folder: "sent",
         from: sunriseState.email || "concierge@venture-voyagers.com",
         to: address,
         subject: "VVS Survey Response",
-        bodyHtml: `<p>${String(form.querySelector(".sunrise-client-reply")?.value || "").replace(/\n/g, "<br>")}</p>`,
+        bodyHtml: `<p>${bodyText.replace(/\n/g, "<br>")}</p>`,
         priority: "Normal"
       });
-      if (info) info.textContent = `Reply queued for ${email ? email.value.trim() : "client"} from concierge@venture-voyagers.com. API delivery will be connected later.`;
+      const delivery = await deliverSunriseEmail({
+        to: address,
+        subject: "VVS Survey Response",
+        html: `<p>${bodyText.replace(/\n/g, "<br>")}</p>`,
+        text: bodyText,
+        from: sunriseState.email || "concierge@venture-voyagers.com",
+        replyTo: sunriseState.email || "concierge@venture-voyagers.com"
+      });
+      if (info) {
+        info.textContent = delivery.ok
+          ? `Reply sent to ${address}.`
+          : (delivery.skipped
+            ? `Reply stored locally for ${address}. External delivery will work in Cloudflare Pages runtime.`
+            : `Reply stored locally, but external delivery failed: ${delivery.message}`);
+      }
       form.reset();
     });
     form.dataset.boundReply = "1";
@@ -8834,6 +11585,9 @@ function bindSunriseReplyForms() {
 }
 
 sunriseControlState = loadSunriseControlState();
+syncEcsWithStaffAccounts();
+ensureRtaAssignmentsStore();
+syncRedTeamAssignmentsToClientAccounts();
 sunriseCommittedStateHash = snapshotSunriseControlState();
 sunriseHasUnsavedChanges = false;
 ensureShortcutCodeRegistry();
@@ -9085,6 +11839,7 @@ if (sunriseUnsavedStayBtn && sunriseUnsavedStayBtn.dataset.boundUnsavedStay !== 
 
 if (logoutBtn) {
   logoutBtn.addEventListener("click", () => {
+    closeAccountSettingsOverlay();
     activeAccount = null;
     resetSunriseState();
     clearActiveSession();
@@ -9125,3 +11880,4 @@ forceSubmitOnClick("signup-step1");
 forceSubmitOnClick("signup-step2");
 forceSubmitOnClick("sunrise-step1");
 forceSubmitOnClick("sunrise-step2");
+setupSunriseShortcutMenu();
