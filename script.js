@@ -3419,6 +3419,7 @@ function ensureShortcutCodeRegistry() {
     title: String(row?.title || "").trim(),
     access: String(row?.access || "").trim().toUpperCase() || "OW"
   })).filter((row) => !!row.code);
+  syncSunriseDockCodesPreview(sunriseControlState.shortcutCodes);
   return sunriseControlState.shortcutCodes;
 }
 
@@ -3591,32 +3592,12 @@ function setupSunriseShortcutMenu() {
   if (!forms.length) return;
   const helpToggle = document.getElementById("sunrise-shortcut-help-toggle");
   const helpBox = document.getElementById("sunrise-code-help");
-  const renderShortcutHelp = () => {
-    if (!helpBox) return;
-    const registry = ensureShortcutCodeRegistry();
-    if (registry.length) {
-      helpBox.innerHTML = registry
-        .map((entry) => {
-          const code = String(entry.code || "").toUpperCase();
-          const title = String(entry.title || entry.route || "Shortcut").trim();
-          const route = String(entry.route || "").trim();
-          const access = normalizeCodeAccessList(entry.access).join(", ") || "OW";
-          return `<b>${code}</b><p>${title}${route ? ` • ${route}` : ""}<br><small>Access: ${access}</small></p>`;
-        })
-        .join("");
-      return;
-    }
-    helpBox.innerHTML = Object.entries(sunriseShortcutDescriptions)
-      .map(([code, text]) => `<b>${code.toUpperCase()}</b><p>${text}</p>`)
-      .join("");
-  };
   if (helpBox) {
-    renderShortcutHelp();
+    syncSunriseDockCodesPreview(ensureShortcutCodeRegistry());
   }
   if (helpToggle && helpBox && helpToggle.dataset.boundHelp !== "1") {
     helpToggle.addEventListener("click", () => {
-      renderShortcutHelp();
-      helpBox.hidden = !helpBox.hidden;
+      toggleSunriseDockCodes();
     });
     helpToggle.dataset.boundHelp = "1";
   }
@@ -3873,11 +3854,15 @@ function runSunriseDockShortcut() {
   return true;
 }
 
-function toggleSunriseDockCodes() {
+function syncSunriseDockCodesPreview(registry = []) {
   const helpBox = document.getElementById("sunrise-code-help");
+  const toggleBtn = document.getElementById("sunrise-shortcut-help-toggle");
+  const safeRegistry = Array.isArray(registry) ? registry : [];
+  if (toggleBtn instanceof HTMLElement) {
+    toggleBtn.textContent = `Codes (${safeRegistry.length})`;
+  }
   if (!(helpBox instanceof HTMLElement)) return false;
-  const registry = ensureShortcutCodeRegistry();
-  helpBox.innerHTML = (registry.length ? registry : Object.entries(sunriseShortcutDescriptions).map(([code, text]) => ({
+  helpBox.innerHTML = (safeRegistry.length ? safeRegistry : Object.entries(sunriseShortcutDescriptions).map(([code, text]) => ({
     code: String(code || "").toUpperCase(),
     title: String(text || ""),
     route: "",
@@ -3888,9 +3873,21 @@ function toggleSunriseDockCodes() {
       const title = String(entry.title || entry.route || "Shortcut").trim();
       const route = String(entry.route || "").trim();
       const access = normalizeCodeAccessList(entry.access).join(", ") || "OW";
-      return `<b>${code}</b><p>${title}${route ? ` • ${route}` : ""}<br><small>Access: ${access}</small></p>`;
+      return `<article class="sunriseCodeHelpCard">
+        <b>${code}</b>
+        <p>${title}</p>
+        <span>${route ? `Route: ${route}` : "Route: custom action"}</span>
+        <small>Access: ${access}</small>
+      </article>`;
     })
     .join("");
+  return true;
+}
+
+function toggleSunriseDockCodes() {
+  const helpBox = document.getElementById("sunrise-code-help");
+  if (!(helpBox instanceof HTMLElement)) return false;
+  syncSunriseDockCodesPreview(ensureShortcutCodeRegistry());
   const willShow = helpBox.hidden;
   helpBox.hidden = !willShow;
   helpBox.style.display = willShow ? "block" : "none";
@@ -3902,21 +3899,28 @@ window.sunriseDockToggleCodes = toggleSunriseDockCodes;
 
 function ensureSunriseInboxTopButtons() {
   const targets = ["sunrise", ...sunriseModuleRoutes];
+  const accountSettingsTarget = resolveAccountSettingsTarget();
+  const showAccountSettings = !!accountSettingsTarget && !isOwnerAccount(accountSettingsTarget);
   targets.forEach((route) => {
     const page = document.querySelector(`.routePage[data-page="${route}"]`);
     if (!page) return;
     const actions = page.querySelector(".viewTop .viewActions");
     if (!actions) return;
-    if (actions.querySelector('[data-sunrise-top-inbox="1"]')) return;
-    const inboxBtn = document.createElement("a");
-    inboxBtn.className = "btn ghost";
-    inboxBtn.href = "#sunrise-inbox";
-    inboxBtn.setAttribute("data-route", "sunrise-inbox");
-    inboxBtn.setAttribute("data-sunrise-top-inbox", "1");
-    inboxBtn.textContent = "Inbox";
+    actions.querySelectorAll('[data-sunrise-top-inbox="1"]').forEach((btn) => btn.remove());
+    actions.querySelectorAll('[data-sunrise-account-settings="1"]').forEach((btn) => btn.remove());
     const logoutBtn = actions.querySelector("[data-sunrise-logout]") || actions.querySelector("#sunrise-logout-btn");
-    if (logoutBtn) actions.insertBefore(inboxBtn, logoutBtn);
-    else actions.prepend(inboxBtn);
+    if (!showAccountSettings) return;
+    const settingsBtn = document.createElement("button");
+    settingsBtn.type = "button";
+    settingsBtn.className = "btn ghost";
+    settingsBtn.setAttribute("data-sunrise-account-settings", "1");
+    settingsBtn.textContent = "Account Settings";
+    settingsBtn.addEventListener("click", () => {
+      const targetAccount = resolveAccountSettingsTarget();
+      if (targetAccount) openAccountSettingsOverlay(targetAccount);
+    });
+    if (logoutBtn) actions.insertBefore(settingsBtn, logoutBtn);
+    else actions.prepend(settingsBtn);
   });
 }
 
@@ -3936,6 +3940,7 @@ function updateSunriseShortcutDock(route = currentVisibleRoute()) {
   dock.style.left = "50%";
   dock.style.right = "auto";
   dock.style.top = "auto";
+  syncSunriseDockCodesPreview(ensureShortcutCodeRegistry());
   dock.style.bottom = "12px";
   dock.style.transform = "translateX(-50%)";
   dock.style.width = "min(920px, calc(100% - 24px))";
@@ -5893,6 +5898,7 @@ const accountSettingsClose = document.getElementById("account-settings-close");
 const accountSettingsForm = document.getElementById("account-settings-form");
 const accountSettingsSummary = document.getElementById("account-settings-summary");
 const accountSettingsInfo = document.getElementById("account-settings-info");
+const accountSettingsDiscard = document.getElementById("account-settings-discard");
 const accountSettingsPasswordInfo = document.getElementById("account-password-info");
 const accountSettingsPasswordRecoveryInfo = document.getElementById("account-password-recovery-info");
 const accountSettingsPasswordModeBtns = Array.from(document.querySelectorAll("[data-account-password-mode]"));
@@ -5920,6 +5926,8 @@ const accountPasswordResetState = {
   code: "",
   account: null
 };
+
+let accountSettingsTargetKey = "";
 
 const sunriseState = {
   unlocked: false,
@@ -5991,6 +5999,27 @@ function renameBaseAccountKey(rawKey = "", nextEmail = "") {
   return nextKey;
 }
 
+function renameLinkedSunriseCredentialKey(baseKey = "", nextEmail = "") {
+  const resolvedBaseKey = resolveAccountKey(baseKey);
+  const nextKey = normalizeEmailAddress(nextEmail);
+  const baseAccount = resolvedBaseKey ? accounts[resolvedBaseKey] : null;
+  if (!resolvedBaseKey || !baseAccount || !nextKey) return findSunriseCredentialEmailForBaseKey(resolvedBaseKey, baseAccount);
+
+  const currentSunriseKey = findSunriseCredentialEmailForBaseKey(resolvedBaseKey, baseAccount);
+  const sunriseAccount = currentSunriseKey ? accounts[currentSunriseKey] : null;
+  if (!currentSunriseKey || !sunriseAccount) return currentSunriseKey;
+  if (nextKey !== currentSunriseKey && accounts[nextKey] && accounts[nextKey] !== sunriseAccount) return currentSunriseKey;
+
+  if (nextKey !== currentSunriseKey) {
+    accounts[nextKey] = sunriseAccount;
+    delete accounts[currentSunriseKey];
+  }
+  sunriseAccount.email = nextKey;
+  sunriseAccount.sunriseCredential = true;
+  sunriseAccount.sunriseLinkedEmail = resolvedBaseKey;
+  return nextKey;
+}
+
 function syncCredentialFieldAcrossLinkedAccounts(rawKey = "", fieldName = "", value = "") {
   const keys = relatedAccountKeysForDelete(rawKey);
   keys.forEach((key) => {
@@ -6027,6 +6056,14 @@ function syncChangedAccountState(updatedKey = "") {
 
   updateAuthCta();
   scheduleSunriseAdminRenders();
+}
+
+function resolveAccountSettingsTarget(account = null) {
+  const candidate = account || getCurrentSunriseOperator() || activeAccount || null;
+  if (!candidate) return null;
+  if (!candidate.sunriseCredential) return candidate;
+  const linkedKey = resolveAccountKey(candidate.sunriseLinkedEmail || "");
+  return accounts[linkedKey] || activeAccount || candidate;
 }
 
 function applyStoredPasswordUpdate(account, newPassword = "") {
@@ -7111,6 +7148,7 @@ function renderVoyagerControl(account) {
 
 function renderSunrise(account) {
   if (!hasSunriseAccess(account)) return;
+  ensureSunriseInboxTopButtons();
   const greetingEl = document.getElementById("sunrise-greeting");
   const subtitleEl = document.getElementById("sunrise-subtitle");
   const panel = document.getElementById("sunrise-panel");
@@ -7551,6 +7589,8 @@ function activateAccountSettingsPasswordMode(mode = "change") {
 
 function populateAccountSettingsForm(account = activeAccount, options = {}) {
   if (!account || !accountSettingsForm) return;
+  const resolvedTarget = resolveAccountKey(account.email || "");
+  if (resolvedTarget) accountSettingsTargetKey = resolvedTarget;
   const shouldResetPasswordTools = options?.resetPasswordTools !== false;
   const countrySelect = document.getElementById("account-settings-country");
   if (countrySelect) populateCountrySelect(countrySelect, "Select country");
@@ -7599,9 +7639,10 @@ function populateAccountSettingsForm(account = activeAccount, options = {}) {
   activateAccountSettingsPasswordMode("change");
 }
 
-function openAccountSettingsOverlay() {
-  if (!activeAccount || !accountSettingsOverlay) return;
-  populateAccountSettingsForm(activeAccount);
+function openAccountSettingsOverlay(account = null) {
+  const targetAccount = resolveAccountSettingsTarget(account);
+  if (!targetAccount || !accountSettingsOverlay) return;
+  populateAccountSettingsForm(targetAccount);
   accountSettingsOverlay.hidden = false;
 }
 
@@ -7645,10 +7686,10 @@ accountSettingsPasswordModeBtns.forEach((btn) => {
 if (accountSettingsForm) {
   accountSettingsForm.addEventListener("submit", (event) => {
     event.preventDefault();
-    if (!accountSettingsForm.reportValidity() || !activeAccount) return;
+    if (!accountSettingsForm.reportValidity()) return;
 
-    const currentKey = resolveAccountKey(activeAccount.email || "");
-    const account = accounts[currentKey] || activeAccount;
+    const currentKey = resolveAccountKey(accountSettingsTargetKey || activeAccount?.email || "");
+    const account = accounts[currentKey] || resolveAccountSettingsTarget();
     const nextEmail = normalizeEmailAddress(document.getElementById("account-settings-email")?.value || "");
     const nextCountryCode = String(document.getElementById("account-settings-country")?.value || "").trim();
     const nextPhrase = String(document.getElementById("account-settings-phrase")?.value || "").trim();
@@ -7674,10 +7715,20 @@ if (accountSettingsForm) {
     account.secretPhrase = nextPhrase;
 
     const updatedKey = renameBaseAccountKey(currentKey, nextEmail);
+    accountSettingsTargetKey = resolveAccountKey(updatedKey);
     syncCredentialFieldAcrossLinkedAccounts(updatedKey, "secretPhrase", nextPhrase);
     syncChangedAccountState(updatedKey);
-    populateAccountSettingsForm(accounts[resolveAccountKey(updatedKey)] || activeAccount);
+    populateAccountSettingsForm(accounts[resolveAccountKey(updatedKey)] || resolveAccountSettingsTarget(), { resetPasswordTools: false });
     if (accountSettingsInfo) accountSettingsInfo.textContent = "Account details updated successfully.";
+  });
+}
+
+if (accountSettingsDiscard) {
+  accountSettingsDiscard.addEventListener("click", () => {
+    const targetAccount = accounts[resolveAccountKey(accountSettingsTargetKey)] || resolveAccountSettingsTarget();
+    if (!targetAccount) return;
+    populateAccountSettingsForm(targetAccount);
+    if (accountSettingsInfo) accountSettingsInfo.textContent = "Changes discarded.";
   });
 }
 
@@ -7694,7 +7745,8 @@ if (accountSettingsPasswordForm) {
       onSuccess: () => {
         accountSettingsPasswordForm.reset();
         const emailField = document.getElementById("account-pw-email");
-        if (emailField) emailField.value = String(activeAccount?.email || "").trim();
+        const targetAccount = accounts[resolveAccountKey(accountSettingsTargetKey)] || resolveAccountSettingsTarget();
+        if (emailField) emailField.value = String(targetAccount?.email || activeAccount?.email || "").trim();
       }
     });
   });
@@ -8753,6 +8805,7 @@ function scheduleSunriseAdminRenders() {
     renderAMPPage(ampQuery);
     renderALPPage(alpQuery);
     renderMCCPage(mccQuery);
+    syncSunriseDockCodesPreview(ensureShortcutCodeRegistry());
   }, 60);
 }
 
@@ -8797,13 +8850,14 @@ function staffAccessCode(account) {
 
 function ampStaffGroupName(account) {
   if (isOwnerAccount(account)) return "Owners";
+  if (staffAccessCode(account) === "CA") return "Headquarters";
   return normalizeStaffDivision(account?.staffDivision, account?.roleTitle);
 }
 
 function ampStaffGroupDescription(group = "") {
   if (group === "Owners") return "Executive owner identities and primary control accounts.";
   if (group === "Headquarters") return "Strategic leadership and command-level staff roles.";
-  if (group === "Office") return "Desk-based operations staff ordered by Sunrise hierarchy and actual position.";
+  if (group === "Office") return "Directorate office roles and linked Sunrise access accounts.";
   if (group === "Field") return "Deployment-side staff for movement, protection, and on-ground execution.";
   if (group === "Special Requests") return "Special handling staff for concierge-intensive and bespoke execution.";
   return "Operational staff accounts.";
@@ -8916,17 +8970,22 @@ function renderAmpOwnerCards(entries = []) {
         </div>
         <span class="ampHierarchyCode">OW</span>
       </div>
+      <div class="ampOwnerMetaRow">
+        <span class="ampOwnerMetaChip"><b>VVS</b> ${vvsValue}</span>
+        <span class="ampOwnerMetaChip"><b>Sunrise</b> ${sunriseValue}</span>
+        <span class="ampOwnerMetaChip"><b>Country</b> ${countryValue}</span>
+      </div>
       <div class="ampOwnerGrid">
         <div class="ampOwnerField"><span>Preferred Title</span><input class="input" ${mutableAttr("data-amp-title")} value="${titleValue}"></div>
-        <div class="ampOwnerField ampOwnerFieldWide"><span>Full Name</span><input class="input" ${mutableAttr("data-amp-name")} value="${fullName}"></div>
-        <div class="ampOwnerField ampOwnerFieldWide"><span>Position</span><input class="input" ${mutableAttr("data-amp-role")} value="${roleTitle}"></div>
-        <div class="ampOwnerField ampOwnerFieldWide"><span>VVS Email</span><input class="input" ${editable ? `data-amp-email="${key}"` : "readonly"} value="${vvsValue}"></div>
-        <div class="ampOwnerField ampOwnerFieldWide"><span>Sunrise Login</span><input class="input" readonly value="${sunriseValue}"></div>
+        <div class="ampOwnerField"><span>Full Name</span><input class="input" ${mutableAttr("data-amp-name")} value="${fullName}"></div>
+        <div class="ampOwnerField"><span>Position</span><input class="input" ${mutableAttr("data-amp-role")} value="${roleTitle}"></div>
+        <div class="ampOwnerField"><span>VVS Email</span><input class="input" ${editable ? `data-amp-email="${key}"` : "readonly"} value="${vvsValue}"></div>
+        <div class="ampOwnerField"><span>Sunrise Email</span><input class="input" ${editable ? `data-amp-sunrise-email="${key}"` : "readonly"} value="${sunriseValue}"></div>
         <div class="ampOwnerField"><span>Phone</span><input class="input" ${editable ? `data-amp-phone="${key}"` : "readonly"} value="${phoneValue}"></div>
         <div class="ampOwnerField"><span>Country</span><input class="input" ${editable ? `data-amp-country="${key}"` : "readonly"} value="${countryValue}"></div>
         <div class="ampOwnerField"><span>Password</span><input class="input" ${editable ? `data-amp-password="${key}"` : "readonly"} value="${passwordValue}"></div>
         <div class="ampOwnerField"><span>Secret Phrase</span><input class="input" ${editable ? `data-amp-secret="${key}"` : "readonly"} value="${secretPhrase}"></div>
-        <div class="ampOwnerField ampOwnerFieldWide"><span>NOTOS ID</span><input class="input" ${editable ? `data-amp-notos="${key}"` : "readonly"} value="${notosValue}"></div>
+        <div class="ampOwnerField"><span>NOTOS ID</span><input class="input" ${editable ? `data-amp-notos="${key}"` : "readonly"} value="${notosValue}"></div>
       </div>
     </article>`;
   }).join("");
@@ -8934,8 +8993,9 @@ function renderAmpOwnerCards(entries = []) {
 }
 
 function renderAmpOfficeHierarchy(entries = []) {
-  if (!Array.isArray(entries) || !entries.length) return "";
-  const cards = entries.map(([key, account]) => {
+  const directorateEntries = (Array.isArray(entries) ? entries : []).filter(([, account]) => staffAccessCode(account) === "DA");
+  if (!directorateEntries.length) return "";
+  const cards = directorateEntries.map(([key, account]) => {
     const accessMeta = sunriseAccessMetaByCode(staffAccessCode(account));
     const fullName = `${String(account?.firstName || "").trim()} ${String(account?.lastName || "").trim()}`.trim() || "Staff Member";
     const position = String(account?.roleTitle || "Staff").trim();
@@ -8954,8 +9014,8 @@ function renderAmpOfficeHierarchy(entries = []) {
   }).join("");
   return `<div class="ampOfficeHierarchy">
     <div class="ampOfficeHierarchyTop">
-      <span class="ampOfficeHierarchyTitle">Office Hierarchy</span>
-      <span class="ampOfficeHierarchySummary">${entries.length} linked office roles</span>
+      <span class="ampOfficeHierarchyTitle">Directorate Access</span>
+      <span class="ampOfficeHierarchySummary">${directorateEntries.length} linked role${directorateEntries.length === 1 ? "" : "s"}</span>
     </div>
     <div class="ampHierarchyGrid">${cards}</div>
   </div>`;
@@ -9104,7 +9164,7 @@ function renderAMPPage(filter = "") {
         <div class="ampStaffOverviewTop">
           <div>
             <h3>Staff Directory</h3>
-            <p class="opsText">Owners are shown as two executive identities. Office roles remain normalized to one primary record per Sunrise level.</p>
+            <p class="opsText">Owners stay compact, CA operators are grouped under Headquarters, and Office highlights Directorate access only.</p>
           </div>
           <div class="ampStaffStatsGrid">${staffOverviewStats}</div>
         </div>
@@ -10842,6 +10902,7 @@ function bindSunriseControlInteractions() {
         route: "sunrise",
         access: "SM,DA,CA,OW"
       });
+      syncSunriseDockCodesPreview(sunriseControlState.shortcutCodes);
       saveSunriseControlState();
       scheduleSunriseAdminRenders();
       return;
@@ -10853,6 +10914,7 @@ function bindSunriseControlInteractions() {
       const idx = Number(delCodeBtn.getAttribute("data-code-del"));
       if (!Number.isInteger(idx) || idx < 0 || idx >= sunriseControlState.shortcutCodes.length) return;
       sunriseControlState.shortcutCodes.splice(idx, 1);
+      syncSunriseDockCodesPreview(sunriseControlState.shortcutCodes);
       saveSunriseControlState();
       scheduleSunriseAdminRenders();
       return;
@@ -11179,6 +11241,12 @@ function bindSunriseControlInteractions() {
       if (!nextEmail) return key;
       return renameBaseAccountKey(key, nextEmail);
     })) return;
+    if (updateAccountField("data-amp-sunrise-email", (key) => {
+      const nextEmail = String(t.value || "").trim().toLowerCase();
+      if (!nextEmail) return key;
+      renameLinkedSunriseCredentialKey(key, nextEmail);
+      return key;
+    })) return;
     if (updateAccountField("data-amp-phone", (key) => {
       accounts[key].phone = String(t.value || "").trim();
     })) return;
@@ -11243,6 +11311,7 @@ function bindSunriseControlInteractions() {
       const idx = Number(raw);
       if (!sunriseControlState.shortcutCodes[idx]) return;
       sunriseControlState.shortcutCodes[idx].code = String(t.value || "").trim().toUpperCase();
+      syncSunriseDockCodesPreview(sunriseControlState.shortcutCodes);
       scheduleSunriseAdminRenders();
     })) return;
     if (updateField("data-code-title", (raw) => {
@@ -11250,6 +11319,7 @@ function bindSunriseControlInteractions() {
       const idx = Number(raw);
       if (!sunriseControlState.shortcutCodes[idx]) return;
       sunriseControlState.shortcutCodes[idx].title = String(t.value || "").trim();
+      syncSunriseDockCodesPreview(sunriseControlState.shortcutCodes);
       scheduleSunriseAdminRenders();
     })) return;
     if (updateField("data-code-route", (raw) => {
@@ -11257,6 +11327,7 @@ function bindSunriseControlInteractions() {
       const idx = Number(raw);
       if (!sunriseControlState.shortcutCodes[idx]) return;
       sunriseControlState.shortcutCodes[idx].route = String(t.value || "").trim();
+      syncSunriseDockCodesPreview(sunriseControlState.shortcutCodes);
       scheduleSunriseAdminRenders();
     })) return;
     if (updateField("data-code-access", (raw) => {
@@ -11269,6 +11340,7 @@ function bindSunriseControlInteractions() {
       } else {
         sunriseControlState.shortcutCodes[idx].access = String(t.value || "").trim().toUpperCase();
       }
+      syncSunriseDockCodesPreview(sunriseControlState.shortcutCodes);
       scheduleSunriseAdminRenders();
     })) return;
   });

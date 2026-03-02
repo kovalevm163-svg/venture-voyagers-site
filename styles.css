@@ -837,6 +837,9 @@ body.sunrise-dock-visible main{
 }
 .sunriseCodeHelp{
   margin-top:8px;
+  display:grid;
+  grid-template-columns: repeat(auto-fit, minmax(170px, 1fr));
+  gap:10px;
   max-height:260px;
   overflow:auto;
   border:1px solid rgba(223,167,131,.24);
@@ -844,17 +847,32 @@ body.sunrise-dock-visible main{
   padding:8px;
   background: rgba(26,12,7,.46);
 }
-.sunriseCodeHelp b{
+.sunriseCodeHelpCard{
+  display:grid;
+  gap:6px;
+  padding:10px 11px;
+  border-radius:12px;
+  border:1px solid rgba(223,167,131,.18);
+  background: linear-gradient(160deg, rgba(34,15,10,.76), rgba(78,42,25,.42));
+}
+.sunriseCodeHelpCard b{
   display:block;
   font-size:11px;
   letter-spacing:.14em;
   text-transform:uppercase;
-  color: rgba(255,227,200,.92);
+  color: rgba(255,227,200,.96);
 }
-.sunriseCodeHelp p{
-  margin:4px 0 8px;
+.sunriseCodeHelpCard p{
+  margin:0;
   font-size:12px;
-  color: rgba(255,221,198,.78);
+  color: rgba(255,236,220,.86);
+  line-height:1.45;
+}
+.sunriseCodeHelpCard span,
+.sunriseCodeHelpCard small{
+  color: rgba(255,221,198,.70);
+  font-size:11px;
+  line-height:1.4;
 }
 .sunriseSessionBar{
   position:fixed;
@@ -1170,13 +1188,13 @@ body.sunrise-dock-visible main{
   margin-top:14px;
   display:grid;
   grid-template-columns: repeat(2, minmax(0, 1fr));
-  gap:12px;
+  gap:10px;
 }
 
 .ampOwnerCard{
   border:1px solid rgba(236,188,146,.18);
   border-radius:18px;
-  padding:14px;
+  padding:12px;
   background: linear-gradient(155deg, rgba(22,11,9,.84), rgba(68,37,24,.58));
   box-shadow: inset 0 1px 0 rgba(255,255,255,.03);
 }
@@ -1190,37 +1208,59 @@ body.sunrise-dock-visible main{
 
 .ampOwnerCard h4{
   margin:4px 0 0;
-  font-size:22px;
+  font-size:19px;
   line-height:1.08;
   color: rgba(255,241,228,.98);
   letter-spacing:-.02em;
 }
 
 .ampOwnerRole{
-  margin:6px 0 0;
+  margin:5px 0 0;
   color: rgba(255,222,199,.72);
-  line-height:1.5;
+  line-height:1.4;
+  font-size:14px;
 }
 
-.ampOwnerRestrictionNote{
-  margin:12px 0 0;
-  color: rgba(255,213,184,.66);
-  font-size:12px;
-  line-height:1.5;
+.ampOwnerMetaRow{
+  margin-top:10px;
+  display:flex;
+  flex-wrap:wrap;
+  gap:8px;
+}
+
+.ampOwnerMetaChip{
+  display:inline-flex;
+  align-items:center;
+  gap:6px;
+  min-height:34px;
+  padding:8px 12px;
+  border-radius:999px;
+  border:1px solid rgba(236,188,146,.18);
+  background: rgba(16,9,7,.28);
+  color: rgba(255,231,210,.84);
+  font-size:11px;
+  line-height:1.3;
+}
+
+.ampOwnerMetaChip b{
+  color: rgba(255,243,231,.95);
+  letter-spacing:.12em;
+  text-transform:uppercase;
+  font-size:10px;
 }
 
 .ampOwnerGrid{
-  margin-top:14px;
+  margin-top:10px;
   display:grid;
-  grid-template-columns: repeat(2, minmax(0, 1fr));
-  gap:10px;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap:8px;
 }
 
 .ampOwnerField{
   display:flex;
   flex-direction:column;
-  gap:6px;
-  padding:12px;
+  gap:5px;
+  padding:10px;
   border-radius:14px;
   border:1px solid rgba(236,188,146,.14);
   background: rgba(16,9,7,.30);
@@ -1233,16 +1273,9 @@ body.sunrise-dock-visible main{
   color: rgba(255,216,191,.70);
 }
 
-.ampOwnerField strong{
-  color: rgba(255,240,226,.95);
-  font-size:13px;
-  line-height:1.5;
-  overflow-wrap:anywhere;
-}
-
 .ampOwnerField .input{
-  padding:10px 11px;
-  min-height:44px;
+  padding:9px 10px;
+  min-height:42px;
   background: rgba(8,4,3,.40);
 }
 
@@ -3130,6 +3163,12 @@ input[type="file"]::-webkit-file-upload-button{
 
 .accountSettingsPanelTop .profileNote{
   margin-top:6px;
+}
+
+.accountSettingsActions{
+  gap:10px;
+  justify-content:flex-start;
+  flex-wrap:wrap;
 }
 
 .accountPasswordModeActions{
