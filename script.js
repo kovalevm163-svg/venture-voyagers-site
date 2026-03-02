@@ -4631,6 +4631,7 @@ function formatOptionalCountryDisplay(country = "") {
 }
 
 const staffDivisionOrder = ["Headquarters", "Office", "Field", "Special Requests"];
+const ampStaffGroupOrder = ["Owners", ...staffDivisionOrder];
 const rtaRoleMeta = {
   fleet: { label: "Fleet", accountKey: "pilot" },
   driver: { label: "Driver", accountKey: "driver" },
@@ -4640,6 +4641,7 @@ const rtaRoleMeta = {
 
 function normalizeStaffDivision(value = "", roleTitle = "") {
   const raw = String(value || "").trim().toLowerCase();
+  if (raw === "owners" || raw === "owner") return "Owners";
   if (raw === "headquarters" || raw === "hq") return "Headquarters";
   if (raw === "office") return "Office";
   if (raw === "field") return "Field";
@@ -8093,6 +8095,57 @@ function staffAccessCode(account) {
   return String(account?.sunriseAccessLevel || "STA").trim().toUpperCase();
 }
 
+function ampStaffGroupName(account) {
+  if (isOwnerAccount(account)) return "Owners";
+  return normalizeStaffDivision(account?.staffDivision, account?.roleTitle);
+}
+
+function ampStaffGroupDescription(group = "") {
+  if (group === "Owners") return "Executive owner identities and primary control accounts.";
+  if (group === "Headquarters") return "Strategic leadership and command-level staff roles.";
+  if (group === "Office") return "Desk-based operations staff ordered by Sunrise hierarchy and actual position.";
+  if (group === "Field") return "Deployment-side staff for movement, protection, and on-ground execution.";
+  if (group === "Special Requests") return "Special handling staff for concierge-intensive and bespoke execution.";
+  return "Operational staff accounts.";
+}
+
+function sunriseAccessMetaByCode(code = "") {
+  const normalized = String(code || "").trim().toUpperCase();
+  const row = Array.isArray(sunriseControlState?.accessLevels)
+    ? sunriseControlState.accessLevels.find((item) => String(item?.code || "").trim().toUpperCase() === normalized)
+    : null;
+  return {
+    code: normalized || "STA",
+    title: String(row?.title || normalized || "Staff").trim(),
+    access: String(row?.access || "").trim()
+  };
+}
+
+function renderAmpOfficeHierarchy(entries = []) {
+  if (!Array.isArray(entries) || !entries.length) return "";
+  const cards = entries.map(([, account]) => {
+    const accessMeta = sunriseAccessMetaByCode(staffAccessCode(account));
+    const fullName = `${String(account?.firstName || "").trim()} ${String(account?.lastName || "").trim()}`.trim() || "Staff Member";
+    const position = String(account?.roleTitle || "Staff").trim();
+    const accessLine = accessMeta.access || accessMeta.title;
+    return `<article class="ampHierarchyCard">
+      <span class="ampHierarchyCode">${accessMeta.code}</span>
+      <b>${position}</b>
+      <p>${fullName}</p>
+      <span class="ampHierarchyMeta">${accessLine}</span>
+    </article>`;
+  }).join("");
+  return `<div class="ampOfficeHierarchy">
+    <div class="ampOfficeHierarchyTop">
+      <div>
+        <p class="ampSectionEyebrow">Office Position Hierarchy</p>
+        <p class="opsText">Ordered from highest Sunrise access down to associate level for the office team.</p>
+      </div>
+    </div>
+    <div class="ampHierarchyGrid">${cards}</div>
+  </div>`;
+}
+
 function renderAMPPage(filter = "") {
   const grid = document.getElementById("sunrise-amp-grid");
   if (!grid) return;
@@ -8111,6 +8164,8 @@ function renderAMPPage(filter = "") {
       account.phone,
       account.firstName,
       account.lastName,
+      account.roleTitle,
+      account.staffDivision,
       account.prefix,
       account.membership,
       account.sunriseAccessLevel,
@@ -8154,8 +8209,7 @@ function renderAMPPage(filter = "") {
       const readOnly = lockedForAleks ? "readonly" : "";
       const disabled = lockedForAleks ? "disabled" : "";
       const displayCountry = formatOptionalCountryDisplay(account.country);
-      const division = normalizeStaffDivision(account.staffDivision, account.roleTitle);
-      const rtaRoles = normalizeRtaRoles(account.rtaRoles, account.roleTitle).map((role) => rtaRoleLabel(role)).join(", ") || "-";
+      const division = ampStaffGroupName(account);
       const deleteCell = lockedForAleks
         ? `<span class="profileNote">Restricted</span>`
         : `<button class="sunriseMiniBtn" type="button" data-amp-del="${key}">Delete</button>`;
@@ -8170,8 +8224,8 @@ function renderAMPPage(filter = "") {
       <td><input class="input" data-amp-key="${key}" value="${key}" ${readOnly}></td>
       <td><input class="input" data-amp-title="${key}" value="${account.prefix || ""}" ${readOnly}></td>
       <td><input class="input" data-amp-name="${key}" value="${(account.firstName || "") + " " + (account.lastName || "")}" ${readOnly}></td>
+      <td><input class="input" data-amp-role="${key}" value="${account.roleTitle || ""}" ${readOnly}></td>
       <td><input class="input" value="${division}" readonly></td>
-      <td><input class="input" value="${rtaRoles}" readonly></td>
       ${sensitiveCells}
       <td><select class="select" data-amp-access="${key}" ${disabled}>${accessList.map((code) => `<option value="${code}" ${code === selectedAccess ? "selected" : ""}>${code || "None"}</option>`).join("")}</select></td>
       <td><input class="input" data-amp-notos="${key}" value="${account.notosId || ""}" ${readOnly}></td>
@@ -8184,30 +8238,60 @@ function renderAMPPage(filter = "") {
   const customersHtml = `<article class="sunriseControlCard sunriseDetailWide"><h3>Customers List</h3><table class="sunriseControlTable"><thead><tr><th>Code</th><th>Email</th><th>Phone</th><th>Country</th><th>Title</th><th>Name</th><th>Password</th><th>Secret Phrase</th><th>Tier/Status</th><th>Action</th></tr></thead><tbody>${renderCustomerRows(customerEntries) || "<tr><td colspan='10'>No customer accounts found.</td></tr>"}</tbody></table></article>`;
 
   const groupedStaff = new Map();
-  staffDivisionOrder.forEach((division) => groupedStaff.set(division, []));
+  ampStaffGroupOrder.forEach((division) => groupedStaff.set(division, []));
   staffEntries
     .sort((a, b) => {
-      const divisionDiff = staffDivisionOrder.indexOf(normalizeStaffDivision(a[1]?.staffDivision, a[1]?.roleTitle)) - staffDivisionOrder.indexOf(normalizeStaffDivision(b[1]?.staffDivision, b[1]?.roleTitle));
+      const divisionDiff = ampStaffGroupOrder.indexOf(ampStaffGroupName(a[1])) - ampStaffGroupOrder.indexOf(ampStaffGroupName(b[1]));
       if (divisionDiff) return divisionDiff;
       const levelDiff = hierarchySortIndex(staffAccessCode(a[1])) - hierarchySortIndex(staffAccessCode(b[1]));
       if (levelDiff) return levelDiff;
+      const roleDiff = String(a[1]?.roleTitle || "").trim().toLowerCase().localeCompare(String(b[1]?.roleTitle || "").trim().toLowerCase());
+      if (roleDiff) return roleDiff;
       const aName = `${String(a[1]?.firstName || "").trim()} ${String(a[1]?.lastName || "").trim()}`.trim().toLowerCase();
       const bName = `${String(b[1]?.firstName || "").trim()} ${String(b[1]?.lastName || "").trim()}`.trim().toLowerCase();
       return aName.localeCompare(bName);
     })
     .forEach((entry) => {
-      const division = normalizeStaffDivision(entry[1]?.staffDivision, entry[1]?.roleTitle);
+      const division = ampStaffGroupName(entry[1]);
       if (!groupedStaff.has(division)) groupedStaff.set(division, []);
       groupedStaff.get(division).push(entry);
     });
   const staffHeader = viewerIsOwner
-    ? "<tr><th>Code</th><th>Title</th><th>Name</th><th>Division</th><th>Red Team Role</th><th>Email</th><th>Phone</th><th>Country</th><th>Password</th><th>Secret Phrase</th><th>Sunrise Access</th><th>NOTOS ID</th><th>Action</th></tr>"
-    : "<tr><th>Code</th><th>Title</th><th>Name</th><th>Division</th><th>Red Team Role</th><th>Sunrise Access</th><th>NOTOS ID</th><th>Action</th></tr>";
+    ? "<tr><th>Code</th><th>Honorific</th><th>Name</th><th>Position</th><th>Division</th><th>Email</th><th>Phone</th><th>Country</th><th>Password</th><th>Secret Phrase</th><th>Sunrise Access</th><th>NOTOS ID</th><th>Action</th></tr>"
+    : "<tr><th>Code</th><th>Honorific</th><th>Name</th><th>Position</th><th>Division</th><th>Sunrise Access</th><th>NOTOS ID</th><th>Action</th></tr>";
+  const staffOverviewStats = ampStaffGroupOrder
+    .map((division) => ({ division, count: groupedStaff.get(division)?.length || 0 }))
+    .filter((item) => item.count > 0)
+    .map((item) => `<div class="ampStaffStat"><span>${item.division}</span><b>${item.count}</b></div>`)
+    .join("");
   const staffGroupsHtml = Array.from(groupedStaff.entries())
     .filter(([, entries]) => entries.length)
-    .map(([division, entries]) => `<article class="sunriseControlCard sunriseDetailWide"><h3>${division}</h3><table class="sunriseControlTable"><thead>${staffHeader}</thead><tbody>${renderStaffRows(entries)}</tbody></table></article>`)
+    .map(([division, entries]) => `<article class="sunriseControlCard sunriseDetailWide ampStaffSection">
+      <div class="ampStaffSectionTop">
+        <div>
+          <p class="ampSectionEyebrow">AMP Staff</p>
+          <h3>${division}</h3>
+        </div>
+        <span class="ampStaffCount">${entries.length} account${entries.length === 1 ? "" : "s"}</span>
+      </div>
+      <p class="opsText">${ampStaffGroupDescription(division)}</p>
+      ${division === "Office" ? renderAmpOfficeHierarchy(entries) : ""}
+      <div class="ampStaffTableWrap">
+        <table class="sunriseControlTable"><thead>${staffHeader}</thead><tbody>${renderStaffRows(entries)}</tbody></table>
+      </div>
+    </article>`)
     .join("");
-  const staffHtml = staffGroupsHtml || `<article class="sunriseControlCard sunriseDetailWide"><h3>Staff Hierarchy</h3><p class="profileNote">No staff accounts found.</p></article>`;
+  const staffHtml = staffGroupsHtml
+    ? `<article class="sunriseControlCard sunriseDetailWide ampStaffOverview">
+        <div class="ampStaffOverviewTop">
+          <div>
+            <h3>Staff Directory</h3>
+            <p class="opsText">Owners are isolated into their own executive group. Office positions are displayed in Sunrise hierarchy order for easier review.</p>
+          </div>
+          <div class="ampStaffStatsGrid">${staffOverviewStats}</div>
+        </div>
+      </article>${staffGroupsHtml}`
+    : `<article class="sunriseControlCard sunriseDetailWide"><h3>Staff Hierarchy</h3><p class="profileNote">No staff accounts found.</p></article>`;
   const deletedRows = (Array.isArray(sunriseControlState?.deletedAccounts) ? sunriseControlState.deletedAccounts : [])
     .filter((row) => matchesSearch([row.email, row.name, row.role, row.membership, row.sunriseAccessLevel, row.notosId], filter))
     .map((row, idx) => {
@@ -10140,6 +10224,9 @@ function bindSunriseControlInteractions() {
     })) return;
     if (updateAccountField("data-amp-title", (key) => {
       accounts[key].prefix = String(t.value || "").trim();
+    })) return;
+    if (updateAccountField("data-amp-role", (key) => {
+      accounts[key].roleTitle = String(t.value || "").trim();
     })) return;
     if (updateAccountField("data-amp-password", (key) => {
       if (isOwnerAccount(accounts[key])) return;

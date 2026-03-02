@@ -1056,6 +1056,157 @@ body.sunrise-dock-visible main{
   margin-top:10px;
 }
 
+.ampStaffOverview{
+  padding:18px;
+  background:
+    linear-gradient(145deg, rgba(73,34,19,.88), rgba(126,72,38,.68)),
+    radial-gradient(120% 160% at 12% 0%, rgba(236,176,126,.12), transparent 58%);
+}
+
+.ampStaffOverviewTop{
+  display:grid;
+  grid-template-columns: minmax(0, 1.1fr) minmax(260px, .9fr);
+  gap:16px;
+  align-items:start;
+}
+
+.ampStaffStatsGrid{
+  display:grid;
+  grid-template-columns: repeat(5, minmax(0, 1fr));
+  gap:10px;
+}
+
+.ampStaffStat{
+  border:1px solid rgba(236,188,146,.22);
+  border-radius:16px;
+  padding:12px 14px;
+  background: rgba(18,10,8,.28);
+}
+
+.ampStaffStat span{
+  display:block;
+  font-size:10px;
+  letter-spacing:.13em;
+  text-transform:uppercase;
+  color: rgba(255,222,199,.68);
+}
+
+.ampStaffStat b{
+  display:block;
+  margin-top:6px;
+  font-size:22px;
+  line-height:1;
+  color: rgba(255,237,222,.96);
+}
+
+.ampStaffSection{
+  padding:18px;
+}
+
+.ampStaffSectionTop{
+  display:flex;
+  justify-content:space-between;
+  align-items:flex-start;
+  gap:12px;
+}
+
+.ampSectionEyebrow{
+  margin:0 0 4px;
+  font-size:10px;
+  letter-spacing:.14em;
+  text-transform:uppercase;
+  color: rgba(255,221,198,.68);
+}
+
+.ampStaffCount{
+  display:inline-flex;
+  align-items:center;
+  justify-content:center;
+  padding:8px 12px;
+  border-radius:999px;
+  border:1px solid rgba(236,188,146,.24);
+  background: rgba(18,10,8,.24);
+  color: rgba(255,233,217,.86);
+  font-size:10px;
+  letter-spacing:.13em;
+  text-transform:uppercase;
+  white-space:nowrap;
+}
+
+.ampOfficeHierarchy{
+  margin-top:14px;
+  padding:14px;
+  border-radius:18px;
+  border:1px solid rgba(236,188,146,.18);
+  background: rgba(18,10,8,.22);
+}
+
+.ampOfficeHierarchyTop{
+  display:flex;
+  justify-content:space-between;
+  gap:10px;
+  align-items:flex-start;
+}
+
+.ampHierarchyGrid{
+  display:grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap:10px;
+  margin-top:12px;
+}
+
+.ampHierarchyCard{
+  border:1px solid rgba(236,188,146,.16);
+  border-radius:16px;
+  padding:12px;
+  background: linear-gradient(160deg, rgba(25,12,10,.78), rgba(60,31,20,.56));
+  box-shadow: inset 0 1px 0 rgba(255,255,255,.02);
+}
+
+.ampHierarchyCard b{
+  display:block;
+  margin-top:8px;
+  color: rgba(255,240,226,.96);
+  font-size:14px;
+  line-height:1.35;
+}
+
+.ampHierarchyCard p{
+  margin:6px 0 0;
+  color: rgba(255,220,198,.78);
+  font-size:12px;
+  line-height:1.45;
+}
+
+.ampHierarchyCode{
+  display:inline-flex;
+  align-items:center;
+  justify-content:center;
+  min-width:42px;
+  padding:6px 10px;
+  border-radius:999px;
+  border:1px solid rgba(236,188,146,.24);
+  background: rgba(107,58,34,.34);
+  color: rgba(255,238,223,.96);
+  font-size:10px;
+  letter-spacing:.13em;
+  text-transform:uppercase;
+}
+
+.ampHierarchyMeta{
+  display:block;
+  margin-top:8px;
+  color: rgba(255,213,184,.64);
+  font-size:11px;
+  line-height:1.4;
+}
+
+.ampStaffTableWrap{
+  width:100%;
+  overflow-x:auto;
+  margin-top:14px;
+}
+
 .sunriseRtaHero{
   padding:18px 18px 14px;
   background:
@@ -2866,6 +3017,9 @@ footer{
   .sunriseShortcutDockForm{grid-template-columns:1fr;}
   .sunriseLaunchGrid{grid-template-columns:1fr;}
   .sunriseDetailGrid{grid-template-columns:1fr;}
+  .ampStaffOverviewTop{grid-template-columns:1fr;}
+  .ampStaffStatsGrid{grid-template-columns:repeat(3, minmax(0, 1fr));}
+  .ampHierarchyGrid{grid-template-columns:1fr 1fr;}
   .sunriseRtaBoard{grid-template-columns:1fr;}
   .sunriseRtaHeroTop{grid-template-columns:1fr;}
   .sunriseRtaStatGrid{grid-template-columns:1fr 1fr 1fr;}
@@ -3153,6 +3307,16 @@ footer{
 }
 
 @media (max-width: 680px){
+  .ampStaffSectionTop,
+  .ampOfficeHierarchyTop{
+    flex-direction:column;
+  }
+
+  .ampStaffStatsGrid,
+  .ampHierarchyGrid{
+    grid-template-columns:1fr;
+  }
+
   .sunriseRtaCardTop{
     flex-direction:column;
   }
