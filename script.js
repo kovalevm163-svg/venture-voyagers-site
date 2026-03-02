@@ -875,12 +875,104 @@ function normalizeAccountsObject(raw) {
   return Object.keys(normalized).length ? normalized : null;
 }
 
+function cleanLegacyServiceDescription(text = "", fallback = "") {
+  const cleaned = String(text || "")
+    .replace(/\bAssigned concierge:[^.]*\.?/gi, " ")
+    .replace(/\bHandled by[^.]*\.?/gi, " ")
+    .replace(/\bPreferred contact via[^.]*\.?/gi, " ")
+    .replace(/\bDesired execution:[^.]*\.?/gi, " ")
+    .replace(/\bExecution window:[^.]*\.?/gi, " ")
+    .replace(/\bStatus:[^.]*\.?/gi, " ")
+    .replace(/\bRequest submitted[^.]*\.?/gi, " ")
+    .replace(/\s+/g, " ")
+    .trim();
+  if (!cleaned || cleaned.length < 4 || /^(n|na|n\/a)$/i.test(cleaned)) {
+    return String(fallback || "").trim();
+  }
+  return cleaned;
+}
+
+function inferLegacyUpcomingStatus(card = {}) {
+  const details = String(card?.details || "");
+  const startsAt = String(card?.startsAt || "");
+  if (/confirmed/i.test(details) || /^confirmed\b/i.test(startsAt)) return "Confirmed";
+  if (/pending confirmation/i.test(details) || /pending confirmation/i.test(startsAt)) return "Pending confirmation";
+  return String(card?.statusText || "").trim();
+}
+
+function inferLegacyPastStatus(card = {}) {
+  const details = String(card?.details || "");
+  const endedAt = String(card?.endedAt || "");
+  if (/completed|closed/i.test(details) || /closed/i.test(endedAt)) return "Completed";
+  return String(card?.statusText || "").trim();
+}
+
+function inferLegacyUpcomingTimeframe(card = {}) {
+  const details = String(card?.details || "");
+  const startsAt = String(card?.startsAt || "").trim();
+  const fromStartsAt = startsAt.match(/(?:confirmed\s*[•-]\s*|pending confirmation\s*\()([^.)]+)\)?/i);
+  if (fromStartsAt && fromStartsAt[1]) return fromStartsAt[1].trim();
+  const fromDetails = details.match(/Desired execution:\s*([^.]*)/i);
+  if (fromDetails && fromDetails[1]) return fromDetails[1].trim();
+  if (startsAt && startsAt !== "N/A" && !/pending confirmation|confirmed/i.test(startsAt)) return startsAt;
+  return "";
+}
+
+function inferLegacyPastTime(card = {}) {
+  const endedAt = String(card?.endedAt || "").trim();
+  if (endedAt && endedAt !== "N/A") return endedAt;
+  return "";
+}
+
+function normalizeClientUpcomingServiceCard(card = {}) {
+  const fallback = defaultClientUpcomingServiceCard();
+  const title = String(card?.title || fallback.title).trim() || fallback.title;
+  const statusText = inferLegacyUpcomingStatus(card);
+  const timeframe = inferLegacyUpcomingTimeframe(card);
+  const details = cleanLegacyServiceDescription(
+    String(card?.details || ""),
+    title === fallback.title ? fallback.details : "Your service arrangements are being coordinated."
+  );
+  return {
+    title,
+    details,
+    startsAt: timeframe || (title === fallback.title ? fallback.startsAt : ""),
+    statusText,
+    timeLabel: timeframe ? "Requested timeframe" : ""
+  };
+}
+
+function normalizeClientPastServiceCard(card = {}) {
+  const fallback = defaultClientPastServiceCard();
+  const title = String(card?.title || fallback.title).trim() || fallback.title;
+  const statusText = inferLegacyPastStatus(card);
+  const completedAt = inferLegacyPastTime(card);
+  const details = cleanLegacyServiceDescription(
+    String(card?.details || ""),
+    title === fallback.title ? fallback.details : "This service has been completed successfully."
+  );
+  return {
+    title,
+    details,
+    endedAt: completedAt || (title === fallback.title ? fallback.endedAt : ""),
+    statusText,
+    timeLabel: completedAt ? "Completed" : ""
+  };
+}
+
+function normalizeAccountServiceCards(account) {
+  if (!account || typeof account !== "object") return account;
+  account.upcomingService = normalizeClientUpcomingServiceCard(account.upcomingService);
+  account.pastService = normalizeClientPastServiceCard(account.pastService);
+  return account;
+}
+
 function replaceAccountsData(nextAccounts) {
   const normalized = normalizeAccountsObject(nextAccounts);
   if (!normalized) return false;
   Object.keys(accounts).forEach((key) => delete accounts[key]);
   Object.entries(normalized).forEach(([key, value]) => {
-    accounts[key] = value;
+    accounts[key] = normalizeAccountServiceCards(value);
   });
   return true;
 }
@@ -5601,7 +5693,7 @@ function restoreActiveSession() {
       if (snapshotRaw) {
         const snapshot = JSON.parse(snapshotRaw);
         if (snapshot && snapshot.email && String(snapshot.email).trim().toLowerCase() === savedEmail) {
-          accounts[savedEmail] = snapshot;
+          accounts[savedEmail] = normalizeAccountServiceCards(snapshot);
           persistAccountsData();
           account = accounts[savedEmail];
         }
