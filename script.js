@@ -4704,6 +4704,12 @@ function normalizeRtaAssignmentStatus(value = "") {
   return "Unassigned";
 }
 
+function normalizeRtaPendingAction(value = "") {
+  const action = String(value || "").trim().toLowerCase();
+  if (["assign", "switch", "clear"].includes(action)) return action;
+  return "";
+}
+
 function currentRtaApprovalLevel(account = getCurrentSunriseOperator()) {
   if (!account) return "";
   if (isOwnerAccount(account)) return "OW";
@@ -4779,11 +4785,19 @@ function normalizeRtaAssignment(row = {}) {
     driverStaffKey: String(row?.driverStaffKey || "").trim().toLowerCase(),
     conciergeStaffKey: String(row?.conciergeStaffKey || "").trim().toLowerCase(),
     securityStaffKey: String(row?.securityStaffKey || "").trim().toLowerCase(),
+    publishedFleetStaffKey: String(row?.publishedFleetStaffKey || "").trim().toLowerCase(),
+    publishedDriverStaffKey: String(row?.publishedDriverStaffKey || "").trim().toLowerCase(),
+    publishedConciergeStaffKey: String(row?.publishedConciergeStaffKey || "").trim().toLowerCase(),
+    publishedSecurityStaffKey: String(row?.publishedSecurityStaffKey || "").trim().toLowerCase(),
     status: normalizeRtaAssignmentStatus(row?.status),
+    pendingAction: normalizeRtaPendingAction(row?.pendingAction),
     requestedBy: String(row?.requestedBy || "").trim(),
     requestedAt: String(row?.requestedAt || "").trim(),
     confirmedBy: String(row?.confirmedBy || "").trim(),
-    confirmedAt: String(row?.confirmedAt || "").trim()
+    confirmedAt: String(row?.confirmedAt || "").trim(),
+    auditLog: Array.isArray(row?.auditLog)
+      ? row.auditLog.map((item) => String(item || "").trim()).filter(Boolean).slice(0, 12)
+      : []
   };
 }
 
@@ -4799,6 +4813,10 @@ function buildSeedRtaAssignmentFromAccount(key, account) {
     driverStaffKey: findStaffKeyByLegacyTeamValue(account?.assignedTeam?.driver, "driver"),
     conciergeStaffKey: findStaffKeyByLegacyTeamValue(account?.assignedTeam?.concierge, "concierge"),
     securityStaffKey: findStaffKeyByLegacyTeamValue(account?.assignedTeam?.security, "security"),
+    publishedFleetStaffKey: findStaffKeyByLegacyTeamValue(account?.assignedTeam?.pilot, "fleet"),
+    publishedDriverStaffKey: findStaffKeyByLegacyTeamValue(account?.assignedTeam?.driver, "driver"),
+    publishedConciergeStaffKey: findStaffKeyByLegacyTeamValue(account?.assignedTeam?.concierge, "concierge"),
+    publishedSecurityStaffKey: findStaffKeyByLegacyTeamValue(account?.assignedTeam?.security, "security"),
     status: account?.assignedTeam ? "Confirmed" : "Unassigned"
   });
 }
@@ -4830,6 +4848,16 @@ function ensureRtaAssignmentsStore() {
     if (!row.driverStaffKey && account?.assignedTeam?.driver) row.driverStaffKey = findStaffKeyByLegacyTeamValue(account.assignedTeam.driver, "driver");
     if (!row.conciergeStaffKey && account?.assignedTeam?.concierge) row.conciergeStaffKey = findStaffKeyByLegacyTeamValue(account.assignedTeam.concierge, "concierge");
     if (!row.securityStaffKey && account?.assignedTeam?.security) row.securityStaffKey = findStaffKeyByLegacyTeamValue(account.assignedTeam.security, "security");
+    if (!row.publishedFleetStaffKey && account?.assignedTeam?.pilot) row.publishedFleetStaffKey = findStaffKeyByLegacyTeamValue(account.assignedTeam.pilot, "fleet");
+    if (!row.publishedDriverStaffKey && account?.assignedTeam?.driver) row.publishedDriverStaffKey = findStaffKeyByLegacyTeamValue(account.assignedTeam.driver, "driver");
+    if (!row.publishedConciergeStaffKey && account?.assignedTeam?.concierge) row.publishedConciergeStaffKey = findStaffKeyByLegacyTeamValue(account.assignedTeam.concierge, "concierge");
+    if (!row.publishedSecurityStaffKey && account?.assignedTeam?.security) row.publishedSecurityStaffKey = findStaffKeyByLegacyTeamValue(account.assignedTeam.security, "security");
+    if (row.status === "Confirmed") {
+      if (!row.publishedFleetStaffKey && row.fleetStaffKey) row.publishedFleetStaffKey = row.fleetStaffKey;
+      if (!row.publishedDriverStaffKey && row.driverStaffKey) row.publishedDriverStaffKey = row.driverStaffKey;
+      if (!row.publishedConciergeStaffKey && row.conciergeStaffKey) row.publishedConciergeStaffKey = row.conciergeStaffKey;
+      if (!row.publishedSecurityStaffKey && row.securityStaffKey) row.publishedSecurityStaffKey = row.securityStaffKey;
+    }
     if (row.status === "Unassigned" && account?.assignedTeam) row.status = "Confirmed";
   });
 }
@@ -4861,6 +4889,123 @@ function buildRtaProfileStatusNote(status = "", at = "") {
   return "";
 }
 
+function rtaSelectionFromAssignment(assignment = {}) {
+  return {
+    fleetStaffKey: String(assignment?.fleetStaffKey || "").trim().toLowerCase(),
+    driverStaffKey: String(assignment?.driverStaffKey || "").trim().toLowerCase(),
+    conciergeStaffKey: String(assignment?.conciergeStaffKey || "").trim().toLowerCase(),
+    securityStaffKey: String(assignment?.securityStaffKey || "").trim().toLowerCase()
+  };
+}
+
+function rtaPublishedSelectionFromAssignment(assignment = {}) {
+  return {
+    fleetStaffKey: String(assignment?.publishedFleetStaffKey || "").trim().toLowerCase(),
+    driverStaffKey: String(assignment?.publishedDriverStaffKey || "").trim().toLowerCase(),
+    conciergeStaffKey: String(assignment?.publishedConciergeStaffKey || "").trim().toLowerCase(),
+    securityStaffKey: String(assignment?.publishedSecurityStaffKey || "").trim().toLowerCase()
+  };
+}
+
+function applyRtaSelectionToAssignment(assignment, selection = {}) {
+  if (!assignment) return;
+  assignment.fleetStaffKey = String(selection.fleetStaffKey || "").trim().toLowerCase();
+  assignment.driverStaffKey = String(selection.driverStaffKey || "").trim().toLowerCase();
+  assignment.conciergeStaffKey = String(selection.conciergeStaffKey || "").trim().toLowerCase();
+  assignment.securityStaffKey = String(selection.securityStaffKey || "").trim().toLowerCase();
+}
+
+function publishRtaSelection(assignment) {
+  if (!assignment) return;
+  assignment.publishedFleetStaffKey = String(assignment.fleetStaffKey || "").trim().toLowerCase();
+  assignment.publishedDriverStaffKey = String(assignment.driverStaffKey || "").trim().toLowerCase();
+  assignment.publishedConciergeStaffKey = String(assignment.conciergeStaffKey || "").trim().toLowerCase();
+  assignment.publishedSecurityStaffKey = String(assignment.securityStaffKey || "").trim().toLowerCase();
+}
+
+function clearPublishedRtaSelection(assignment) {
+  if (!assignment) return;
+  assignment.publishedFleetStaffKey = "";
+  assignment.publishedDriverStaffKey = "";
+  assignment.publishedConciergeStaffKey = "";
+  assignment.publishedSecurityStaffKey = "";
+}
+
+function clearRtaSelection(assignment) {
+  if (!assignment) return;
+  assignment.fleetStaffKey = "";
+  assignment.driverStaffKey = "";
+  assignment.conciergeStaffKey = "";
+  assignment.securityStaffKey = "";
+}
+
+function hasAnyRtaSelection(selection = {}) {
+  return !!(selection.fleetStaffKey || selection.driverStaffKey || selection.conciergeStaffKey || selection.securityStaffKey);
+}
+
+function hasCompleteRtaSelection(selection = {}) {
+  return !!(selection.fleetStaffKey && selection.driverStaffKey && selection.conciergeStaffKey && selection.securityStaffKey);
+}
+
+function rtaSelectionsMatch(a = {}, b = {}) {
+  return String(a.fleetStaffKey || "") === String(b.fleetStaffKey || "")
+    && String(a.driverStaffKey || "") === String(b.driverStaffKey || "")
+    && String(a.conciergeStaffKey || "") === String(b.conciergeStaffKey || "")
+    && String(a.securityStaffKey || "") === String(b.securityStaffKey || "");
+}
+
+function buildRtaAuditEntries(assignment = {}) {
+  const explicit = Array.isArray(assignment.auditLog)
+    ? assignment.auditLog.map((item) => String(item || "").trim()).filter(Boolean)
+    : [];
+  if (explicit.length) return explicit;
+  const legacy = [];
+  if (assignment.requestedBy) legacy.push(`Requested by ${assignment.requestedBy}${assignment.requestedAt ? ` on ${assignment.requestedAt}` : ""}`);
+  if (assignment.confirmedBy) legacy.push(`Confirmed by ${assignment.confirmedBy}${assignment.confirmedAt ? ` on ${assignment.confirmedAt}` : ""}`);
+  return legacy;
+}
+
+function appendRtaAuditEntry(assignment, text = "") {
+  if (!assignment) return;
+  if (!Array.isArray(assignment.auditLog)) assignment.auditLog = [];
+  const message = String(text || "").trim();
+  if (!message) return;
+  assignment.auditLog.unshift(message);
+  if (assignment.auditLog.length > 12) assignment.auditLog = assignment.auditLog.slice(0, 12);
+}
+
+function hydrateRtaAssignmentClientFields(assignment, clientKey = "", client = null) {
+  if (!assignment) return;
+  assignment.clientKey = String(clientKey || assignment.clientKey || "").trim().toLowerCase();
+  assignment.clientEmail = String(client?.email || clientKey || assignment.clientEmail || "").trim();
+  assignment.clientName = `${String(client?.firstName || "").trim()} ${String(client?.lastName || "").trim()}`.trim() || String(assignment.clientName || "").trim();
+  assignment.clientCountry = String(client?.country || assignment.clientCountry || "").trim();
+  assignment.clientPhone = String(client?.phone || assignment.clientPhone || "").trim();
+  assignment.tier = String(client?.membership || assignment.tier || "Voyager Red").trim();
+}
+
+function setRtaPendingSubmission(assignment, selection = {}, pendingAction = "assign") {
+  if (!assignment) return;
+  applyRtaSelectionToAssignment(assignment, selection);
+  assignment.status = "Pending Confirmation";
+  assignment.pendingAction = normalizeRtaPendingAction(pendingAction);
+  assignment.requestedBy = buildRtaOperatorLabel();
+  assignment.requestedAt = formatUtcTimestamp(new Date());
+  assignment.confirmedBy = "";
+  assignment.confirmedAt = "";
+}
+
+function confirmRtaSelection(assignment) {
+  if (!assignment) return;
+  assignment.status = "Confirmed";
+  assignment.pendingAction = "";
+  assignment.confirmedBy = buildRtaOperatorLabel();
+  assignment.confirmedAt = formatUtcTimestamp(new Date());
+  if (!assignment.requestedBy) assignment.requestedBy = buildRtaOperatorLabel();
+  if (!assignment.requestedAt) assignment.requestedAt = formatUtcTimestamp(new Date());
+  publishRtaSelection(assignment);
+}
+
 function syncRedTeamAssignmentsToClientAccounts() {
   if (!sunriseControlState) return;
   ensureRtaAssignmentsStore();
@@ -4870,19 +5015,27 @@ function syncRedTeamAssignmentsToClientAccounts() {
     if (!key || !accounts[key]) return;
     const account = accounts[key];
     if (!isVoyagerRedAccount(account)) return;
-    const fleet = accounts[assignment.fleetStaffKey] || null;
-    const driver = accounts[assignment.driverStaffKey] || null;
-    const concierge = accounts[assignment.conciergeStaffKey] || null;
-    const security = accounts[assignment.securityStaffKey] || null;
+    const nextStatus = normalizeRtaAssignmentStatus(assignment.status);
+    const publishedSelection = rtaPublishedSelectionFromAssignment(assignment);
+    if (nextStatus === "Confirmed" && hasCompleteRtaSelection(rtaSelectionFromAssignment(assignment)) && !hasCompleteRtaSelection(publishedSelection)) {
+      publishRtaSelection(assignment);
+    }
+    const effectiveSelection = nextStatus === "Confirmed"
+      ? rtaSelectionFromAssignment(assignment)
+      : publishedSelection;
+    const fleet = accounts[effectiveSelection.fleetStaffKey] || null;
+    const driver = accounts[effectiveSelection.driverStaffKey] || null;
+    const concierge = accounts[effectiveSelection.conciergeStaffKey] || null;
+    const security = accounts[effectiveSelection.securityStaffKey] || null;
     const nextTeam = (fleet || driver || concierge || security) ? {
       pilot: buildRtaTeamAssignmentText(fleet, "fleet"),
       driver: buildRtaTeamAssignmentText(driver, "driver"),
       concierge: buildRtaTeamAssignmentText(concierge, "concierge"),
       security: buildRtaTeamAssignmentText(security, "security")
-    } : account.assignedTeam;
-    const nextStatus = normalizeRtaAssignmentStatus(assignment.status);
+    } : null;
     const nextNote = buildRtaProfileStatusNote(nextStatus, assignment.confirmedAt || assignment.requestedAt);
     if (nextTeam) account.assignedTeam = nextTeam;
+    else delete account.assignedTeam;
     account.redTeamAssignmentStatus = nextStatus;
     account.redTeamAssignmentNote = nextNote;
     if (activeAccount && normalizeEmailAddress(activeAccount.email) === key) activeAccountChanged = true;
@@ -7897,6 +8050,7 @@ function renderRTAPage() {
     const domKey = clientKey.replace(/[^a-z0-9]+/gi, "-");
     const clientName = assignment.clientName || `${String(client?.firstName || "").trim()} ${String(client?.lastName || "").trim()}`.trim();
     const currentStatus = normalizeRtaAssignmentStatus(assignment.status);
+    const pendingAction = normalizeRtaPendingAction(assignment.pendingAction);
     const statusClass = currentStatus === "Confirmed"
       ? "isConfirmed"
       : (currentStatus === "Pending Confirmation" ? "isPending" : "isUnassigned");
@@ -7917,16 +8071,22 @@ function renderRTAPage() {
       return `<label class="sunriseRtaRoleCard"><span class="sunriseRtaRoleLabel">${rtaRoleLabel(role)}</span><select class="select sunriseRtaSelect" id="rta-${role}-${domKey}"><option value="">Select ${rtaRoleLabel(role)}</option>${options}</select>${detail}</label>`;
     };
     const statusMeta = currentStatus === "Pending Confirmation"
-      ? "Waiting for DA, CA, or Owner confirmation before publication to the client account."
+      ? (pendingAction === "switch"
+        ? "Team switch is waiting for DA, CA, or Owner confirmation."
+        : (pendingAction === "clear"
+          ? "Team removal is waiting for DA, CA, or Owner confirmation."
+          : "Waiting for DA, CA, or Owner confirmation before publication to the client account."))
       : (currentStatus === "Confirmed" ? "Team is active and already visible on the client account page." : "No team has been assigned yet.");
-    const auditParts = [];
-    if (assignment.requestedBy) auditParts.push(`Requested by ${assignment.requestedBy}${assignment.requestedAt ? ` on ${assignment.requestedAt}` : ""}`);
-    if (assignment.confirmedBy) auditParts.push(`Confirmed by ${assignment.confirmedBy}${assignment.confirmedAt ? ` on ${assignment.confirmedAt}` : ""}`);
+    const auditParts = buildRtaAuditEntries(assignment);
     const credentials = [
       assignment.clientEmail || client?.email || "",
       assignment.clientPhone || client?.phone || "",
       formatOptionalCountryDisplay(assignment.clientCountry || client?.country || "")
     ].filter(Boolean);
+    const primaryAction = currentStatus === "Confirmed"
+      ? `<button class="sunriseMiniBtn sunriseRtaActionBtn" type="button" data-rta-switch="${clientKey}">Initiate Team Switch</button>`
+      : `<button class="sunriseMiniBtn sunriseRtaActionBtn" type="button" data-rta-save="${clientKey}">${approved ? "Assign Team" : "Submit for Confirmation"}</button>`;
+    const showEmpty = hasAnyRtaSelection(rtaSelectionFromAssignment(assignment)) || hasAnyRtaSelection(rtaPublishedSelectionFromAssignment(assignment));
     return `<article class="sunriseControlCard sunriseDetailWide sunriseRtaCard">
       <div class="sunriseRtaCardTop">
         <div>
@@ -7954,8 +8114,10 @@ function renderRTAPage() {
           ${(auditParts.length ? auditParts : ["No activity yet."]).map((item) => `<p>${item}</p>`).join("")}
         </div>
         <div class="sunriseRtaActions">
-          <button class="sunriseMiniBtn sunriseRtaActionBtn" type="button" data-rta-save="${clientKey}">${approved ? "Assign Team" : "Submit for Confirmation"}</button>
+          ${primaryAction}
           ${approved && currentStatus === "Pending Confirmation" ? `<button class="sunriseMiniBtn sunriseRtaActionBtn" type="button" data-rta-confirm="${clientKey}">Confirm</button>` : ""}
+          ${approved && currentStatus === "Confirmed" ? `<button class="sunriseMiniBtn sunriseRtaActionBtn isWarn" type="button" data-rta-revoke="${clientKey}">Revoke Confirmation</button>` : ""}
+          ${showEmpty ? `<button class="sunriseMiniBtn sunriseRtaActionBtn isDanger" type="button" data-rta-empty="${clientKey}">Empty Team</button>` : ""}
         </div>
       </div>
     </article>`;
@@ -8893,10 +9055,6 @@ function bindSunriseControlInteractions() {
     };
   };
 
-  const hasCompleteRtaSelection = (selection) => {
-    return !!(selection.fleetStaffKey && selection.driverStaffKey && selection.conciergeStaffKey && selection.securityStaffKey);
-  };
-
   const setRtaInfo = (message) => {
     const el = document.getElementById("rta-info");
     if (el) el.textContent = String(message || "");
@@ -9169,33 +9327,49 @@ function bindSunriseControlInteractions() {
         setRtaInfo("Select Fleet, Driver, Concierge, and Head of Security before saving.");
         return;
       }
-      assignment.clientKey = clientKey;
-      assignment.clientEmail = String(client.email || clientKey).trim();
-      assignment.clientName = `${String(client.firstName || "").trim()} ${String(client.lastName || "").trim()}`.trim();
-      assignment.clientCountry = String(client.country || "").trim();
-      assignment.clientPhone = String(client.phone || "").trim();
-      assignment.tier = String(client.membership || "Voyager Red").trim();
-      assignment.fleetStaffKey = selection.fleetStaffKey;
-      assignment.driverStaffKey = selection.driverStaffKey;
-      assignment.conciergeStaffKey = selection.conciergeStaffKey;
-      assignment.securityStaffKey = selection.securityStaffKey;
-      assignment.requestedBy = buildRtaOperatorLabel();
-      assignment.requestedAt = formatUtcTimestamp(new Date());
+      hydrateRtaAssignmentClientFields(assignment, clientKey, client);
       let infoMessage = "";
       if (canApproveRtaAssignment()) {
-        assignment.status = "Confirmed";
-        assignment.confirmedBy = buildRtaOperatorLabel();
-        assignment.confirmedAt = formatUtcTimestamp(new Date());
+        applyRtaSelectionToAssignment(assignment, selection);
+        assignment.requestedBy = buildRtaOperatorLabel();
+        assignment.requestedAt = formatUtcTimestamp(new Date());
+        confirmRtaSelection(assignment);
+        appendRtaAuditEntry(assignment, `Team assigned and confirmed by ${buildRtaOperatorLabel()} on ${assignment.confirmedAt}`);
         infoMessage = "Red team assigned and confirmed.";
       } else {
-        assignment.status = "Pending Confirmation";
-        assignment.confirmedBy = "";
-        assignment.confirmedAt = "";
+        setRtaPendingSubmission(assignment, selection, "assign");
+        appendRtaAuditEntry(assignment, `Assignment submitted for confirmation by ${assignment.requestedBy} on ${assignment.requestedAt}`);
         infoMessage = "Red team submitted for executive confirmation.";
       }
       saveSunriseControlState();
       renderCustomSunriseControlPages();
       setRtaInfo(infoMessage);
+      return;
+    }
+
+    const rtaSwitch = clickTarget.closest("[data-rta-switch]");
+    if (rtaSwitch && sunriseControlState) {
+      ensureRtaAssignmentsStore();
+      const clientKey = String(rtaSwitch.getAttribute("data-rta-switch") || "").trim().toLowerCase();
+      const assignment = findRtaAssignmentByClientKey(clientKey);
+      const client = accounts[clientKey] || null;
+      if (!assignment || !client) return;
+      const selection = readRtaSelection(clientKey);
+      if (!hasCompleteRtaSelection(selection)) {
+        setRtaInfo("Complete all four Red Team roles before initiating a team switch.");
+        return;
+      }
+      const currentSelection = rtaSelectionFromAssignment(assignment);
+      if (rtaSelectionsMatch(selection, currentSelection)) {
+        setRtaInfo("Select at least one different team member before initiating a switch.");
+        return;
+      }
+      hydrateRtaAssignmentClientFields(assignment, clientKey, client);
+      setRtaPendingSubmission(assignment, selection, "switch");
+      appendRtaAuditEntry(assignment, `Team switch initiated by ${assignment.requestedBy} on ${assignment.requestedAt}`);
+      saveSunriseControlState();
+      renderCustomSunriseControlPages();
+      setRtaInfo("Team switch submitted for executive confirmation.");
       return;
     }
 
@@ -9210,23 +9384,95 @@ function bindSunriseControlInteractions() {
       const assignment = findRtaAssignmentByClientKey(clientKey);
       if (!assignment) return;
       const selection = readRtaSelection(clientKey);
+      if (assignment.pendingAction === "clear") {
+        clearRtaSelection(assignment);
+        clearPublishedRtaSelection(assignment);
+        assignment.status = "Unassigned";
+        assignment.pendingAction = "";
+        assignment.confirmedBy = "";
+        assignment.confirmedAt = "";
+        appendRtaAuditEntry(assignment, `Team cleared by ${buildRtaOperatorLabel()} on ${formatUtcTimestamp(new Date())}`);
+        saveSunriseControlState();
+        renderCustomSunriseControlPages();
+        setRtaInfo("Pending team removal confirmed.");
+        return;
+      }
       if (!hasCompleteRtaSelection(selection)) {
         setRtaInfo("Complete all four Red Team roles before confirming.");
         return;
       }
-      assignment.fleetStaffKey = selection.fleetStaffKey;
-      assignment.driverStaffKey = selection.driverStaffKey;
-      assignment.conciergeStaffKey = selection.conciergeStaffKey;
-      assignment.securityStaffKey = selection.securityStaffKey;
-      assignment.status = "Confirmed";
-      assignment.confirmedBy = buildRtaOperatorLabel();
-      assignment.confirmedAt = formatUtcTimestamp(new Date());
-      if (!assignment.requestedBy) assignment.requestedBy = buildRtaOperatorLabel();
-      if (!assignment.requestedAt) assignment.requestedAt = formatUtcTimestamp(new Date());
+      applyRtaSelectionToAssignment(assignment, selection);
+      confirmRtaSelection(assignment);
+      appendRtaAuditEntry(assignment, `Pending Red Team assignment confirmed by ${assignment.confirmedBy} on ${assignment.confirmedAt}`);
       const infoMessage = "Pending Red Team assignment confirmed.";
       saveSunriseControlState();
       renderCustomSunriseControlPages();
       setRtaInfo(infoMessage);
+      return;
+    }
+
+    const rtaRevoke = clickTarget.closest("[data-rta-revoke]");
+    if (rtaRevoke && sunriseControlState) {
+      if (!canApproveRtaAssignment()) {
+        setRtaInfo("Only DA, CA, or Owner can revoke Red Team confirmation.");
+        return;
+      }
+      ensureRtaAssignmentsStore();
+      const clientKey = String(rtaRevoke.getAttribute("data-rta-revoke") || "").trim().toLowerCase();
+      const assignment = findRtaAssignmentByClientKey(clientKey);
+      if (!assignment) return;
+      assignment.status = "Pending Confirmation";
+      assignment.pendingAction = "assign";
+      assignment.requestedBy = buildRtaOperatorLabel();
+      assignment.requestedAt = formatUtcTimestamp(new Date());
+      assignment.confirmedBy = "";
+      assignment.confirmedAt = "";
+      clearPublishedRtaSelection(assignment);
+      appendRtaAuditEntry(assignment, `Confirmation revoked by ${assignment.requestedBy} on ${assignment.requestedAt}`);
+      saveSunriseControlState();
+      renderCustomSunriseControlPages();
+      setRtaInfo("Team confirmation revoked. The assignment now requires executive confirmation again.");
+      return;
+    }
+
+    const rtaEmpty = clickTarget.closest("[data-rta-empty]");
+    if (rtaEmpty && sunriseControlState) {
+      ensureRtaAssignmentsStore();
+      const clientKey = String(rtaEmpty.getAttribute("data-rta-empty") || "").trim().toLowerCase();
+      const assignment = findRtaAssignmentByClientKey(clientKey);
+      if (!assignment) return;
+      const currentSelection = rtaSelectionFromAssignment(assignment);
+      const publishedSelection = rtaPublishedSelectionFromAssignment(assignment);
+      if (!hasAnyRtaSelection(currentSelection) && !hasAnyRtaSelection(publishedSelection)) {
+        setRtaInfo("Team is already empty.");
+        return;
+      }
+      if (canApproveRtaAssignment()) {
+        clearRtaSelection(assignment);
+        clearPublishedRtaSelection(assignment);
+        assignment.status = "Unassigned";
+        assignment.pendingAction = "";
+        assignment.requestedBy = "";
+        assignment.requestedAt = "";
+        assignment.confirmedBy = "";
+        assignment.confirmedAt = "";
+        appendRtaAuditEntry(assignment, `Team cleared by ${buildRtaOperatorLabel()} on ${formatUtcTimestamp(new Date())}`);
+        saveSunriseControlState();
+        renderCustomSunriseControlPages();
+        setRtaInfo("Team emptied.");
+        return;
+      }
+      clearRtaSelection(assignment);
+      assignment.status = "Pending Confirmation";
+      assignment.pendingAction = "clear";
+      assignment.requestedBy = buildRtaOperatorLabel();
+      assignment.requestedAt = formatUtcTimestamp(new Date());
+      assignment.confirmedBy = "";
+      assignment.confirmedAt = "";
+      appendRtaAuditEntry(assignment, `Team removal requested by ${assignment.requestedBy} on ${assignment.requestedAt}`);
+      saveSunriseControlState();
+      renderCustomSunriseControlPages();
+      setRtaInfo("Team removal submitted for executive confirmation.");
       return;
     }
 
