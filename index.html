@@ -576,6 +576,7 @@
 
               <article class="profileCard profileCardWide" id="profile-red-team">
                 <p class="profileLabel">Your Private Team</p>
+                <p class="profileNote" id="profile-red-team-status" hidden></p>
                 <div class="teamGrid">
                   <div class="teamItem"><b>Fleet</b><span id="team-pilot"></span></div>
                   <div class="teamItem"><b>Driver</b><span id="team-driver"></span></div>
@@ -818,6 +819,7 @@
                 <article class="sunriseSummaryCard"><p class="sunriseCategoryTitle">Total Expenses</p><b id="sum-eam-total">$0</b></article>
                 <article class="sunriseSummaryCard"><p class="sunriseCategoryTitle">Total Income</p><b id="sum-ifs-total">$0</b></article>
                 <article class="sunriseSummaryCard"><p class="sunriseCategoryTitle">Employees</p><b id="sum-ecs-count">0</b></article>
+                <article class="sunriseSummaryCard"><p class="sunriseCategoryTitle">RTA Pending</p><b id="sum-rta-pending">0</b></article>
                 <article class="sunriseSummaryCard"><p class="sunriseCategoryTitle">SOC Active Services</p><b id="sum-soc-current">0</b></article>
                 <article class="sunriseSummaryCard"><p class="sunriseCategoryTitle">Notos Sessions</p><b id="sum-lcs-count">0</b></article>
               </div>
@@ -838,6 +840,7 @@
                   <p class="sunriseCategoryTitle">Operations & Delivery</p>
                   <div class="sunriseLaunchGrid">
                     <a class="sunriseLaunchBtn" href="#sunrise-services" data-route="sunrise-services" data-shortcut="srv1"><span class="sunriseShortcutCode">SRV1</span>Services Dashboard</a>
+                    <a class="sunriseLaunchBtn" href="#sunrise-rta" data-route="sunrise-rta" data-shortcut="rta"><span class="sunriseShortcutCode">RTA</span>Red Team Assigning</a>
                     <a class="sunriseLaunchBtn" href="#sunrise-locations" data-route="sunrise-locations" data-shortcut="loc1"><span class="sunriseShortcutCode">LOC1</span>Locations</a>
                     <a class="sunriseLaunchBtn" href="#sunrise-maintenance" data-route="sunrise-maintenance" data-shortcut="mnt1"><span class="sunriseShortcutCode">MNT1</span>Maintenance</a>
                     <a class="sunriseLaunchBtn" href="#sunrise-events" data-route="sunrise-events" data-shortcut="evt1"><span class="sunriseShortcutCode">EVT1</span>Events Planning</a>
@@ -924,6 +927,9 @@
       </section>
       <section class="routePage" data-page="sunrise-smca" aria-label="Sunrise SMCA Page" hidden>
         <section class="view"><div class="viewInner sunriseShell sunriseDetailShell"><div class="viewTop"><div class="kicker"><span class="dot"></span> Sunrise • SMCA</div><div class="viewActions" style="margin-top:0;"><button class="btn ghost" type="button" data-sunrise-logout>Log Out</button><a class="btn ghost" href="#sunrise" data-route="sunrise">Back</a></div></div><h2 class="viewTitle">Sales & Marketing Commissions Adjustments</h2><div class="sunriseDetailGrid" id="sunrise-smca-grid"></div></div></section>
+      </section>
+      <section class="routePage" data-page="sunrise-rta" aria-label="Sunrise RTA Page" hidden>
+        <section class="view"><div class="viewInner sunriseShell sunriseDetailShell"><div class="viewTop"><div class="kicker"><span class="dot"></span> Sunrise • RTA</div><div class="viewActions" style="margin-top:0;"><button class="btn ghost" type="button" data-sunrise-logout>Log Out</button><a class="btn ghost" href="#sunrise" data-route="sunrise">Back</a></div></div><h2 class="viewTitle">Red Team Assigning Menu</h2><div class="sunriseDetailGrid" id="sunrise-rta-grid"></div></div></section>
       </section>
       <section class="routePage" data-page="sunrise-rim" aria-label="Sunrise RIM Page" hidden>
         <section class="view"><div class="viewInner sunriseShell sunriseDetailShell"><div class="viewTop"><div class="kicker"><span class="dot"></span> Sunrise • RIM</div><div class="viewActions" style="margin-top:0;"><button class="btn ghost" type="button" data-sunrise-logout>Log Out</button><a class="btn ghost" href="#sunrise" data-route="sunrise">Back</a></div></div><h2 class="viewTitle">Red Inviting Menu</h2><div class="sunriseDetailGrid" id="sunrise-rim-grid"></div></div></section>
@@ -1109,6 +1115,6 @@
     </footer>
   </div>
 
-  <script src="script.js?v=20260301-85"></script>
+  <script src="script.js?v=20260302-86"></script>
 </body>
 </html>

@@ -860,6 +860,286 @@ const accounts = {
   }
 };
 
+function buildManagedStaffSeed({
+  email = "",
+  password = "",
+  secretPhrase = "",
+  prefix = "Mr.",
+  firstName = "",
+  lastName = "",
+  country = "",
+  sunriseAccessLevel = "STA",
+  notosId = "",
+  roleTitle = "Staff",
+  phone = "",
+  staffDivision = "Office",
+  rtaRoles = []
+} = {}) {
+  return {
+    email,
+    password,
+    secretPhrase,
+    prefix,
+    firstName,
+    lastName,
+    country,
+    phone,
+    membership: "Staff",
+    sunriseAccessLevel,
+    notosId,
+    roleTitle,
+    staffDivision,
+    rtaRoles: Array.isArray(rtaRoles) ? rtaRoles.slice() : [],
+    servicesCompleted: 0,
+    pastService: { title: "N/A", details: "Internal employee account.", endedAt: "N/A" },
+    upcomingService: { title: "N/A", details: "Internal employee account.", startsAt: "N/A" },
+    tips: []
+  };
+}
+
+const managedStaffDirectory = {
+  "concierge.basic@vvs.com": buildManagedStaffSeed({
+    email: "concierge.basic@vvs.com",
+    password: "Concierge#2026",
+    secretPhrase: "MarbleKey",
+    prefix: "Ms.",
+    firstName: "Camille",
+    lastName: "Rowan",
+    country: "United Kingdom",
+    sunriseAccessLevel: "STA",
+    notosId: "NTS-2147C",
+    roleTitle: "Concierge (Basic Employee)",
+    phone: "+44 20 7946 8501",
+    staffDivision: "Office",
+    rtaRoles: ["concierge"]
+  }),
+  "ssr.supervisor@vvs.com": buildManagedStaffSeed({
+    email: "ssr.supervisor@vvs.com",
+    password: "Ssr!Supervisor26",
+    secretPhrase: "AuroraLock",
+    prefix: "Mr.",
+    firstName: "Rafael",
+    lastName: "Novak",
+    country: "Spain",
+    sunriseAccessLevel: "SS",
+    notosId: "NTS-5802R",
+    roleTitle: "Special Service Requests Supervisor",
+    phone: "+34 91 003 4410",
+    staffDivision: "Special Requests"
+  }),
+  "red.concierge.head@vvs.com": buildManagedStaffSeed({
+    email: "red.concierge.head@vvs.com",
+    password: "RedHead#2626",
+    secretPhrase: "CrimsonCode",
+    prefix: "Mrs.",
+    firstName: "Selena",
+    lastName: "Ward",
+    country: "United Arab Emirates",
+    sunriseAccessLevel: "CA",
+    notosId: "NTS-9346S",
+    roleTitle: "RED Head of Concierge Team",
+    phone: "+971 4 555 7701",
+    staffDivision: "Special Requests",
+    rtaRoles: ["concierge"]
+  }),
+  "ops.director@vvs.com": buildManagedStaffSeed({
+    email: "ops.director@vvs.com",
+    password: "DirectorOps@26",
+    secretPhrase: "AtlasNode",
+    prefix: "Dr.",
+    firstName: "Ibrahim",
+    lastName: "Khaled",
+    country: "Qatar",
+    sunriseAccessLevel: "DA",
+    notosId: "NTS-7024K",
+    roleTitle: "Director of Operations",
+    phone: "+974 4008 2140",
+    staffDivision: "Headquarters"
+  }),
+  "cmo@vvs.com": buildManagedStaffSeed({
+    email: "cmo@vvs.com",
+    password: "CMO!Vision26",
+    secretPhrase: "BloomThread",
+    prefix: "Ms.",
+    firstName: "Gianna",
+    lastName: "Vale",
+    country: "Italy",
+    sunriseAccessLevel: "SM",
+    notosId: "NTS-4475V",
+    roleTitle: "Chief Marketing Officer",
+    phone: "+39 02 8712 4490",
+    staffDivision: "Headquarters"
+  }),
+  "pilot.luca@venture-voyagers.com": buildManagedStaffSeed({
+    email: "pilot.luca@venture-voyagers.com",
+    password: "LucaFleet#26",
+    secretPhrase: "AquilaWing",
+    prefix: "Capt.",
+    firstName: "Luca",
+    lastName: "Ferri",
+    country: "United Arab Emirates",
+    sunriseAccessLevel: "SA",
+    notosId: "NTS-4117L",
+    roleTitle: "Fleet Captain",
+    phone: "+971 50 440 1937",
+    staffDivision: "Field",
+    rtaRoles: ["fleet"]
+  }),
+  "pilot.emilia@venture-voyagers.com": buildManagedStaffSeed({
+    email: "pilot.emilia@venture-voyagers.com",
+    password: "EmiliaFleet#26",
+    secretPhrase: "NorthStar",
+    prefix: "Capt.",
+    firstName: "Emilia",
+    lastName: "Rozen",
+    country: "Lithuania",
+    sunriseAccessLevel: "SA",
+    notosId: "NTS-5221E",
+    roleTitle: "Fleet Captain",
+    phone: "+370 612 440 991",
+    staffDivision: "Field",
+    rtaRoles: ["fleet"]
+  }),
+  "driver.rashid@venture-voyagers.com": buildManagedStaffSeed({
+    email: "driver.rashid@venture-voyagers.com",
+    password: "RashidDrive#26",
+    secretPhrase: "DesertRoute",
+    prefix: "Mr.",
+    firstName: "Rashid",
+    lastName: "Al Nuaimi",
+    country: "United Arab Emirates",
+    sunriseAccessLevel: "STA",
+    notosId: "NTS-6382R",
+    roleTitle: "Executive Driver",
+    phone: "+971 52 771 9024",
+    staffDivision: "Field",
+    rtaRoles: ["driver"]
+  }),
+  "driver.tomas@venture-voyagers.com": buildManagedStaffSeed({
+    email: "driver.tomas@venture-voyagers.com",
+    password: "TomasDrive#26",
+    secretPhrase: "BalticRoute",
+    prefix: "Mr.",
+    firstName: "Tomas",
+    lastName: "Vaitkus",
+    country: "Lithuania",
+    sunriseAccessLevel: "STA",
+    notosId: "NTS-6473T",
+    roleTitle: "Executive Driver",
+    phone: "+370 622 771 204",
+    staffDivision: "Field",
+    rtaRoles: ["driver"]
+  }),
+  "concierge.benedict@venture-voyagers.com": buildManagedStaffSeed({
+    email: "concierge.benedict@venture-voyagers.com",
+    password: "BenedictDesk#26",
+    secretPhrase: "GraniteDesk",
+    prefix: "Mr.",
+    firstName: "Benedict",
+    lastName: "Hale",
+    country: "United Arab Emirates",
+    sunriseAccessLevel: "SS",
+    notosId: "NTS-7714B",
+    roleTitle: "Voyager Red Concierge",
+    phone: "+971 58 006 1183",
+    staffDivision: "Special Requests",
+    rtaRoles: ["concierge"]
+  }),
+  "concierge.selene@venture-voyagers.com": buildManagedStaffSeed({
+    email: "concierge.selene@venture-voyagers.com",
+    password: "SeleneDesk#26",
+    secretPhrase: "MonacoDesk",
+    prefix: "Ms.",
+    firstName: "Selene",
+    lastName: "Marwick",
+    country: "Lithuania",
+    sunriseAccessLevel: "SS",
+    notosId: "NTS-7822S",
+    roleTitle: "Voyager Red Concierge",
+    phone: "+370 655 908 332",
+    staffDivision: "Special Requests",
+    rtaRoles: ["concierge"]
+  }),
+  "security.idris@venture-voyagers.com": buildManagedStaffSeed({
+    email: "security.idris@venture-voyagers.com",
+    password: "IdrisSec#26",
+    secretPhrase: "ShieldLine",
+    prefix: "Mr.",
+    firstName: "Idris",
+    lastName: "Kamel",
+    country: "United Arab Emirates",
+    sunriseAccessLevel: "SS",
+    notosId: "NTS-8106I",
+    roleTitle: "Head of Security",
+    phone: "+971 56 990 7742",
+    staffDivision: "Field",
+    rtaRoles: ["security"]
+  }),
+  "security.aurelijus@venture-voyagers.com": buildManagedStaffSeed({
+    email: "security.aurelijus@venture-voyagers.com",
+    password: "AurelijusSec#26",
+    secretPhrase: "IronRoute",
+    prefix: "Mr.",
+    firstName: "Aurelijus",
+    lastName: "Kazlauskas",
+    country: "Lithuania",
+    sunriseAccessLevel: "SS",
+    notosId: "NTS-8264A",
+    roleTitle: "Head of Security",
+    phone: "+370 669 120 883",
+    staffDivision: "Field",
+    rtaRoles: ["security"]
+  }),
+  "special.requests.lina@venture-voyagers.com": buildManagedStaffSeed({
+    email: "special.requests.lina@venture-voyagers.com",
+    password: "LinaRequests#26",
+    secretPhrase: "VelvetThread",
+    prefix: "Ms.",
+    firstName: "Lina",
+    lastName: "Rossi",
+    country: "Italy",
+    sunriseAccessLevel: "SA",
+    notosId: "NTS-9055L",
+    roleTitle: "Special Requests Concierge",
+    phone: "+39 06 9481 3320",
+    staffDivision: "Special Requests",
+    rtaRoles: ["concierge"]
+  })
+};
+
+function cloneManagedStaffValue(value) {
+  if (Array.isArray(value)) return value.map((item) => cloneManagedStaffValue(item));
+  if (value && typeof value === "object") return JSON.parse(JSON.stringify(value));
+  return value;
+}
+
+function hydrateManagedStaffDirectory() {
+  Object.entries(managedStaffDirectory).forEach(([key, seed]) => {
+    if (!accounts[key]) {
+      accounts[key] = cloneManagedStaffValue(seed);
+      return;
+    }
+    const account = accounts[key];
+    Object.entries(seed).forEach(([field, value]) => {
+      if (field === "rtaRoles") {
+        if (!Array.isArray(account.rtaRoles) || !account.rtaRoles.length) {
+          account.rtaRoles = cloneManagedStaffValue(value);
+        }
+        return;
+      }
+      if (field === "tips" || field === "pastService" || field === "upcomingService") {
+        if (!account[field] || (typeof account[field] === "object" && !Object.keys(account[field]).length)) {
+          account[field] = cloneManagedStaffValue(value);
+        }
+        return;
+      }
+      if (account[field] == null || account[field] === "") {
+        account[field] = cloneManagedStaffValue(value);
+      }
+    });
+  });
+}
+
 function normalizeAccountsObject(raw) {
   if (!raw || typeof raw !== "object") return null;
   const normalized = {};
@@ -1077,10 +1357,17 @@ function ensureSunriseCredentials() {
         notosId: String(account.notosId || "").trim().toUpperCase()
       };
     } else {
-      accounts[sunriseEmail].sunriseCredential = true;
-      accounts[sunriseEmail].sunriseLinkedEmail = emailKey;
-      if (account.notosId) accounts[sunriseEmail].notosId = String(account.notosId).trim().toUpperCase();
-      if (account.sunriseAccessLevel) accounts[sunriseEmail].sunriseAccessLevel = String(account.sunriseAccessLevel).trim().toUpperCase();
+      accounts[sunriseEmail] = {
+        ...accounts[sunriseEmail],
+        ...account,
+        email: sunriseEmail,
+        password: String(accounts[sunriseEmail].password || account.password || ""),
+        secretPhrase: String(accounts[sunriseEmail].secretPhrase || account.secretPhrase || ""),
+        sunriseCredential: true,
+        sunriseLinkedEmail: emailKey,
+        notosId: String(account.notosId || accounts[sunriseEmail].notosId || "").trim().toUpperCase(),
+        sunriseAccessLevel: String(account.sunriseAccessLevel || accounts[sunriseEmail].sunriseAccessLevel || "").trim().toUpperCase()
+      };
     }
   });
 }
@@ -1116,6 +1403,7 @@ function pruneDuplicateSunriseCredentials() {
 
 initializeAccountsData();
 removeAutoGeneratedAmpNoise();
+hydrateManagedStaffDirectory();
 ensureSunriseCredentials();
 pruneDuplicateSunriseCredentials();
 persistAccountsData();
@@ -2197,6 +2485,7 @@ const sunriseModuleRoutes = [
   "sunrise-ifs",
   "sunrise-ecs",
   "sunrise-smca",
+  "sunrise-rta",
   "sunrise-rim",
   "sunrise-soc",
   "sunrise-soc-details",
@@ -2226,6 +2515,7 @@ const sunriseShortcutRouteMap = {
   ifs: "sunrise-ifs",
   ecs: "sunrise-ecs",
   smca: "sunrise-smca",
+  rta: "sunrise-rta",
   rim: "sunrise-rim",
   soc: "sunrise-soc",
   lcs: "sunrise-lcs",
@@ -2241,6 +2531,7 @@ const sunriseShortcutDescriptions = {
   ifs: "Income Flow Spreader",
   ecs: "Employees Control System",
   smca: "Sales & Marketing Commissions Adjustments",
+  rta: "Red Team Assigning Menu",
   rim: "Red Inviting Menu",
   soc: "Services & Operations Control",
   lcs: "Notos - Login Control System",
@@ -2256,7 +2547,7 @@ const sunriseAccessRouteDefaults = {
   STA: ["sunrise", "sunrise-inbox", "sunrise-services", "sunrise-performance"],
   SA: ["sunrise", "sunrise-inbox", "sunrise-services", "sunrise-performance", "sunrise-sales", "sunrise-marketing", "sunrise-locations"],
   SS: ["sunrise", "sunrise-inbox", "sunrise-services", "sunrise-performance", "sunrise-sales", "sunrise-marketing", "sunrise-locations", "sunrise-soc", "sunrise-soc-details", "sunrise-employees", "sunrise-lcs"],
-  SM: ["sunrise", "sunrise-inbox", "sunrise-services", "sunrise-performance", "sunrise-sales", "sunrise-marketing", "sunrise-locations", "sunrise-soc", "sunrise-soc-details", "sunrise-employees", "sunrise-lcs", "sunrise-expenses", "sunrise-income", "sunrise-eam", "sunrise-ifs", "sunrise-smca", "sunrise-surveys", "sunrise-events", "sunrise-maintenance", "sunrise-mcc"],
+  SM: ["sunrise", "sunrise-inbox", "sunrise-services", "sunrise-performance", "sunrise-sales", "sunrise-marketing", "sunrise-locations", "sunrise-soc", "sunrise-soc-details", "sunrise-employees", "sunrise-lcs", "sunrise-expenses", "sunrise-income", "sunrise-eam", "sunrise-ifs", "sunrise-smca", "sunrise-rta", "sunrise-surveys", "sunrise-events", "sunrise-maintenance", "sunrise-mcc"],
   DA: sunriseModuleRoutes.slice(),
   CA: sunriseModuleRoutes.slice(),
   OW: sunriseModuleRoutes.slice()
@@ -2282,6 +2573,7 @@ const sunriseAccessKeywordRoutes = {
   alp: ["sunrise-alp"],
   locations: ["sunrise-locations"],
   maintenance: ["sunrise-maintenance"],
+  rta: ["sunrise-rta"],
   rim: ["sunrise-rim"]
 };
 
@@ -3015,6 +3307,7 @@ function suggestedAccessForShortcut(code, route) {
   if (c === "ws" || c === "wr") return "OW";
   if (c === "amp" || c === "alp" || c === "mcc") return "SM,DA,CA,OW";
   if (c === "lcs" || c === "notos" || r === "sunrise-lcs") return "SS,SM,DA,CA,OW";
+  if (c === "rta" || r === "sunrise-rta") return "SM,DA,CA,OW";
   if (r === "sunrise-soc" || r === "sunrise-soc-details" || r === "sunrise-ecs") return "SS,SM,DA,CA,OW";
   return "SA,SS,SM,DA,CA,OW";
 }
@@ -4335,6 +4628,264 @@ function pushInboxMessage(payload = {}) {
 function formatOptionalCountryDisplay(country = "") {
   const raw = String(country || "").trim();
   return raw ? countryDisplayName(raw) : "";
+}
+
+const staffDivisionOrder = ["Headquarters", "Office", "Field", "Special Requests"];
+const rtaRoleMeta = {
+  fleet: { label: "Fleet", accountKey: "pilot" },
+  driver: { label: "Driver", accountKey: "driver" },
+  concierge: { label: "Concierge", accountKey: "concierge" },
+  security: { label: "Head of Security", accountKey: "security" }
+};
+
+function normalizeStaffDivision(value = "", roleTitle = "") {
+  const raw = String(value || "").trim().toLowerCase();
+  if (raw === "headquarters" || raw === "hq") return "Headquarters";
+  if (raw === "office") return "Office";
+  if (raw === "field") return "Field";
+  if (raw === "special requests" || raw === "special-requests" || raw === "special_requests") return "Special Requests";
+  const role = String(roleTitle || "").trim().toLowerCase();
+  if (role.includes("special request")) return "Special Requests";
+  if (role.includes("director") || role.includes("chief") || role.includes("chairman") || role.includes("head of concierge")) return "Headquarters";
+  if (role.includes("fleet") || role.includes("driver") || role.includes("security") || role.includes("captain")) return "Field";
+  return "Office";
+}
+
+function normalizeRtaRoles(value = [], roleTitle = "") {
+  const source = Array.isArray(value)
+    ? value
+    : String(value || "").split(",").map((item) => item.trim()).filter(Boolean);
+  const normalized = source.map((item) => String(item || "").trim().toLowerCase()).filter((item) => !!rtaRoleMeta[item]);
+  if (normalized.length) return Array.from(new Set(normalized));
+  const role = String(roleTitle || "").trim().toLowerCase();
+  const inferred = [];
+  if (role.includes("fleet") || role.includes("pilot") || role.includes("captain")) inferred.push("fleet");
+  if (role.includes("driver") || role.includes("chauffeur")) inferred.push("driver");
+  if (role.includes("concierge")) inferred.push("concierge");
+  if (role.includes("security")) inferred.push("security");
+  return Array.from(new Set(inferred));
+}
+
+function isVoyagerRedAccount(account) {
+  if (!account || account.sunriseCredential) return false;
+  return String(account.membership || "").trim().toLowerCase() === "voyager red";
+}
+
+function rtaRoleLabel(role = "") {
+  return rtaRoleMeta[String(role || "").trim().toLowerCase()]?.label || "Team Role";
+}
+
+function rtaAccountKeyForRole(role = "") {
+  return rtaRoleMeta[String(role || "").trim().toLowerCase()]?.accountKey || String(role || "").trim().toLowerCase();
+}
+
+function rtaEligibleStaffEntries(role = "") {
+  const normalizedRole = String(role || "").trim().toLowerCase();
+  return Object.entries(accounts)
+    .filter(([, account]) => {
+      if (!account || account.sunriseCredential) return false;
+      if (String(account.membership || "").trim().toLowerCase() !== "staff") return false;
+      const roles = normalizeRtaRoles(account.rtaRoles, account.roleTitle);
+      return roles.includes(normalizedRole);
+    })
+    .sort((a, b) => {
+      const aName = `${String(a[1]?.firstName || "").trim()} ${String(a[1]?.lastName || "").trim()}`.trim().toLowerCase();
+      const bName = `${String(b[1]?.firstName || "").trim()} ${String(b[1]?.lastName || "").trim()}`.trim().toLowerCase();
+      return aName.localeCompare(bName);
+    });
+}
+
+function normalizeRtaAssignmentStatus(value = "") {
+  const status = String(value || "").trim().toLowerCase();
+  if (status === "confirmed") return "Confirmed";
+  if (status === "pending confirmation" || status === "pending") return "Pending Confirmation";
+  return "Unassigned";
+}
+
+function currentRtaApprovalLevel(account = getCurrentSunriseOperator()) {
+  if (!account) return "";
+  if (isOwnerAccount(account)) return "OW";
+  return String(account.sunriseAccessLevel || "").trim().toUpperCase();
+}
+
+function canAccessRta(account = getCurrentSunriseOperator()) {
+  const level = currentRtaApprovalLevel(account);
+  return ["SM", "DA", "CA", "OW"].includes(level);
+}
+
+function canApproveRtaAssignment(account = getCurrentSunriseOperator()) {
+  const level = currentRtaApprovalLevel(account);
+  return ["DA", "CA", "OW"].includes(level);
+}
+
+function redMemberAccountEntries() {
+  return Object.entries(accounts)
+    .filter(([, account]) => isVoyagerRedAccount(account))
+    .sort((a, b) => {
+      const aName = `${String(a[1]?.firstName || "").trim()} ${String(a[1]?.lastName || "").trim()}`.trim().toLowerCase();
+      const bName = `${String(b[1]?.firstName || "").trim()} ${String(b[1]?.lastName || "").trim()}`.trim().toLowerCase();
+      return aName.localeCompare(bName);
+    });
+}
+
+function buildRtaOperatorLabel(account = getCurrentSunriseOperator()) {
+  if (!account) return "";
+  const fullName = `${String(account.firstName || "").trim()} ${String(account.lastName || "").trim()}`.trim();
+  const level = currentRtaApprovalLevel(account) || "STA";
+  return fullName ? `${fullName} (${level})` : level;
+}
+
+function buildRtaTeamAssignmentText(account, role = "") {
+  if (!account) return "";
+  const parts = [];
+  const fullName = `${String(account.firstName || "").trim()} ${String(account.lastName || "").trim()}`.trim();
+  if (fullName) parts.push(fullName);
+  const title = String(account.roleTitle || rtaRoleLabel(role)).trim();
+  if (title) parts.push(title);
+  if (account.email) parts.push(String(account.email).trim().toLowerCase());
+  if (account.phone) parts.push(String(account.phone).trim());
+  return parts.filter(Boolean).join(" | ");
+}
+
+function findStaffKeyByLegacyTeamValue(value = "", role = "") {
+  const raw = String(value || "").trim().toLowerCase();
+  if (!raw) return "";
+  const match = rtaEligibleStaffEntries(role).find(([, account]) => {
+    const email = String(account?.email || "").trim().toLowerCase();
+    const fullName = `${String(account?.firstName || "").trim()} ${String(account?.lastName || "").trim()}`.trim().toLowerCase();
+    return (email && raw.includes(email)) || (fullName && raw.includes(fullName));
+  });
+  return match ? match[0] : "";
+}
+
+function normalizeRtaAssignment(row = {}) {
+  return {
+    clientKey: String(row?.clientKey || "").trim().toLowerCase(),
+    clientEmail: String(row?.clientEmail || "").trim(),
+    clientName: String(row?.clientName || "").trim(),
+    clientCountry: String(row?.clientCountry || "").trim(),
+    clientPhone: String(row?.clientPhone || "").trim(),
+    tier: String(row?.tier || "Voyager Red").trim(),
+    fleetStaffKey: String(row?.fleetStaffKey || "").trim().toLowerCase(),
+    driverStaffKey: String(row?.driverStaffKey || "").trim().toLowerCase(),
+    conciergeStaffKey: String(row?.conciergeStaffKey || "").trim().toLowerCase(),
+    securityStaffKey: String(row?.securityStaffKey || "").trim().toLowerCase(),
+    status: normalizeRtaAssignmentStatus(row?.status),
+    requestedBy: String(row?.requestedBy || "").trim(),
+    requestedAt: String(row?.requestedAt || "").trim(),
+    confirmedBy: String(row?.confirmedBy || "").trim(),
+    confirmedAt: String(row?.confirmedAt || "").trim()
+  };
+}
+
+function buildSeedRtaAssignmentFromAccount(key, account) {
+  return normalizeRtaAssignment({
+    clientKey: key,
+    clientEmail: String(account?.email || key || "").trim(),
+    clientName: `${String(account?.firstName || "").trim()} ${String(account?.lastName || "").trim()}`.trim(),
+    clientCountry: String(account?.country || "").trim(),
+    clientPhone: String(account?.phone || "").trim(),
+    tier: String(account?.membership || "Voyager Red").trim(),
+    fleetStaffKey: findStaffKeyByLegacyTeamValue(account?.assignedTeam?.pilot, "fleet"),
+    driverStaffKey: findStaffKeyByLegacyTeamValue(account?.assignedTeam?.driver, "driver"),
+    conciergeStaffKey: findStaffKeyByLegacyTeamValue(account?.assignedTeam?.concierge, "concierge"),
+    securityStaffKey: findStaffKeyByLegacyTeamValue(account?.assignedTeam?.security, "security"),
+    status: account?.assignedTeam ? "Confirmed" : "Unassigned"
+  });
+}
+
+function ensureRtaAssignmentsStore() {
+  if (!sunriseControlState) return;
+  if (!Array.isArray(sunriseControlState.rtaAssignments)) sunriseControlState.rtaAssignments = [];
+  const existingByClient = new Map();
+  sunriseControlState.rtaAssignments = sunriseControlState.rtaAssignments
+    .map((row) => normalizeRtaAssignment(row))
+    .filter((row) => !!row.clientKey);
+  sunriseControlState.rtaAssignments.forEach((row, idx) => {
+    if (!existingByClient.has(row.clientKey)) existingByClient.set(row.clientKey, idx);
+  });
+  redMemberAccountEntries().forEach(([key, account]) => {
+    if (!existingByClient.has(key)) {
+      sunriseControlState.rtaAssignments.push(buildSeedRtaAssignmentFromAccount(key, account));
+      existingByClient.set(key, sunriseControlState.rtaAssignments.length - 1);
+      return;
+    }
+    const row = sunriseControlState.rtaAssignments[existingByClient.get(key)];
+    row.clientKey = key;
+    row.clientEmail = String(account?.email || row.clientEmail || key || "").trim();
+    row.clientName = `${String(account?.firstName || "").trim()} ${String(account?.lastName || "").trim()}`.trim();
+    row.clientCountry = String(account?.country || row.clientCountry || "").trim();
+    row.clientPhone = String(account?.phone || row.clientPhone || "").trim();
+    row.tier = String(account?.membership || row.tier || "Voyager Red").trim();
+    if (!row.fleetStaffKey && account?.assignedTeam?.pilot) row.fleetStaffKey = findStaffKeyByLegacyTeamValue(account.assignedTeam.pilot, "fleet");
+    if (!row.driverStaffKey && account?.assignedTeam?.driver) row.driverStaffKey = findStaffKeyByLegacyTeamValue(account.assignedTeam.driver, "driver");
+    if (!row.conciergeStaffKey && account?.assignedTeam?.concierge) row.conciergeStaffKey = findStaffKeyByLegacyTeamValue(account.assignedTeam.concierge, "concierge");
+    if (!row.securityStaffKey && account?.assignedTeam?.security) row.securityStaffKey = findStaffKeyByLegacyTeamValue(account.assignedTeam.security, "security");
+    if (row.status === "Unassigned" && account?.assignedTeam) row.status = "Confirmed";
+  });
+}
+
+function findRtaAssignmentByClientKey(clientKey = "") {
+  if (!sunriseControlState || !Array.isArray(sunriseControlState.rtaAssignments)) return null;
+  const key = String(clientKey || "").trim().toLowerCase();
+  return sunriseControlState.rtaAssignments.find((row) => String(row?.clientKey || "").trim().toLowerCase() === key) || null;
+}
+
+function rtaPendingCount() {
+  if (!sunriseControlState || !Array.isArray(sunriseControlState.rtaAssignments)) return 0;
+  return sunriseControlState.rtaAssignments.filter((row) => normalizeRtaAssignmentStatus(row?.status) === "Pending Confirmation").length;
+}
+
+function buildRtaProfileStatusNote(status = "", at = "") {
+  const normalized = normalizeRtaAssignmentStatus(status);
+  const timestamp = String(at || "").trim();
+  if (normalized === "Pending Confirmation") {
+    return timestamp
+      ? `Team update pending executive confirmation since ${timestamp}.`
+      : "Team update pending executive confirmation.";
+  }
+  if (normalized === "Confirmed") {
+    return timestamp
+      ? `Team confirmed and active as of ${timestamp}.`
+      : "Team confirmed and active.";
+  }
+  return "";
+}
+
+function syncRedTeamAssignmentsToClientAccounts() {
+  if (!sunriseControlState) return;
+  ensureRtaAssignmentsStore();
+  let activeAccountChanged = false;
+  sunriseControlState.rtaAssignments.forEach((assignment) => {
+    const key = String(assignment?.clientKey || "").trim().toLowerCase();
+    if (!key || !accounts[key]) return;
+    const account = accounts[key];
+    if (!isVoyagerRedAccount(account)) return;
+    const fleet = accounts[assignment.fleetStaffKey] || null;
+    const driver = accounts[assignment.driverStaffKey] || null;
+    const concierge = accounts[assignment.conciergeStaffKey] || null;
+    const security = accounts[assignment.securityStaffKey] || null;
+    const nextTeam = (fleet || driver || concierge || security) ? {
+      pilot: buildRtaTeamAssignmentText(fleet, "fleet"),
+      driver: buildRtaTeamAssignmentText(driver, "driver"),
+      concierge: buildRtaTeamAssignmentText(concierge, "concierge"),
+      security: buildRtaTeamAssignmentText(security, "security")
+    } : account.assignedTeam;
+    const nextStatus = normalizeRtaAssignmentStatus(assignment.status);
+    const nextNote = buildRtaProfileStatusNote(nextStatus, assignment.confirmedAt || assignment.requestedAt);
+    if (nextTeam) account.assignedTeam = nextTeam;
+    account.redTeamAssignmentStatus = nextStatus;
+    account.redTeamAssignmentNote = nextNote;
+    if (activeAccount && normalizeEmailAddress(activeAccount.email) === key) activeAccountChanged = true;
+  });
+  if (activeAccountChanged && activeAccount) {
+    const activeKey = normalizeEmailAddress(activeAccount.email);
+    if (activeKey && accounts[activeKey]) {
+      activeAccount = accounts[activeKey];
+      persistActiveSession(activeAccount);
+      renderProfile(activeAccount);
+    }
+  }
 }
 
 function resolveAccountByServiceClient({ clientAccountEmail = "", clientEmail = "", clientName = "" } = {}) {
@@ -6101,6 +6652,7 @@ const sunriseStaffRouteLabels = {
   "sunrise-ifs": "Income Flow Spreader",
   "sunrise-ecs": "Employees Control System",
   "sunrise-smca": "Sales & Marketing Commissions",
+  "sunrise-rta": "Red Team Assigning Menu",
   "sunrise-rim": "Red Inviting Menu",
   "sunrise-soc": "Services & Operations Control",
   "sunrise-soc-details": "Service Detail Control",
@@ -6196,6 +6748,7 @@ function renderProfile(account) {
   const upcomingTitleEl = document.getElementById("profile-upcoming-title");
   const upcomingDetailsEl = document.getElementById("profile-upcoming-details");
   const redTeamWrap = document.getElementById("profile-red-team");
+  const redTeamStatusEl = document.getElementById("profile-red-team-status");
   const standardSupport = document.getElementById("profile-standard-support");
   const progressWrap = document.getElementById("profile-progress-wrap");
   const conciergeAutoNote = document.getElementById("profile-concierge-auto-note");
@@ -6354,8 +6907,17 @@ function renderProfile(account) {
     if (driver) driver.textContent = localizePhoneInText(account.assignedTeam.driver, account.country);
     if (concierge) concierge.textContent = localizePhoneInText(account.assignedTeam.concierge, account.country);
     if (security) security.textContent = localizePhoneInText(account.assignedTeam.security, account.country);
+    if (redTeamStatusEl) {
+      const note = String(account.redTeamAssignmentNote || "").trim();
+      redTeamStatusEl.hidden = !note;
+      redTeamStatusEl.textContent = note;
+    }
     currentAssignedConcierge = null;
   } else {
+    if (redTeamStatusEl) {
+      redTeamStatusEl.hidden = true;
+      redTeamStatusEl.textContent = "";
+    }
     const lastCons = document.getElementById("profile-last-concierge");
     const progressFill = document.getElementById("profile-progress-fill");
     const progressText = document.getElementById("profile-progress-text");
@@ -6747,8 +7309,9 @@ const sunriseControlDefaults = {
     { id: "SM-102", name: "Selena Marwick", role: "Marketing", position: "Growth Marketing Lead", commission: 4.2 }
   ],
   ecsEmployees: [
-    { id: "EMP-101", name: "Camille Mendes", role: "Concierge", position: "Lead Concierge", salary: 12500, hours: 176, bonus: 1200, commission: 4.5, status: "Active", email: "camille.mendes@venture-voyagers.com", login: "camille.mendes", permission: "Tier-3" }
+    { id: "EMP-101", name: "Camille Mendes", role: "Concierge", position: "Lead Concierge", division: "Office", rtaRoles: ["concierge"], salary: 12500, hours: 176, bonus: 1200, commission: 4.5, status: "Active", email: "camille.mendes@venture-voyagers.com", login: "camille.mendes", permission: "Tier-3" }
   ],
+  rtaAssignments: [],
   rimInvites: [
     { id: "RIM-001", name: "Prospect One", email: "prospect.one@example.com", country: "UAE", team: "Aquila Team", status: "Draft" }
   ],
@@ -6873,9 +7436,14 @@ function loadSunriseControlState() {
       ? parsed.ecsEmployees.map((row) => ({
           ...row,
           role: String(row?.role || "Concierge"),
-          position: String(row?.position || row?.role || "Concierge Associate")
+          position: String(row?.position || row?.role || "Concierge Associate"),
+          division: normalizeStaffDivision(row?.division, row?.position || row?.role),
+          rtaRoles: normalizeRtaRoles(row?.rtaRoles, row?.position || row?.role)
         }))
       : fallback.ecsEmployees;
+    const rtaAssignments = Array.isArray(parsed.rtaAssignments)
+      ? parsed.rtaAssignments.map((row) => normalizeRtaAssignment(row))
+      : fallback.rtaAssignments;
     const normalizeSocService = (row = {}) => {
       const steps = Array.isArray(row.steps) && row.steps.length
         ? row.steps.map((step, index) => ({
@@ -6984,6 +7552,7 @@ function loadSunriseControlState() {
       ...fallback,
       ...parsed,
       ecsEmployees,
+      rtaAssignments,
       socServices,
       lcsSessions,
       deletedAccounts,
@@ -7038,6 +7607,7 @@ function queueSunriseControlStatePersist() {
 
 function saveSunriseControlState(options = {}) {
   if (!sunriseControlState) return;
+  syncRedTeamAssignmentsToClientAccounts();
   syncSocServicesToClientAccounts();
   const markDirty = options?.markDirty !== false;
   if (markDirty) {
@@ -7085,6 +7655,7 @@ function ensureSunriseSaveButtons() {
     "sunrise-ifs",
     "sunrise-ecs",
     "sunrise-smca",
+    "sunrise-rta",
     "sunrise-rim",
     "sunrise-soc",
     "sunrise-soc-details",
@@ -7225,6 +7796,7 @@ function renderSunriseControlSummary() {
   setText("sum-eam-total", money(expTotal));
   setText("sum-ifs-total", money(incTotal));
   setText("sum-ecs-count", String((sunriseControlState.ecsEmployees || []).length));
+  setText("sum-rta-pending", String(rtaPendingCount()));
   setText("sum-soc-current", String(((sunriseControlState.socServices || {}).current || []).length));
   setText("sum-lcs-count", String((sunriseControlState.lcsSessions || []).length));
 }
@@ -7293,13 +7865,61 @@ function renderECSPage() {
       <td><input class="input" type="number" data-ecs-hours="${idx}" value="${Number(row.hours || 0)}"></td><td><input class="input" type="number" data-ecs-bonus="${idx}" value="${Number(row.bonus || 0)}"></td>
       <td><input class="input" type="number" step="0.1" data-ecs-commission="${idx}" value="${Number(row.commission || 0)}"></td>
       <td><input class="input" data-ecs-position="${idx}" value="${row.position || ""}"></td>
+      <td><select class="select" data-ecs-division="${idx}">${staffDivisionOrder.map((division) => `<option ${normalizeStaffDivision(row.division, row.position) === division ? "selected" : ""}>${division}</option>`).join("")}</select></td>
+      <td><input class="input" data-ecs-rta="${idx}" value="${normalizeRtaRoles(row.rtaRoles, row.position).map((role) => rtaRoleLabel(role)).join(", ")}" placeholder="Fleet, Driver, Concierge, Head of Security"></td>
       <td><select class="select" data-ecs-status="${idx}"><option ${row.status==="Active"?"selected":""}>Active</option><option ${row.status==="Promoted"?"selected":""}>Promoted</option><option ${row.status==="Fired"?"selected":""}>Fired</option></select></td>
       <td><input class="input" data-ecs-email="${idx}" value="${row.email || ""}"></td><td><input class="input" data-ecs-login="${idx}" value="${row.login || ""}"></td>
       <td><input class="input" data-ecs-permission="${idx}" value="${row.permission || ""}"></td>
       <td><button class="sunriseMiniBtn" type="button" data-ecs-mail="${idx}">Email</button><button class="sunriseMiniBtn" type="button" data-ecs-del="${idx}">Delete</button></td>
     </tr>
   `).join("");
-  grid.innerHTML = `<article class="sunriseControlCard sunriseDetailWide"><h3>Employees Control System</h3><table class="sunriseControlTable"><thead><tr><th>ID</th><th>Name</th><th>Salary</th><th>Hours</th><th>Bonus</th><th>Comm%</th><th>Position</th><th>Status</th><th>Email</th><th>Login</th><th>Permission</th><th>Actions</th></tr></thead><tbody>${rows}</tbody></table><div class="sunriseControlActions"><button class="sunriseMiniBtn" type="button" data-ecs-add>Add Employee</button></div></article>`;
+  grid.innerHTML = `<article class="sunriseControlCard sunriseDetailWide"><h3>Employees Control System</h3><table class="sunriseControlTable"><thead><tr><th>ID</th><th>Name</th><th>Salary</th><th>Hours</th><th>Bonus</th><th>Comm%</th><th>Position</th><th>Division</th><th>Red Team Role</th><th>Status</th><th>Email</th><th>Login</th><th>Permission</th><th>Actions</th></tr></thead><tbody>${rows}</tbody></table><div class="sunriseControlActions"><button class="sunriseMiniBtn" type="button" data-ecs-add>Add Employee</button></div></article>`;
+}
+
+function renderRTAPage() {
+  const grid = document.getElementById("sunrise-rta-grid");
+  if (!grid || !sunriseControlState) return;
+  ensureRtaAssignmentsStore();
+  const assignments = redMemberAccountEntries().map(([key, account]) => findRtaAssignmentByClientKey(key) || buildSeedRtaAssignmentFromAccount(key, account));
+  const approved = canApproveRtaAssignment();
+  const rows = assignments.map((assignment) => {
+    const clientKey = String(assignment.clientKey || "").trim().toLowerCase();
+    const client = accounts[clientKey] || null;
+    const domKey = clientKey.replace(/[^a-z0-9]+/gi, "-");
+    const clientName = assignment.clientName || `${String(client?.firstName || "").trim()} ${String(client?.lastName || "").trim()}`.trim();
+    const currentStatus = normalizeRtaAssignmentStatus(assignment.status);
+    const selectForRole = (role) => {
+      const fieldKey = `${role}StaffKey`;
+      const selected = String(assignment[fieldKey] || "").trim().toLowerCase();
+      const options = rtaEligibleStaffEntries(role).map(([staffKey, staffAccount]) => {
+        const label = buildRtaTeamAssignmentText(staffAccount, role);
+        return `<option value="${staffKey}" ${selected === staffKey ? "selected" : ""}>${label}</option>`;
+      }).join("");
+      return `<select class="select" id="rta-${role}-${domKey}"><option value="">Select ${rtaRoleLabel(role)}</option>${options}</select>`;
+    };
+    const statusMeta = currentStatus === "Pending Confirmation"
+      ? "Awaiting DA / CA / Owner confirmation."
+      : (currentStatus === "Confirmed" ? "Active and visible on the client profile." : "No team assigned yet.");
+    const auditParts = [];
+    if (assignment.requestedBy) auditParts.push(`Requested by ${assignment.requestedBy}${assignment.requestedAt ? ` on ${assignment.requestedAt}` : ""}`);
+    if (assignment.confirmedBy) auditParts.push(`Confirmed by ${assignment.confirmedBy}${assignment.confirmedAt ? ` on ${assignment.confirmedAt}` : ""}`);
+    return `<tr>
+      <td><div><b>${clientName || "Voyager Red Member"}</b><div class="profileNote">${String(assignment.tier || client?.membership || "Voyager Red").trim()}</div></div></td>
+      <td>${[
+        assignment.clientEmail || client?.email || "",
+        assignment.clientPhone || client?.phone || "",
+        formatOptionalCountryDisplay(assignment.clientCountry || client?.country || "")
+      ].filter(Boolean).join("<br>") || "<span class=\"profileNote\">No contact details.</span>"}</td>
+      <td>${selectForRole("fleet")}</td>
+      <td>${selectForRole("driver")}</td>
+      <td>${selectForRole("concierge")}</td>
+      <td>${selectForRole("security")}</td>
+      <td><b>${currentStatus}</b><div class="profileNote">${statusMeta}</div></td>
+      <td>${auditParts.join("<br>") || "<span class=\"profileNote\">No activity yet.</span>"}</td>
+      <td><button class="sunriseMiniBtn" type="button" data-rta-save="${clientKey}">${approved ? "Assign Team" : "Submit for Confirmation"}</button>${approved ? `<button class="sunriseMiniBtn" type="button" data-rta-confirm="${clientKey}" ${currentStatus === "Pending Confirmation" ? "" : "disabled"}>Confirm</button>` : ""}</td>
+    </tr>`;
+  }).join("");
+  grid.innerHTML = `<article class="sunriseControlCard sunriseDetailWide"><h3>Red Team Assigning Menu</h3><div class="sunriseControlActions"><span class="profileNote">Voyager Red members: ${assignments.length}</span><span class="profileNote">Pending confirmation: ${rtaPendingCount()}</span><span class="profileNote">Confirmed teams: ${assignments.filter((row) => normalizeRtaAssignmentStatus(row.status) === "Confirmed").length}</span></div><p class="profileNote">SM assignments wait for DA, CA, or Owner confirmation. Confirmed teams are mirrored to the client account page.</p><p class="authInfo" id="rta-info"></p></article><article class="sunriseControlCard sunriseDetailWide"><table class="sunriseControlTable"><thead><tr><th>Voyager Red Member</th><th>Client Credentials</th><th>Fleet</th><th>Driver</th><th>Concierge</th><th>Head of Security</th><th>Status</th><th>Audit</th><th>Actions</th></tr></thead><tbody>${rows || "<tr><td colspan='9'>No Voyager Red members available.</td></tr>"}</tbody></table></article>`;
 }
 
 function renderRIMPage() {
@@ -7470,31 +8090,34 @@ function renderAMPPage(filter = "") {
     </tr>`;
     }).join("");
 
+  const viewerAccount = getCurrentSunriseOperator() || activeAccount || null;
+  const viewerIsOwner = isOwnerAccount(viewerAccount);
   const renderStaffRows = (entries) => entries.map(([key, account]) => {
       const selectedAccess = String(account.sunriseAccessLevel || "").trim().toUpperCase();
-      const selectedTier = String(account.membership || "").trim();
       const accessList = accessOptions.includes(selectedAccess) ? accessOptions : [...accessOptions, selectedAccess];
-      const tierList = tierOptions.includes(selectedTier) ? tierOptions : [...tierOptions, selectedTier];
-      const ownerRestricted = isOwnerAccount(account);
       const lockedForAleks = isAleksAmpRestrictedKey(key);
-      const passwordDisplay = ownerRestricted ? "RESTRICTED" : String(account.password || "");
-      const secretPhraseDisplay = ownerRestricted || lockedForAleks ? "RESTRICTED" : String(account.secretPhrase || "");
       const readOnly = lockedForAleks ? "readonly" : "";
       const disabled = lockedForAleks ? "disabled" : "";
       const displayCountry = formatOptionalCountryDisplay(account.country);
+      const division = normalizeStaffDivision(account.staffDivision, account.roleTitle);
+      const rtaRoles = normalizeRtaRoles(account.rtaRoles, account.roleTitle).map((role) => rtaRoleLabel(role)).join(", ") || "-";
       const deleteCell = lockedForAleks
         ? `<span class="profileNote">Restricted</span>`
         : `<button class="sunriseMiniBtn" type="button" data-amp-del="${key}">Delete</button>`;
-      return `<tr>
-      <td><input class="input" data-amp-key="${key}" value="${key}" ${readOnly}></td>
-      <td><input class="input" data-amp-email="${key}" value="${account.email || ""}" ${readOnly}></td>
+      const sensitiveCells = viewerIsOwner
+        ? `<td><input class="input" data-amp-email="${key}" value="${account.email || ""}" ${readOnly}></td>
       <td><input class="input" data-amp-phone="${key}" value="${account.phone || ""}" ${readOnly}></td>
       <td><input class="input" data-amp-country="${key}" value="${displayCountry}" ${readOnly}></td>
+      <td><input class="input" data-amp-password="${key}" value="${String(account.password || "")}" ${lockedForAleks ? "readonly" : ""}></td>
+      <td><input class="input" data-amp-secret="${key}" value="${lockedForAleks ? "RESTRICTED" : String(account.secretPhrase || "")}" ${lockedForAleks ? "readonly" : ""}></td>`
+        : "";
+      return `<tr>
+      <td><input class="input" data-amp-key="${key}" value="${key}" ${readOnly}></td>
       <td><input class="input" data-amp-title="${key}" value="${account.prefix || ""}" ${readOnly}></td>
       <td><input class="input" data-amp-name="${key}" value="${(account.firstName || "") + " " + (account.lastName || "")}" ${readOnly}></td>
-      <td><input class="input" data-amp-password="${key}" value="${passwordDisplay}" ${(ownerRestricted || lockedForAleks) ? "readonly" : ""}></td>
-      <td><input class="input" data-amp-secret="${key}" value="${secretPhraseDisplay}" ${(ownerRestricted || lockedForAleks) ? "readonly" : ""}></td>
-      <td><select class="select" data-amp-tier="${key}" ${disabled}>${tierList.map((tier) => `<option ${tier === selectedTier ? "selected" : ""}>${tier}</option>`).join("")}</select></td>
+      <td><input class="input" value="${division}" readonly></td>
+      <td><input class="input" value="${rtaRoles}" readonly></td>
+      ${sensitiveCells}
       <td><select class="select" data-amp-access="${key}" ${disabled}>${accessList.map((code) => `<option value="${code}" ${code === selectedAccess ? "selected" : ""}>${code || "None"}</option>`).join("")}</select></td>
       <td><input class="input" data-amp-notos="${key}" value="${account.notosId || ""}" ${readOnly}></td>
       <td>${deleteCell}</td>
@@ -7505,20 +8128,29 @@ function renderAMPPage(filter = "") {
   const staffEntries = accountEntries.filter(([, account]) => isStaffAccountForAdmin(account));
   const customersHtml = `<article class="sunriseControlCard sunriseDetailWide"><h3>Customers List</h3><table class="sunriseControlTable"><thead><tr><th>Code</th><th>Email</th><th>Phone</th><th>Country</th><th>Title</th><th>Name</th><th>Password</th><th>Secret Phrase</th><th>Tier/Status</th><th>Action</th></tr></thead><tbody>${renderCustomerRows(customerEntries) || "<tr><td colspan='10'>No customer accounts found.</td></tr>"}</tbody></table></article>`;
 
-  const hierarchyCodes = sunriseHierarchyOrder();
-  const levelTitleByCode = new Map((sunriseControlState?.accessLevels || []).map((row) => [String(row.code || "").toUpperCase(), String(row.title || "").trim()]));
   const groupedStaff = new Map();
-  hierarchyCodes.forEach((code) => groupedStaff.set(code, []));
+  staffDivisionOrder.forEach((division) => groupedStaff.set(division, []));
   staffEntries
-    .sort((a, b) => hierarchySortIndex(staffAccessCode(a[1])) - hierarchySortIndex(staffAccessCode(b[1])))
+    .sort((a, b) => {
+      const divisionDiff = staffDivisionOrder.indexOf(normalizeStaffDivision(a[1]?.staffDivision, a[1]?.roleTitle)) - staffDivisionOrder.indexOf(normalizeStaffDivision(b[1]?.staffDivision, b[1]?.roleTitle));
+      if (divisionDiff) return divisionDiff;
+      const levelDiff = hierarchySortIndex(staffAccessCode(a[1])) - hierarchySortIndex(staffAccessCode(b[1]));
+      if (levelDiff) return levelDiff;
+      const aName = `${String(a[1]?.firstName || "").trim()} ${String(a[1]?.lastName || "").trim()}`.trim().toLowerCase();
+      const bName = `${String(b[1]?.firstName || "").trim()} ${String(b[1]?.lastName || "").trim()}`.trim().toLowerCase();
+      return aName.localeCompare(bName);
+    })
     .forEach((entry) => {
-      const code = staffAccessCode(entry[1]);
-      if (!groupedStaff.has(code)) groupedStaff.set(code, []);
-      groupedStaff.get(code).push(entry);
+      const division = normalizeStaffDivision(entry[1]?.staffDivision, entry[1]?.roleTitle);
+      if (!groupedStaff.has(division)) groupedStaff.set(division, []);
+      groupedStaff.get(division).push(entry);
     });
+  const staffHeader = viewerIsOwner
+    ? "<tr><th>Code</th><th>Title</th><th>Name</th><th>Division</th><th>Red Team Role</th><th>Email</th><th>Phone</th><th>Country</th><th>Password</th><th>Secret Phrase</th><th>Sunrise Access</th><th>NOTOS ID</th><th>Action</th></tr>"
+    : "<tr><th>Code</th><th>Title</th><th>Name</th><th>Division</th><th>Red Team Role</th><th>Sunrise Access</th><th>NOTOS ID</th><th>Action</th></tr>";
   const staffGroupsHtml = Array.from(groupedStaff.entries())
     .filter(([, entries]) => entries.length)
-    .map(([code, entries]) => `<article class="sunriseControlCard sunriseDetailWide"><h3>${code} · ${levelTitleByCode.get(code) || "Staff Level"}</h3><table class="sunriseControlTable"><thead><tr><th>Code</th><th>Email</th><th>Phone</th><th>Country</th><th>Title</th><th>Name</th><th>Password</th><th>Secret Phrase</th><th>Tier/Status</th><th>Sunrise Access</th><th>NOTOS ID</th><th>Action</th></tr></thead><tbody>${renderStaffRows(entries)}</tbody></table></article>`)
+    .map(([division, entries]) => `<article class="sunriseControlCard sunriseDetailWide"><h3>${division}</h3><table class="sunriseControlTable"><thead>${staffHeader}</thead><tbody>${renderStaffRows(entries)}</tbody></table></article>`)
     .join("");
   const staffHtml = staffGroupsHtml || `<article class="sunriseControlCard sunriseDetailWide"><h3>Staff Hierarchy</h3><p class="profileNote">No staff accounts found.</p></article>`;
   const deletedRows = (Array.isArray(sunriseControlState?.deletedAccounts) ? sunriseControlState.deletedAccounts : [])
@@ -7909,6 +8541,10 @@ function renderCustomSunriseControlPages() {
     renderSMCAPage();
     return;
   }
+  if (route === "sunrise-rta") {
+    renderRTAPage();
+    return;
+  }
   if (route === "sunrise-rim") {
     renderRIMPage();
     return;
@@ -8107,6 +8743,26 @@ function bindSunriseControlInteractions() {
     return { key: a, idx: Number(b) };
   };
 
+  const readRtaSelection = (clientKey) => {
+    const key = String(clientKey || "").trim().toLowerCase();
+    const domKey = key.replace(/[^a-z0-9]+/gi, "-");
+    return {
+      fleetStaffKey: String(document.getElementById(`rta-fleet-${domKey}`)?.value || "").trim().toLowerCase(),
+      driverStaffKey: String(document.getElementById(`rta-driver-${domKey}`)?.value || "").trim().toLowerCase(),
+      conciergeStaffKey: String(document.getElementById(`rta-concierge-${domKey}`)?.value || "").trim().toLowerCase(),
+      securityStaffKey: String(document.getElementById(`rta-security-${domKey}`)?.value || "").trim().toLowerCase()
+    };
+  };
+
+  const hasCompleteRtaSelection = (selection) => {
+    return !!(selection.fleetStaffKey && selection.driverStaffKey && selection.conciergeStaffKey && selection.securityStaffKey);
+  };
+
+  const setRtaInfo = (message) => {
+    const el = document.getElementById("rta-info");
+    if (el) el.textContent = String(message || "");
+  };
+
   document.addEventListener("click", async (event) => {
     const clickTarget = event.target instanceof Element ? event.target : null;
     if (!clickTarget) return;
@@ -8210,7 +8866,7 @@ function bindSunriseControlInteractions() {
 
     const ecsAdd = clickTarget.closest("[data-ecs-add]");
     if (ecsAdd && sunriseControlState) {
-      sunriseControlState.ecsEmployees.push({ id: `EMP-${Math.floor(Math.random() * 900 + 100)}`, name: "New Employee", role: "Concierge", position: "Concierge Associate", salary: 0, hours: 0, bonus: 0, commission: 0, status: "Active", email: "", login: "", permission: "Tier-1" });
+      sunriseControlState.ecsEmployees.push({ id: `EMP-${Math.floor(Math.random() * 900 + 100)}`, name: "New Employee", role: "Concierge", position: "Concierge Associate", division: "Office", rtaRoles: ["concierge"], salary: 0, hours: 0, bonus: 0, commission: 0, status: "Active", email: "", login: "", permission: "Tier-1" });
       saveSunriseControlState();
       renderCustomSunriseControlPages();
       return;
@@ -8359,6 +9015,79 @@ function bindSunriseControlInteractions() {
       if (cmd === "bold") sunriseMailBody.style.fontWeight = sunriseMailBody.style.fontWeight === "700" ? "400" : "700";
       if (cmd === "italic") sunriseMailBody.style.fontStyle = sunriseMailBody.style.fontStyle === "italic" ? "normal" : "italic";
       if (cmd === "underline") sunriseMailBody.style.textDecoration = sunriseMailBody.style.textDecoration === "underline" ? "none" : "underline";
+      return;
+    }
+
+    const rtaSave = clickTarget.closest("[data-rta-save]");
+    if (rtaSave && sunriseControlState) {
+      ensureRtaAssignmentsStore();
+      const clientKey = String(rtaSave.getAttribute("data-rta-save") || "").trim().toLowerCase();
+      const assignment = findRtaAssignmentByClientKey(clientKey);
+      const client = accounts[clientKey] || null;
+      if (!assignment || !client) return;
+      const selection = readRtaSelection(clientKey);
+      if (!hasCompleteRtaSelection(selection)) {
+        setRtaInfo("Select Fleet, Driver, Concierge, and Head of Security before saving.");
+        return;
+      }
+      assignment.clientKey = clientKey;
+      assignment.clientEmail = String(client.email || clientKey).trim();
+      assignment.clientName = `${String(client.firstName || "").trim()} ${String(client.lastName || "").trim()}`.trim();
+      assignment.clientCountry = String(client.country || "").trim();
+      assignment.clientPhone = String(client.phone || "").trim();
+      assignment.tier = String(client.membership || "Voyager Red").trim();
+      assignment.fleetStaffKey = selection.fleetStaffKey;
+      assignment.driverStaffKey = selection.driverStaffKey;
+      assignment.conciergeStaffKey = selection.conciergeStaffKey;
+      assignment.securityStaffKey = selection.securityStaffKey;
+      assignment.requestedBy = buildRtaOperatorLabel();
+      assignment.requestedAt = formatUtcTimestamp(new Date());
+      let infoMessage = "";
+      if (canApproveRtaAssignment()) {
+        assignment.status = "Confirmed";
+        assignment.confirmedBy = buildRtaOperatorLabel();
+        assignment.confirmedAt = formatUtcTimestamp(new Date());
+        infoMessage = "Red team assigned and confirmed.";
+      } else {
+        assignment.status = "Pending Confirmation";
+        assignment.confirmedBy = "";
+        assignment.confirmedAt = "";
+        infoMessage = "Red team submitted for executive confirmation.";
+      }
+      saveSunriseControlState();
+      renderCustomSunriseControlPages();
+      setRtaInfo(infoMessage);
+      return;
+    }
+
+    const rtaConfirm = clickTarget.closest("[data-rta-confirm]");
+    if (rtaConfirm && sunriseControlState) {
+      if (!canApproveRtaAssignment()) {
+        setRtaInfo("Only DA, CA, or Owner can confirm Red Team assignments.");
+        return;
+      }
+      ensureRtaAssignmentsStore();
+      const clientKey = String(rtaConfirm.getAttribute("data-rta-confirm") || "").trim().toLowerCase();
+      const assignment = findRtaAssignmentByClientKey(clientKey);
+      if (!assignment) return;
+      const selection = readRtaSelection(clientKey);
+      if (!hasCompleteRtaSelection(selection)) {
+        setRtaInfo("Complete all four Red Team roles before confirming.");
+        return;
+      }
+      assignment.fleetStaffKey = selection.fleetStaffKey;
+      assignment.driverStaffKey = selection.driverStaffKey;
+      assignment.conciergeStaffKey = selection.conciergeStaffKey;
+      assignment.securityStaffKey = selection.securityStaffKey;
+      assignment.status = "Confirmed";
+      assignment.confirmedBy = buildRtaOperatorLabel();
+      assignment.confirmedAt = formatUtcTimestamp(new Date());
+      if (!assignment.requestedBy) assignment.requestedBy = buildRtaOperatorLabel();
+      if (!assignment.requestedAt) assignment.requestedAt = formatUtcTimestamp(new Date());
+      const infoMessage = "Pending Red Team assignment confirmed.";
+      saveSunriseControlState();
+      renderCustomSunriseControlPages();
+      setRtaInfo(infoMessage);
       return;
     }
 
@@ -9092,6 +9821,8 @@ function bindSunriseControlInteractions() {
     if (updateField("data-ecs-bonus", (raw) => { sunriseControlState.ecsEmployees[Number(raw)].bonus = Number(t.value || 0); })) return;
     if (updateField("data-ecs-commission", (raw) => { sunriseControlState.ecsEmployees[Number(raw)].commission = Number(t.value || 0); })) return;
     if (updateField("data-ecs-position", (raw) => { sunriseControlState.ecsEmployees[Number(raw)].position = t.value; })) return;
+    if (updateField("data-ecs-division", (raw) => { sunriseControlState.ecsEmployees[Number(raw)].division = normalizeStaffDivision(t.value, sunriseControlState.ecsEmployees[Number(raw)]?.position || ""); })) return;
+    if (updateField("data-ecs-rta", (raw) => { sunriseControlState.ecsEmployees[Number(raw)].rtaRoles = normalizeRtaRoles(t.value, sunriseControlState.ecsEmployees[Number(raw)]?.position || ""); })) return;
     if (updateField("data-ecs-status", (raw) => { sunriseControlState.ecsEmployees[Number(raw)].status = t.value; })) return;
     if (updateField("data-ecs-email", (raw) => { sunriseControlState.ecsEmployees[Number(raw)].email = t.value; })) return;
     if (updateField("data-ecs-login", (raw) => { sunriseControlState.ecsEmployees[Number(raw)].login = t.value; })) return;
@@ -9473,6 +10204,8 @@ function syncEcsWithStaffAccounts() {
     if (!email) return;
     const fullName = `${String(account.firstName || "").trim()} ${String(account.lastName || "").trim()}`.trim() || "Staff Member";
     const position = String(account.roleTitle || "Staff").trim();
+    const division = normalizeStaffDivision(account.staffDivision, position);
+    const rtaRoles = normalizeRtaRoles(account.rtaRoles, position);
     if (existingByEmail.has(email)) {
       const row = sunriseControlState.ecsEmployees[existingByEmail.get(email)];
       if (!row) return;
@@ -9480,6 +10213,8 @@ function syncEcsWithStaffAccounts() {
       if (row.name !== fullName) { row.name = fullName; changed = true; }
       if (row.position !== position) { row.position = position; changed = true; }
       if (row.role !== position) { row.role = position; changed = true; }
+      if (row.division !== division) { row.division = division; changed = true; }
+      if (JSON.stringify(normalizeRtaRoles(row.rtaRoles, row.position)) !== JSON.stringify(rtaRoles)) { row.rtaRoles = rtaRoles; changed = true; }
       if (row.login !== email) { row.login = email; changed = true; }
       if (row.permission !== nextPermission) { row.permission = nextPermission; changed = true; }
       if (!row.status) { row.status = "Active"; changed = true; }
@@ -9491,6 +10226,8 @@ function syncEcsWithStaffAccounts() {
       name: fullName,
       role: position,
       position,
+      division,
+      rtaRoles,
       salary: 0,
       hours: 0,
       bonus: 0,
@@ -9668,6 +10405,9 @@ function bindSunriseReplyForms() {
 }
 
 sunriseControlState = loadSunriseControlState();
+syncEcsWithStaffAccounts();
+ensureRtaAssignmentsStore();
+syncRedTeamAssignmentsToClientAccounts();
 sunriseCommittedStateHash = snapshotSunriseControlState();
 sunriseHasUnsavedChanges = false;
 ensureShortcutCodeRegistry();
