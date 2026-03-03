@@ -7005,9 +7005,6 @@ function accountHourInTimeZone(account) {
 }
 
 function dayPartGreetingForAccount(account) {
-  if (isMikhailOwnerAccount(account)) {
-    return greetingPrefixByCountry(account.country);
-  }
   const hour = accountHourInTimeZone(account);
   if (hour >= 5 && hour < 12) return "Good Morning";
   if (hour >= 12 && hour < 17) return "Good Afternoon";
