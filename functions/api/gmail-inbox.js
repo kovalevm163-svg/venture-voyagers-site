@@ -66,7 +66,8 @@ function textToHtml(value = "") {
 }
 
 function formatUtcTimestamp(dateValue = Date.now()) {
-  const date = new Date(dateValue);
+  const numeric = Number(dateValue || 0);
+  const date = numeric > 0 ? new Date(numeric) : new Date(dateValue);
   if (Number.isNaN(date.getTime())) return "";
   const year = date.getUTCFullYear();
   const month = String(date.getUTCMonth() + 1).padStart(2, "0");
@@ -153,11 +154,14 @@ function parseMessageSummary(message = {}, catalog = { byId: new Map() }, includ
   const headers = messageHeaderMap(payload);
   const content = includeBody ? extractMessageContent(payload) : { html: "", text: "", attachments: [] };
   const labelIds = Array.isArray(message.labelIds) ? message.labelIds.map((id) => String(id)) : [];
-  const labelNames = labelIds
+  const labelEntries = labelIds
     .map((id) => catalog.byId.get(id))
-    .filter(Boolean)
-    .map((label) => String(label.name || "").trim());
-  const customFoldersForMessage = labelNames.filter((name) => !SYSTEM_LABEL_NAMES.has(name.toLowerCase()) && !name.startsWith("CATEGORY_") && name !== SCHEDULED_LABEL_NAME);
+    .filter(Boolean);
+  const labelNames = labelEntries.map((label) => String(label.name || "").trim());
+  const customFoldersForMessage = labelEntries
+    .filter((label) => String(label.type || "").toLowerCase() === "user")
+    .map((label) => String(label.name || "").trim())
+    .filter((name) => name && name !== SCHEDULED_LABEL_NAME);
   return {
     id: String(message.id || ""),
     threadId: String(message.threadId || ""),
@@ -274,6 +278,15 @@ async function fetchArchiveCount(env) {
   return Number(response.body?.resultSizeEstimate || 0);
 }
 
+async function estimateFolderCount(env, folder = "", catalog = { byName: new Map() }) {
+  const normalizedFolder = String(folder || "").trim();
+  if (!normalizedFolder) return 0;
+  if (normalizedFolder === "archive") return fetchArchiveCount(env);
+  const response = await listFolderMessages(env, normalizedFolder, catalog);
+  if (!response.ok) return 0;
+  return Number(response.resultSizeEstimate || response.messages?.length || 0);
+}
+
 async function listFolderMessages(env, folder = "inbox", catalog = { byName: new Map() }, pageToken = "") {
   const normalizedFolder = String(folder || "inbox").trim();
   const user = gmailUserId(env);
@@ -338,19 +351,18 @@ async function fetchBootstrap(env, folder = "inbox", selectedMessageId = "") {
   }
 
   const systemCounts = {
-    inbox: Number(catalog.byName.get("inbox")?.messagesTotal || 0),
-    sent: Number(catalog.byName.get("sent")?.messagesTotal || 0),
-    drafts: Number(catalog.byName.get("drafts")?.messagesTotal || 0),
-    spam: Number(catalog.byName.get("spam")?.messagesTotal || 0),
-    trash: Number(catalog.byName.get("trash")?.messagesTotal || 0),
-    sending: Number(catalog.byName.get(SCHEDULED_LABEL_NAME.toLowerCase())?.messagesTotal || 0),
-    archive: folder === "archive" ? folderResponse.resultSizeEstimate : await fetchArchiveCount(env)
+    inbox: await estimateFolderCount(env, "inbox", catalog),
+    sent: await estimateFolderCount(env, "sent", catalog),
+    drafts: await estimateFolderCount(env, "drafts", catalog),
+    spam: await estimateFolderCount(env, "spam", catalog),
+    trash: await estimateFolderCount(env, "trash", catalog),
+    sending: await estimateFolderCount(env, "sending", catalog),
+    archive: await estimateFolderCount(env, "archive", catalog)
   };
-  const customCounts = customFolderNames(catalog).reduce((map, name) => {
-    const label = catalog.byName.get(name.toLowerCase());
-    map[name] = Number(label?.messagesTotal || 0);
-    return map;
-  }, {});
+  const customCounts = {};
+  for (const name of customFolderNames(catalog)) {
+    customCounts[name] = await estimateFolderCount(env, name, catalog);
+  }
 
   return {
     ok: true,
