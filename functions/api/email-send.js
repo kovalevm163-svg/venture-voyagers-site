@@ -2,7 +2,7 @@ import {
   cleanText,
   json,
   readJson,
-  sendEmailViaResend,
+  sendEmailViaConfiguredProvider,
   splitEmails
 } from "./_shared.js";
 
@@ -24,7 +24,7 @@ export async function onRequestPost(context) {
     return json({ ok: false, message: "Missing required email fields." }, 400);
   }
 
-  const emailResult = await sendEmailViaResend(context.env, {
+  const emailResult = await sendEmailViaConfiguredProvider(context.env, {
     to,
     cc,
     bcc,

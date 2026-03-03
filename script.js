@@ -5517,15 +5517,27 @@ function isLocalPreviewHost() {
 }
 
 async function postJsonWithTimeout(url, payload, timeoutMs = 12000) {
+  return requestJsonWithTimeout(url, {
+    method: "POST",
+    payload,
+    timeoutMs
+  });
+}
+
+async function requestJsonWithTimeout(url, {
+  method = "GET",
+  payload = null,
+  timeoutMs = 12000
+} = {}) {
   const controller = new AbortController();
   const timeoutId = window.setTimeout(() => controller.abort(), timeoutMs);
   try {
     const response = await fetch(url, {
-      method: "POST",
-      headers: {
+      method,
+      headers: payload == null ? undefined : {
         "Content-Type": "application/json"
       },
-      body: JSON.stringify(payload),
+      body: payload == null ? undefined : JSON.stringify(payload),
       signal: controller.signal
     });
     const body = await response.json().catch(() => ({}));
@@ -5635,6 +5647,294 @@ async function deliverSunriseEmail({
     message: String(result.body?.message || "Email API request failed.").trim(),
     result
   };
+}
+
+function shouldUseOwnerGmailInbox() {
+  const account = sunriseState?.account || activeAccount || null;
+  return !!(account && isOwnerAccount(account));
+}
+
+function ownerInboxActiveFolder() {
+  return String(sunriseControlState?.inbox?.activeFolder || sunriseOwnerInboxState.folder || "inbox").trim() || "inbox";
+}
+
+function ownerInboxSelectedMessageId() {
+  return String(
+    sunriseControlState?.inbox?.selectedMessageId
+    || sunriseOwnerInboxState.selectedMessage?.id
+    || ""
+  ).trim();
+}
+
+function ownerInboxStatusMessage(result = {}, fallback = "Owner Gmail inbox request failed.") {
+  if (result?.body?.message) return String(result.body.message).trim();
+  if (result?.body?.error?.message) return String(result.body.error.message).trim();
+  return fallback;
+}
+
+function ownerInboxFolderCount(folderKey = "") {
+  return Number(sunriseOwnerInboxState.folderCounts?.[folderKey] || 0);
+}
+
+function ownerInboxAliasChips() {
+  const aliases = Array.isArray(sunriseOwnerInboxState.aliases) ? sunriseOwnerInboxState.aliases : [];
+  if (!aliases.length) return "<span class=\"profileNote\">Primary Gmail sync active.</span>";
+  return aliases.map((alias) => {
+    const label = alias.displayName ? `${alias.displayName} • ${alias.email}` : alias.email;
+    const accent = alias.isPrimary || alias.isDefault ? " sunriseStatusBadge" : "";
+    return `<span class="sunriseInboxAliasChip${accent}">${label}</span>`;
+  }).join("");
+}
+
+function ownerInboxVacationSummary() {
+  const vacation = sunriseOwnerInboxState.vacation;
+  if (!vacation || !vacation.enableAutoReply) return "Vacation reply is off.";
+  const start = Number(vacation.startTime || 0) > 0 ? formatUtcTimestamp(vacation.startTime) : "now";
+  const end = Number(vacation.endTime || 0) > 0 ? formatUtcTimestamp(vacation.endTime) : "until disabled";
+  return `Vacation reply is active from ${start} to ${end}.`;
+}
+
+async function requestOwnerGmailInbox(endpoint, payload = null, timeoutMs = 15000) {
+  const result = await requestJsonWithTimeout(endpoint, {
+    method: payload == null ? "GET" : "POST",
+    payload,
+    timeoutMs
+  });
+  if (result.ok && result.body?.ok) return { ok: true, body: result.body };
+  const likelyMissingApi = isLocalPreviewHost() && (result.status === 0 || result.status === 404 || result.status === 405);
+  return {
+    ok: false,
+    skipped: likelyMissingApi,
+    message: ownerInboxStatusMessage(result)
+  };
+}
+
+async function syncOwnerGmailInbox({
+  folder = "",
+  selectedMessageId = "",
+  silent = false
+} = {}) {
+  if (!shouldUseOwnerGmailInbox()) return false;
+  const nextFolder = String(folder || ownerInboxActiveFolder()).trim() || "inbox";
+  sunriseOwnerInboxState.folder = nextFolder;
+  sunriseOwnerInboxState.loading = true;
+  if (!silent) sunriseOwnerInboxState.error = "";
+  if (sunriseControlState?.inbox) {
+    sunriseControlState.inbox.activeFolder = nextFolder;
+    if (selectedMessageId) sunriseControlState.inbox.selectedMessageId = String(selectedMessageId || "").trim();
+  }
+  if (currentVisibleRoute() === "sunrise-inbox") renderSunriseInboxPage();
+
+  const params = new URLSearchParams({
+    mode: "bootstrap",
+    folder: nextFolder
+  });
+  const requestedId = String(selectedMessageId || ownerInboxSelectedMessageId()).trim();
+  if (requestedId) params.set("id", requestedId);
+  const response = await requestOwnerGmailInbox(`/api/gmail-inbox?${params.toString()}`);
+
+  sunriseOwnerInboxState.loading = false;
+  if (!response.ok) {
+    sunriseOwnerInboxState.ready = false;
+    sunriseOwnerInboxState.error = String(response.message || "Owner Gmail inbox sync failed.").trim();
+    if (currentVisibleRoute() === "sunrise-inbox") renderSunriseInboxPage();
+    return false;
+  }
+
+  const body = response.body || {};
+  sunriseOwnerInboxState.ready = true;
+  sunriseOwnerInboxState.error = "";
+  sunriseOwnerInboxState.messages = Array.isArray(body.messages) ? body.messages : [];
+  sunriseOwnerInboxState.selectedMessage = body.selectedMessage || null;
+  sunriseOwnerInboxState.customFolders = Array.isArray(body.customFolders) ? body.customFolders : [];
+  sunriseOwnerInboxState.folderCounts = body.folderCounts || {};
+  sunriseOwnerInboxState.aliases = Array.isArray(body.aliases) ? body.aliases : [];
+  sunriseOwnerInboxState.vacation = body.vacation || null;
+  sunriseOwnerInboxState.mailbox = String(body.mailbox || sunriseOwnerInboxState.mailbox || "concierge@venture-voyagers.com");
+  sunriseOwnerInboxState.lastSyncedAt = String(body.lastSyncedAt || "").trim();
+  sunriseOwnerInboxState.nextPageToken = String(body.nextPageToken || "").trim();
+  if (sunriseControlState?.inbox) {
+    sunriseControlState.inbox.activeFolder = nextFolder;
+    sunriseControlState.inbox.selectedMessageId = String(body.selectedMessage?.id || "").trim();
+  }
+  if (currentVisibleRoute() === "sunrise-inbox") renderSunriseInboxPage();
+  return true;
+}
+
+async function fetchOwnerGmailMessage(messageId = "") {
+  const id = String(messageId || "").trim();
+  if (!id) return false;
+  const response = await requestOwnerGmailInbox(`/api/gmail-inbox?mode=message&id=${encodeURIComponent(id)}`);
+  if (!response.ok) {
+    sunriseOwnerInboxState.error = String(response.message || "Unable to load message details.").trim();
+    if (currentVisibleRoute() === "sunrise-inbox") renderSunriseInboxPage();
+    return false;
+  }
+  sunriseOwnerInboxState.selectedMessage = response.body?.message || null;
+  sunriseOwnerInboxState.error = "";
+  if (sunriseControlState?.inbox) sunriseControlState.inbox.selectedMessageId = id;
+  if (currentVisibleRoute() === "sunrise-inbox") renderSunriseInboxPage();
+  return true;
+}
+
+async function performOwnerGmailInboxAction(action = "", payload = {}, {
+  refreshFolder = "",
+  selectedMessageId = "",
+  infoMessage = ""
+} = {}) {
+  const response = await requestOwnerGmailInbox("/api/gmail-inbox", {
+    action,
+    ...payload
+  });
+  if (!response.ok) {
+    sunriseOwnerInboxState.error = String(response.message || "Owner Gmail inbox action failed.").trim();
+    if (currentVisibleRoute() === "sunrise-inbox") renderSunriseInboxPage();
+    return false;
+  }
+  sunriseOwnerInboxState.error = "";
+  sunriseOwnerInboxState.info = String(infoMessage || "").trim();
+  return syncOwnerGmailInbox({
+    folder: refreshFolder || ownerInboxActiveFolder(),
+    selectedMessageId
+  });
+}
+
+function ensureOwnerInboxAutoRefresh() {
+  if (sunriseOwnerInboxRefreshHandle) return;
+  sunriseOwnerInboxRefreshHandle = window.setInterval(() => {
+    if (currentVisibleRoute() !== "sunrise-inbox") return;
+    if (!shouldUseOwnerGmailInbox() || sunriseOwnerInboxState.loading) return;
+    syncOwnerGmailInbox({
+      folder: ownerInboxActiveFolder(),
+      selectedMessageId: ownerInboxSelectedMessageId(),
+      silent: true
+    });
+  }, 45000);
+}
+
+function toLocalDateTimeValue(timestamp = 0) {
+  const value = Number(timestamp || 0);
+  if (!value) return "";
+  const date = new Date(value);
+  if (Number.isNaN(date.getTime())) return "";
+  const year = date.getFullYear();
+  const month = String(date.getMonth() + 1).padStart(2, "0");
+  const day = String(date.getDate()).padStart(2, "0");
+  const hours = String(date.getHours()).padStart(2, "0");
+  const minutes = String(date.getMinutes()).padStart(2, "0");
+  return `${year}-${month}-${day}T${hours}:${minutes}`;
+}
+
+function localDateTimeToMs(value = "") {
+  const raw = String(value || "").trim();
+  if (!raw) return 0;
+  const parsed = new Date(raw);
+  return Number.isNaN(parsed.getTime()) ? 0 : parsed.getTime();
+}
+
+function populateOwnerVacationOverlay() {
+  const settings = sunriseOwnerInboxState.vacation || {};
+  const enable = document.getElementById("sunrise-vacation-enable");
+  const start = document.getElementById("sunrise-vacation-start");
+  const end = document.getElementById("sunrise-vacation-end");
+  const subject = document.getElementById("sunrise-vacation-subject");
+  const body = document.getElementById("sunrise-vacation-body");
+  const contacts = document.getElementById("sunrise-vacation-restrict-contacts");
+  const domain = document.getElementById("sunrise-vacation-restrict-domain");
+  const info = document.getElementById("sunrise-vacation-info");
+  if (enable instanceof HTMLInputElement) enable.checked = !!settings.enableAutoReply;
+  if (start instanceof HTMLInputElement) start.value = toLocalDateTimeValue(settings.startTime);
+  if (end instanceof HTMLInputElement) end.value = toLocalDateTimeValue(settings.endTime);
+  if (subject instanceof HTMLInputElement) subject.value = String(settings.responseSubject || "");
+  if (body instanceof HTMLTextAreaElement) {
+    body.value = String(settings.responseBodyPlainText || "").trim()
+      || String(settings.responseBodyHtml || "").replace(/<br\s*\/?>/gi, "\n").replace(/<[^>]+>/g, "");
+  }
+  if (contacts instanceof HTMLInputElement) contacts.checked = !!settings.restrictToContacts;
+  if (domain instanceof HTMLInputElement) domain.checked = !!settings.restrictToDomain;
+  if (info) info.textContent = "";
+}
+
+function openOwnerVacationOverlay() {
+  const overlay = document.getElementById("sunrise-vacation-overlay");
+  if (!overlay) return;
+  populateOwnerVacationOverlay();
+  overlay.hidden = false;
+}
+
+function closeOwnerVacationOverlay() {
+  const overlay = document.getElementById("sunrise-vacation-overlay");
+  if (overlay) overlay.hidden = true;
+}
+
+function verificationEmailContextLabel(context = "") {
+  return String(context || "").trim().toLowerCase() === "sunrise" ? "Sunrise" : "VVS";
+}
+
+function verificationRecipientName(account = null) {
+  const prefix = String(account?.prefix || "").trim();
+  const firstName = String(account?.firstName || "").trim();
+  const lastName = String(account?.lastName || "").trim();
+  return [prefix, firstName, lastName].filter(Boolean).join(" ").trim();
+}
+
+async function sendVerificationCodeEmail({
+  email = "",
+  code = "",
+  context = "vvs",
+  name = ""
+} = {}) {
+  const result = await postJsonWithTimeout("/api/auth-code-send", {
+    email,
+    code,
+    context,
+    name
+  });
+  if (result.ok && result.body?.ok) {
+    return {
+      ok: true,
+      fallback: false,
+      message: String(result.body?.message || "").trim()
+    };
+  }
+  const likelyMissingApi = isLocalPreviewHost() && (result.status === 0 || result.status === 404 || result.status === 405);
+  const skipped = likelyMissingApi || !!result.body?.skipped || !!result.body?.email?.skipped;
+  return {
+    ok: false,
+    fallback: true,
+    skipped,
+    message: String(result.body?.message || result.body?.email?.message || "Confirmation code delivery is unavailable.").trim()
+  };
+}
+
+function buildVerificationDispatchMessage({
+  email = "",
+  code = "",
+  context = "vvs",
+  delivery = {}
+} = {}) {
+  const label = verificationEmailContextLabel(context);
+  const subject = `${label} confirmation code`;
+  if (delivery.ok) {
+    return `${label} confirmation code sent from concierge@venture-voyagers.com to ${email} (Subject: ${subject}).`;
+  }
+  const reason = String(delivery.message || "").trim();
+  return `${label} confirmation code could not be delivered automatically right now.${reason ? ` ${reason}` : ""} Temporary code: ${code}.`;
+}
+
+function shouldBypassOwnerEmailVerification(account = null) {
+  return !!(account && isOwnerAccount(account));
+}
+
+function setRecoveryCodeFieldVisibility(step2Form = null, hidden = false) {
+  if (!(step2Form instanceof HTMLFormElement)) return;
+  const codeInput = step2Form.querySelector('input[inputmode="numeric"]');
+  const codeField = codeInput?.closest(".field");
+  if (codeField instanceof HTMLElement) codeField.hidden = !!hidden;
+  if (codeInput instanceof HTMLInputElement) {
+    codeInput.required = !hidden;
+    if (hidden) codeInput.value = "";
+  }
 }
 
 function collectContactRequestData() {
@@ -5918,13 +6218,15 @@ const authState = {
 const passwordResetState = {
   email: "",
   code: "",
-  account: null
+  account: null,
+  bypassEmailCode: false
 };
 
 const accountPasswordResetState = {
   email: "",
   code: "",
-  account: null
+  account: null,
+  bypassEmailCode: false
 };
 
 let accountSettingsTargetKey = "";
@@ -5938,6 +6240,25 @@ const sunriseState = {
   operatorCode: "",
   pendingAccount: null
 };
+
+const sunriseOwnerInboxState = {
+  loading: false,
+  ready: false,
+  folder: "inbox",
+  messages: [],
+  selectedMessage: null,
+  customFolders: [],
+  folderCounts: {},
+  aliases: [],
+  vacation: null,
+  mailbox: "concierge@venture-voyagers.com",
+  lastSyncedAt: "",
+  info: "",
+  error: "",
+  nextPageToken: ""
+};
+
+let sunriseOwnerInboxRefreshHandle = 0;
 
 const SUNRISE_OWNER_CODES = {
   "aleks.sunrise@vvs.com": "AO1",
@@ -6123,7 +6444,7 @@ function submitPasswordChangeFlow({
   return true;
 }
 
-function startPasswordRecoveryFlow({
+async function startPasswordRecoveryFlow({
   email = "",
   phrase = "",
   selectedTier = "",
@@ -6150,13 +6471,38 @@ function startPasswordRecoveryFlow({
 
   state.email = String(account.email || email).trim().toLowerCase();
   state.account = account;
-  state.code = issueTestEmailCode(state.email);
+  state.bypassEmailCode = shouldBypassOwnerEmailVerification(account);
+  state.code = state.bypassEmailCode ? "" : issueTestEmailCode(state.email);
+  let delivery = {
+    ok: false,
+    fallback: false,
+    skipped: false,
+    message: ""
+  };
+  if (!state.bypassEmailCode) {
+    delivery = await sendVerificationCodeEmail({
+      email: state.email,
+      code: state.code,
+      context: "vvs",
+      name: verificationRecipientName(account)
+    });
+  }
   if (step1Form) step1Form.hidden = true;
   if (step2Form) {
     step2Form.hidden = false;
     step2Form.reset();
+    setRecoveryCodeFieldVisibility(step2Form, state.bypassEmailCode);
   }
-  if (infoEl) infoEl.textContent = `Recovery code sent to ${state.email}. Test code: ${state.code}.`;
+  if (infoEl) {
+    infoEl.textContent = state.bypassEmailCode
+      ? "Owner recovery confirmed. Set a new password to continue."
+      : buildVerificationDispatchMessage({
+          email: state.email,
+          code: state.code,
+          context: "vvs",
+          delivery
+        });
+  }
   return true;
 }
 
@@ -6175,7 +6521,7 @@ function completePasswordRecoveryFlow({
     if (infoEl) infoEl.textContent = "Password recovery session expired. Start again.";
     return false;
   }
-  if (code !== state.code) {
+  if (!state.bypassEmailCode && code !== state.code) {
     if (infoEl) infoEl.textContent = "Verification code is incorrect.";
     return false;
   }
@@ -6196,6 +6542,7 @@ function completePasswordRecoveryFlow({
   if (step2Form) {
     step2Form.reset();
     step2Form.hidden = true;
+    setRecoveryCodeFieldVisibility(step2Form, false);
   }
   if (step1Form) {
     step1Form.hidden = false;
@@ -6204,6 +6551,7 @@ function completePasswordRecoveryFlow({
   state.email = "";
   state.code = "";
   state.account = null;
+  state.bypassEmailCode = false;
   if (infoEl) infoEl.textContent = "Password updated successfully through email + secret phrase.";
   if (typeof onSuccess === "function") onSuccess(account);
   return true;
@@ -6247,6 +6595,7 @@ function activateAuthTab(tabKey) {
     passwordResetState.email = "";
     passwordResetState.code = "";
     passwordResetState.account = null;
+    passwordResetState.bypassEmailCode = false;
   }
 
   if (tabKey === "password-recovery") {
@@ -6264,6 +6613,7 @@ function activateAuthTab(tabKey) {
     passwordResetState.email = "";
     passwordResetState.code = "";
     passwordResetState.account = null;
+    passwordResetState.bypassEmailCode = false;
   }
 }
 
@@ -6275,12 +6625,16 @@ function resetAuthState() {
   if (signupStep2) signupStep2.reset();
   if (pwOldForm) pwOldForm.reset();
   if (pwRecoveryStep1) pwRecoveryStep1.reset();
-  if (pwRecoveryStep2) pwRecoveryStep2.reset();
+  if (pwRecoveryStep2) {
+    pwRecoveryStep2.reset();
+    setRecoveryCodeFieldVisibility(pwRecoveryStep2, false);
+  }
   if (passwordInfo) passwordInfo.textContent = "";
   if (passwordRecoveryInfo) passwordRecoveryInfo.textContent = "";
   passwordResetState.email = "";
   passwordResetState.code = "";
   passwordResetState.account = null;
+  passwordResetState.bypassEmailCode = false;
 }
 
 function updateSunriseAccessView() {
@@ -7547,10 +7901,12 @@ function resetAccountSettingsPasswordState() {
   if (accountSettingsRecoveryStep2) {
     accountSettingsRecoveryStep2.hidden = true;
     accountSettingsRecoveryStep2.reset();
+    setRecoveryCodeFieldVisibility(accountSettingsRecoveryStep2, false);
   }
   accountPasswordResetState.email = "";
   accountPasswordResetState.code = "";
   accountPasswordResetState.account = null;
+  accountPasswordResetState.bypassEmailCode = false;
   if (accountSettingsPasswordInfo) accountSettingsPasswordInfo.textContent = "";
   if (accountSettingsPasswordRecoveryInfo) {
     accountSettingsPasswordRecoveryInfo.textContent = "Enter your email address, secret phrase, and membership tier to send the recovery code.";
@@ -7586,6 +7942,7 @@ function activateAccountSettingsPasswordMode(mode = "change") {
   accountPasswordResetState.email = "";
   accountPasswordResetState.code = "";
   accountPasswordResetState.account = null;
+  accountPasswordResetState.bypassEmailCode = false;
 }
 
 function populateAccountSettingsForm(account = activeAccount, options = {}) {
@@ -7754,10 +8111,10 @@ if (accountSettingsPasswordForm) {
 }
 
 if (accountSettingsRecoveryStep1) {
-  accountSettingsRecoveryStep1.addEventListener("submit", (event) => {
+  accountSettingsRecoveryStep1.addEventListener("submit", async (event) => {
     event.preventDefault();
     if (!accountSettingsRecoveryStep1.reportValidity()) return;
-    startPasswordRecoveryFlow({
+    await startPasswordRecoveryFlow({
       email: (document.getElementById("account-pw-rec-email")?.value || "").trim(),
       phrase: (document.getElementById("account-pw-rec-phrase")?.value || "").trim().toLowerCase(),
       selectedTier: normalizeMembershipTier(document.getElementById("account-pw-rec-tier")?.value || ""),
@@ -7794,7 +8151,7 @@ if (accountSettingsRecoveryStep2) {
 }
 
 if (loginStep1) {
-  loginStep1.addEventListener("submit", (event) => {
+  loginStep1.addEventListener("submit", async (event) => {
     event.preventDefault();
 
     const email = document.getElementById("login-email");
@@ -7825,12 +8182,37 @@ if (loginStep1) {
     }
 
     authState.loginAccount = account;
+    if (shouldBypassOwnerEmailVerification(account)) {
+      activeAccount = account;
+      persistActiveSession(activeAccount);
+      renderProfile(account);
+      updateAuthCta();
+      if (loginStep2) {
+        loginStep2.hidden = true;
+        loginStep2.reset();
+      }
+      if (loginInfo) loginInfo.textContent = "Owner verification confirmed. Redirecting to your account.";
+      showRoute("profile");
+      return;
+    }
+
     authState.loginCode = issueTestEmailCode(authState.loginEmail);
+    const delivery = await sendVerificationCodeEmail({
+      email: authState.loginEmail,
+      code: authState.loginCode,
+      context: "vvs",
+      name: verificationRecipientName(account)
+    });
 
     loginStep1.hidden = false;
     if (loginStep2) loginStep2.hidden = false;
     if (loginInfo) {
-      loginInfo.textContent = `VVS email confirmation sent from concierge@venture-voyagers.com to ${authState.loginEmail} (Subject: VVS email confirmation). Test code: ${authState.loginCode}.`;
+      loginInfo.textContent = buildVerificationDispatchMessage({
+        email: authState.loginEmail,
+        code: authState.loginCode,
+        context: "vvs",
+        delivery
+      });
     }
   });
 }
@@ -7867,7 +8249,7 @@ if (loginStep2) {
 }
 
 if (signupStep1) {
-  signupStep1.addEventListener("submit", (event) => {
+  signupStep1.addEventListener("submit", async (event) => {
     event.preventDefault();
     if (!signupStep1.reportValidity()) return;
     if (isWebsiteShutdownActive()) {
@@ -7924,11 +8306,23 @@ if (signupStep1) {
     };
     persistAccountsData();
     authState.signupCode = issueTestEmailCode(authState.signupEmail);
+    const pendingAccount = accounts[authState.signupEmail.toLowerCase()];
+    const delivery = await sendVerificationCodeEmail({
+      email: authState.signupEmail,
+      code: authState.signupCode,
+      context: "vvs",
+      name: verificationRecipientName(pendingAccount)
+    });
 
     signupStep1.hidden = true;
     if (signupStep2) signupStep2.hidden = false;
     if (signupInfo) {
-      signupInfo.textContent = `VVS email confirmation sent from concierge@venture-voyagers.com to ${authState.signupEmail} (Subject: VVS email confirmation). Test code: ${authState.signupCode}. Secret phrase can be entered only once and cannot be changed.`;
+      signupInfo.textContent = `${buildVerificationDispatchMessage({
+        email: authState.signupEmail,
+        code: authState.signupCode,
+        context: "vvs",
+        delivery
+      })} Secret phrase can be entered only once and cannot be changed.`;
     }
   });
 }
@@ -7978,10 +8372,10 @@ if (pwOldForm) {
 }
 
 if (pwRecoveryStep1) {
-  pwRecoveryStep1.addEventListener("submit", (event) => {
+  pwRecoveryStep1.addEventListener("submit", async (event) => {
     event.preventDefault();
     if (!pwRecoveryStep1.reportValidity()) return;
-    startPasswordRecoveryFlow({
+    await startPasswordRecoveryFlow({
       email: (document.getElementById("pw-rec-email")?.value || "").trim(),
       phrase: (document.getElementById("pw-rec-phrase")?.value || "").trim().toLowerCase(),
       selectedTier: normalizeMembershipTier(document.getElementById("pw-rec-tier")?.value || ""),
@@ -9451,9 +9845,68 @@ function inboxFolderCount(inbox, folder) {
   return messages.filter((m) => String(m.folder || "") === folder).length;
 }
 
+function renderOwnerSunriseInboxPage(root) {
+  const activeFolder = ownerInboxActiveFolder();
+  const selectedMessage = sunriseOwnerInboxState.selectedMessage || null;
+  const viewerProfile = sunriseInboxProfile();
+  const moveFolderOptions = ["inbox", "archive", "sent", "drafts", "spam", "trash", "sending", ...sunriseOwnerInboxState.customFolders]
+    .filter((name, index, list) => list.indexOf(name) === index)
+    .map((name) => `<option value="${name}">${String(name).charAt(0).toUpperCase() + String(name).slice(1)}</option>`)
+    .join("");
+
+  if ((!sunriseOwnerInboxState.ready || sunriseOwnerInboxState.folder !== activeFolder) && !sunriseOwnerInboxState.loading) {
+    syncOwnerGmailInbox({
+      folder: activeFolder,
+      selectedMessageId: ownerInboxSelectedMessageId(),
+      silent: true
+    });
+  }
+  ensureOwnerInboxAutoRefresh();
+
+  const folderBtn = (folderKey, label) => {
+    const active = activeFolder === folderKey ? " isActive" : "";
+    return `<button class="sunriseInboxFolderBtn${active}" type="button" data-inbox-folder="${folderKey}"><span>${label}</span><b>${ownerInboxFolderCount(folderKey)}</b></button>`;
+  };
+
+  const customFolderBtns = (sunriseOwnerInboxState.customFolders || []).map((name) => {
+    const active = activeFolder === name ? " isActive" : "";
+    return `<button class="sunriseInboxFolderBtn${active}" type="button" data-inbox-folder="${name}"><span>${name}</span><b>${ownerInboxFolderCount(name)}</b></button>`;
+  }).join("");
+
+  const rows = (sunriseOwnerInboxState.messages || []).map((msg) => {
+    const id = String(msg.id || "");
+    const from = String(msg.from || "").trim() || "Unknown sender";
+    const subject = String(msg.subject || "").trim() || "(No subject)";
+    const priority = String(msg.priority || "Normal");
+    const created = String(msg.createdAt || "");
+    const active = selectedMessage && id === String(selectedMessage.id || "") ? " isActive" : "";
+    return `<button class="sunriseInboxRow${active}" type="button" data-inbox-open="${id}"><span class="sunriseInboxFrom">${from}</span><span class="sunriseInboxSubject">${subject}</span><span class="sunriseInboxMeta">${priority} • ${created}</span></button>`;
+  }).join("");
+
+  const detailHtml = selectedMessage
+    ? `<article class="sunriseControlCard sunriseDetailWide"><div class="sunriseInboxTop"><h3>Email Details</h3><div class="sunriseControlActions"><button class="sunriseMiniBtn" type="button" data-inbox-archive="${selectedMessage.id}">Archive</button><select class="select" id="inbox-move-target"><option value="">Move to...</option>${moveFolderOptions}</select><button class="sunriseMiniBtn" type="button" data-inbox-move="${selectedMessage.id}">Move</button><button class="sunriseMiniBtn" type="button" data-inbox-delete="${selectedMessage.id}">Delete to Trash</button></div></div><div class="sunriseInboxDetailGrid"><p><b>From:</b> ${selectedMessage.from || "-"}</p><p><b>To:</b> ${selectedMessage.to || "-"}</p><p><b>CC:</b> ${selectedMessage.cc || "-"}</p><p><b>BCC:</b> ${selectedMessage.bcc || "-"}</p><p><b>Subject:</b> ${selectedMessage.subject || "-"}</p><p><b>Priority:</b> ${selectedMessage.priority || "Normal"}</p><p><b>Created:</b> ${selectedMessage.createdAt || "-"}</p><p><b>Scheduled:</b> ${selectedMessage.scheduledAt || "-"}</p></div><div class="sunriseInboxAttachList">${(selectedMessage.attachments || []).length ? `Attachments: ${(selectedMessage.attachments || []).join(", ")}` : "Attachments: none"}</div><div class="sunriseInboxAttachList">${(selectedMessage.customFolders || []).length ? `Folders: ${selectedMessage.customFolders.join(", ")}` : "Folders: system"}</div><div class="sunriseInboxDetailBody">${selectedMessage.bodyHtml || `<p>${String(selectedMessage.snippet || "No content.")}</p>`}</div></article>`
+    : `<article class="sunriseControlCard sunriseDetailWide"><p class="profileNote">${sunriseOwnerInboxState.loading ? "Synchronizing concierge@venture-voyagers.com..." : "Select an email to view details."}</p></article>`;
+
+  const infoText = sunriseOwnerInboxState.error
+    || sunriseOwnerInboxState.info
+    || (sunriseOwnerInboxState.loading
+      ? "Synchronizing Gmail mirror..."
+      : (sunriseOwnerInboxState.lastSyncedAt ? `Last synced ${sunriseOwnerInboxState.lastSyncedAt}.` : "Gmail mirror ready."));
+
+  const trashAction = activeFolder === "trash"
+    ? `<button class="sunriseMiniBtn" type="button" data-inbox-clear-trash>Clear Trash</button>`
+    : "";
+
+  root.innerHTML = `<div class="sunriseInboxShell"><aside class="sunriseInboxSidebar"><div class="sunriseInboxFolders"><p class="sunriseCategoryTitle">Owner Mailbox Mirror</p><p class="profileNote">${sunriseOwnerInboxState.mailbox}</p>${folderBtn("inbox", "Inbox")}${folderBtn("archive", "Archive")}${folderBtn("sent", "Sent")}${folderBtn("drafts", "Drafts")}${folderBtn("spam", "Spam")}${folderBtn("trash", "Trash")}${folderBtn("sending", "Sending")}</div><div class="sunriseInboxFolders"><p class="sunriseCategoryTitle">Gmail Folders</p>${customFolderBtns || "<p class='profileNote'>No custom Gmail folders yet.</p>"}<div class="sunriseControlActions"><input class="input" id="inbox-new-folder" placeholder="New Gmail folder"><button class="sunriseMiniBtn" type="button" data-inbox-folder-add>Create</button></div></div><div class="sunriseInboxSettings"><p class="sunriseCategoryTitle">Connected Identities</p><div class="sunriseInboxAliasRow">${ownerInboxAliasChips()}</div><p class="profileNote">${ownerInboxVacationSummary()}</p><div class="sunriseControlActions"><button class="sunriseMiniBtn" type="button" data-inbox-refresh>Refresh</button><button class="sunriseMiniBtn" type="button" data-inbox-vacation-open>Vacation Reply</button><button class="sunriseMiniBtn" type="button" data-inbox-signature-manager-open>Manage Signatures</button></div></div></aside><section class="sunriseInboxMain"><article class="sunriseControlCard sunriseDetailWide"><h3>${viewerProfile.name}</h3><p class="profileNote">${viewerProfile.position}</p><p class="profileNote">Live Gmail mirror for concierge@venture-voyagers.com inside Sunrise.</p></article><article class="sunriseControlCard sunriseDetailWide"><div class="sunriseInboxTop"><h3>Folder: ${activeFolder}</h3><div class="sunriseControlActions"><button class="sunriseMiniBtn" type="button" data-inbox-new-compose>Compose</button><button class="sunriseMiniBtn" type="button" data-inbox-refresh>Refresh</button>${trashAction}</div></div><p class="profileNote">${infoText}</p><div class="sunriseInboxList">${rows || `<p class='profileNote'>${sunriseOwnerInboxState.loading ? "Loading messages..." : "No emails in this folder."}</p>`}</div></article>${detailHtml}</section></div>`;
+}
+
 function renderSunriseInboxPage() {
   const root = document.getElementById("sunrise-inbox-root");
   if (!root || !sunriseControlState) return;
+  if (shouldUseOwnerGmailInbox()) {
+    renderOwnerSunriseInboxPage(root);
+    return;
+  }
   const inbox = sunriseControlState.inbox || {};
   const activeFolder = String(inbox.activeFolder || "inbox");
   const selectedMessageId = String(inbox.selectedMessageId || "");
@@ -9659,6 +10112,10 @@ function bindSunriseControlInteractions() {
   const notosPathClose = document.getElementById("notos-path-close");
   const rtaAuditOverlay = document.getElementById("sunrise-rta-audit-overlay");
   const rtaAuditClose = document.getElementById("sunrise-rta-audit-close");
+  const vacationOverlay = document.getElementById("sunrise-vacation-overlay");
+  const vacationClose = document.getElementById("sunrise-vacation-close");
+  const vacationSave = document.getElementById("sunrise-vacation-save");
+  const vacationInfo = document.getElementById("sunrise-vacation-info");
   if (notosPathClose && notosPathClose.dataset.boundNotosClose !== "1") {
     notosPathClose.addEventListener("click", () => {
       if (notosPathOverlay) notosPathOverlay.hidden = true;
@@ -9676,6 +10133,55 @@ function bindSunriseControlInteractions() {
       if (event.target === rtaAuditOverlay) closeRtaAuditOverlay();
     });
     rtaAuditOverlay.dataset.boundRtaAuditBackdrop = "1";
+  }
+  if (vacationClose && vacationClose.dataset.boundVacationClose !== "1") {
+    vacationClose.addEventListener("click", () => {
+      closeOwnerVacationOverlay();
+    });
+    vacationClose.dataset.boundVacationClose = "1";
+  }
+  if (vacationOverlay && vacationOverlay.dataset.boundVacationBackdrop !== "1") {
+    vacationOverlay.addEventListener("click", (event) => {
+      if (event.target === vacationOverlay) closeOwnerVacationOverlay();
+    });
+    vacationOverlay.dataset.boundVacationBackdrop = "1";
+  }
+  if (vacationSave && vacationSave.dataset.boundVacationSave !== "1") {
+    vacationSave.addEventListener("click", async () => {
+      const enable = document.getElementById("sunrise-vacation-enable");
+      const start = document.getElementById("sunrise-vacation-start");
+      const end = document.getElementById("sunrise-vacation-end");
+      const subject = document.getElementById("sunrise-vacation-subject");
+      const body = document.getElementById("sunrise-vacation-body");
+      const contacts = document.getElementById("sunrise-vacation-restrict-contacts");
+      const domain = document.getElementById("sunrise-vacation-restrict-domain");
+      const response = await requestOwnerGmailInbox("/api/gmail-inbox", {
+        action: "vacation-update",
+        enableAutoReply: !!(enable instanceof HTMLInputElement && enable.checked),
+        startTime: localDateTimeToMs(start instanceof HTMLInputElement ? start.value : ""),
+        endTime: localDateTimeToMs(end instanceof HTMLInputElement ? end.value : ""),
+        responseSubject: subject instanceof HTMLInputElement ? subject.value : "",
+        responseBodyPlainText: body instanceof HTMLTextAreaElement ? body.value : "",
+        responseBodyHtml: body instanceof HTMLTextAreaElement ? `<p>${body.value.replace(/\n/g, "<br>")}</p>` : "",
+        restrictToContacts: !!(contacts instanceof HTMLInputElement && contacts.checked),
+        restrictToDomain: !!(domain instanceof HTMLInputElement && domain.checked)
+      });
+      if (vacationInfo) {
+        vacationInfo.textContent = response.ok
+          ? "Vacation reply saved."
+          : String(response.message || "Unable to save vacation reply.").trim();
+      }
+      if (response.ok) {
+        await syncOwnerGmailInbox({
+          folder: ownerInboxActiveFolder(),
+          selectedMessageId: ownerInboxSelectedMessageId()
+        });
+        window.setTimeout(() => {
+          closeOwnerVacationOverlay();
+        }, 400);
+      }
+    });
+    vacationSave.dataset.boundVacationSave = "1";
   }
   if (signatureClose && signatureClose.dataset.boundSigClose !== "1") {
     signatureClose.addEventListener("click", () => {
@@ -10028,6 +10534,37 @@ function bindSunriseControlInteractions() {
       const folder = scheduledAt ? "sending" : "sent";
       const html = `<p style="font-family:${font};font-size:${fontSize}px;">${body.replace(/\n/g, "<br>")}</p>`;
       const attachmentPayload = await readEmailAttachments(sunriseMailAttach);
+      if (shouldUseOwnerGmailInbox()) {
+        const synced = await performOwnerGmailInboxAction("send", {
+          to,
+          cc,
+          bcc,
+          subject,
+          html,
+          text: body,
+          from: "Venture Voyager Services <concierge@venture-voyagers.com>",
+          replyTo: sender,
+          attachments: attachmentPayload,
+          scheduledAt
+        }, {
+          refreshFolder: folder,
+          infoMessage: folder === "sending"
+            ? "Scheduled draft synced to Gmail."
+            : `Message sent from concierge@venture-voyagers.com to ${recipients || to}.`
+        });
+        if (sunriseMailInfo) {
+          sunriseMailInfo.textContent = synced
+            ? (folder === "sending" ? "Scheduled draft saved in Gmail." : `Message sent to ${recipients || to}.`)
+            : String(sunriseOwnerInboxState.error || "Unable to sync Gmail send.").trim();
+        }
+        if (synced) {
+          clearSunriseComposeDraftBaseline();
+          window.setTimeout(() => {
+            closeSunriseEmailComposer();
+          }, 650);
+        }
+        return;
+      }
       pushInboxMessage({ mailbox: senderMailbox, folder, from: sender, to, cc, bcc, subject, bodyHtml: html, priority, scheduledAt, attachments });
       routeSunriseInboundCopies({ senderMailbox, from: sender, to, cc, bcc, subject, bodyHtml: html, priority, attachments });
       const delivery = await deliverSunriseEmail({
@@ -10081,6 +10618,37 @@ function bindSunriseControlInteractions() {
       }
       const sender = sunriseState.email || (activeAccount?.email || "concierge@venture-voyagers.com");
       const html = `<p style="font-family:${font};font-size:${fontSize}px;">${body.replace(/\n/g, "<br>")}</p>`;
+      if (shouldUseOwnerGmailInbox()) {
+        const attachmentPayload = await readEmailAttachments(sunriseMailAttach);
+        const targetFolder = scheduledAt ? "sending" : "drafts";
+        const synced = await performOwnerGmailInboxAction("draft-save", {
+          to,
+          cc,
+          bcc,
+          subject,
+          html,
+          text: body,
+          from: "Venture Voyager Services <concierge@venture-voyagers.com>",
+          replyTo: sender,
+          attachments: attachmentPayload,
+          scheduledAt
+        }, {
+          refreshFolder: targetFolder,
+          infoMessage: targetFolder === "sending" ? "Scheduled draft saved in Gmail." : "Draft saved in Gmail."
+        });
+        if (sunriseMailInfo) {
+          sunriseMailInfo.textContent = synced
+            ? (targetFolder === "sending" ? "Scheduled draft saved." : "Draft saved.")
+            : String(sunriseOwnerInboxState.error || "Unable to save Gmail draft.").trim();
+        }
+        if (synced) {
+          clearSunriseComposeDraftBaseline();
+          window.setTimeout(() => {
+            closeSunriseEmailComposer();
+          }, 350);
+        }
+        return;
+      }
       pushInboxMessage({ mailbox: activeSunriseMailbox(), folder: "drafts", from: sender, to, cc, bcc, subject, bodyHtml: html, priority, scheduledAt, attachments });
       if (sunriseControlState && sunriseControlState.inbox) {
         sunriseControlState.inbox.activeFolder = "drafts";
@@ -10396,6 +10964,17 @@ function bindSunriseControlInteractions() {
     const inboxFolderBtn = clickTarget.closest("[data-inbox-folder]");
     if (inboxFolderBtn && sunriseControlState) {
       const nextFolder = String(inboxFolderBtn.getAttribute("data-inbox-folder") || "inbox");
+      if (shouldUseOwnerGmailInbox()) {
+        sunriseOwnerInboxState.info = "";
+        if (sunriseControlState?.inbox) {
+          sunriseControlState.inbox.selectedMessageId = "";
+        }
+        await syncOwnerGmailInbox({
+          folder: nextFolder,
+          selectedMessageId: ""
+        });
+        return;
+      }
       const applyFolderChange = () => {
         const inbox = sunriseControlState.inbox || {};
         inbox.activeFolder = nextFolder;
@@ -10425,6 +11004,18 @@ function bindSunriseControlInteractions() {
 
     const inboxFolderAdd = clickTarget.closest("[data-inbox-folder-add]");
     if (inboxFolderAdd && sunriseControlState) {
+      if (shouldUseOwnerGmailInbox()) {
+        const input = document.getElementById("inbox-new-folder");
+        const folder = String(input?.value || "").trim();
+        if (!folder) return;
+        await performOwnerGmailInboxAction("create-folder", {
+          name: folder
+        }, {
+          refreshFolder: folder,
+          infoMessage: `Gmail folder "${folder}" created.`
+        });
+        return;
+      }
       const inbox = sunriseControlState.inbox || {};
       const input = document.getElementById("inbox-new-folder");
       const folder = String(input?.value || "").trim();
@@ -10509,6 +11100,10 @@ function bindSunriseControlInteractions() {
     const inboxOpen = clickTarget.closest("[data-inbox-open]");
     if (inboxOpen && sunriseControlState) {
       const id = String(inboxOpen.getAttribute("data-inbox-open") || "");
+      if (shouldUseOwnerGmailInbox()) {
+        await fetchOwnerGmailMessage(id);
+        return;
+      }
       const inbox = sunriseControlState.inbox || {};
       const msg = (Array.isArray(inbox.messages) ? inbox.messages : []).find((m) => String(m.id) === id);
       if (!msg) return;
@@ -10521,6 +11116,14 @@ function bindSunriseControlInteractions() {
 
     const inboxArchive = clickTarget.closest("[data-inbox-archive]");
     if (inboxArchive && sunriseControlState) {
+      if (shouldUseOwnerGmailInbox()) {
+        const id = String(inboxArchive.getAttribute("data-inbox-archive") || "");
+        await performOwnerGmailInboxAction("archive", { id }, {
+          refreshFolder: "archive",
+          infoMessage: "Email archived."
+        });
+        return;
+      }
       const inbox = sunriseControlState.inbox || {};
       const id = String(inboxArchive.getAttribute("data-inbox-archive") || "");
       const msg = (Array.isArray(inbox.messages) ? inbox.messages : []).find((m) => String(m.id) === id);
@@ -10537,6 +11140,19 @@ function bindSunriseControlInteractions() {
 
     const inboxMove = clickTarget.closest("[data-inbox-move]");
     if (inboxMove && sunriseControlState) {
+      if (shouldUseOwnerGmailInbox()) {
+        const id = String(inboxMove.getAttribute("data-inbox-move") || "");
+        const target = String(document.getElementById("inbox-move-target")?.value || "").trim();
+        if (!target) return;
+        await performOwnerGmailInboxAction("move", {
+          id,
+          targetFolder: target
+        }, {
+          refreshFolder: target,
+          infoMessage: `Email moved to ${target}.`
+        });
+        return;
+      }
       const inbox = sunriseControlState.inbox || {};
       const id = String(inboxMove.getAttribute("data-inbox-move") || "");
       const target = String(document.getElementById("inbox-move-target")?.value || "").trim();
@@ -10555,6 +11171,14 @@ function bindSunriseControlInteractions() {
 
     const inboxDelete = clickTarget.closest("[data-inbox-delete]");
     if (inboxDelete && sunriseControlState) {
+      if (shouldUseOwnerGmailInbox()) {
+        const id = String(inboxDelete.getAttribute("data-inbox-delete") || "");
+        await performOwnerGmailInboxAction("trash", { id }, {
+          refreshFolder: "trash",
+          infoMessage: "Email moved to trash."
+        });
+        return;
+      }
       const inbox = sunriseControlState.inbox || {};
       const id = String(inboxDelete.getAttribute("data-inbox-delete") || "");
       const msg = (Array.isArray(inbox.messages) ? inbox.messages : []).find((m) => String(m.id) === id);
@@ -10571,6 +11195,13 @@ function bindSunriseControlInteractions() {
 
     const inboxClearTrash = clickTarget.closest("[data-inbox-clear-trash]");
     if (inboxClearTrash && sunriseControlState) {
+      if (shouldUseOwnerGmailInbox()) {
+        await performOwnerGmailInboxAction("clear-trash", {}, {
+          refreshFolder: "trash",
+          infoMessage: "Trash cleared permanently."
+        });
+        return;
+      }
       const inbox = sunriseControlState.inbox || {};
       const allMessages = Array.isArray(inbox.messages) ? inbox.messages : [];
       inbox.messages = allMessages.filter((msg) => String(msg.folder || "inbox") !== "trash");
@@ -10584,6 +11215,32 @@ function bindSunriseControlInteractions() {
       sunriseControlState.inbox = inbox;
       saveSunriseControlState();
       renderSunriseInboxPage();
+      return;
+    }
+
+    const inboxRefresh = clickTarget.closest("[data-inbox-refresh]");
+    if (inboxRefresh) {
+      if (shouldUseOwnerGmailInbox()) {
+        sunriseOwnerInboxState.info = "Refreshing Gmail mirror...";
+        await syncOwnerGmailInbox({
+          folder: ownerInboxActiveFolder(),
+          selectedMessageId: ownerInboxSelectedMessageId()
+        });
+        return;
+      }
+      if (sunriseControlState?.inbox) {
+        sunriseControlState.inbox.lastInfo = "Inbox refreshed.";
+        saveSunriseControlState({ markDirty: false });
+      }
+      renderSunriseInboxPage();
+      return;
+    }
+
+    const inboxVacationOpen = clickTarget.closest("[data-inbox-vacation-open]");
+    if (inboxVacationOpen) {
+      if (shouldUseOwnerGmailInbox()) {
+        openOwnerVacationOverlay();
+      }
       return;
     }
 
@@ -11643,7 +12300,7 @@ if (profileSubmitServiceTopBtn) {
 }
 
 if (sunriseStep1) {
-  sunriseStep1.addEventListener("submit", (event) => {
+  sunriseStep1.addEventListener("submit", async (event) => {
     event.preventDefault();
     if (!hasSunriseAccess(activeAccount)) {
       if (sunriseInfo) sunriseInfo.textContent = "Sunrise-enabled account required.";
@@ -11686,12 +12343,33 @@ if (sunriseStep1) {
 
     sunriseState.email = String(account.email || email).trim().toLowerCase();
     sunriseState.account = account;
+    const actingOwner = isOwnerAccount(activeAccount);
+    if (shouldBypassOwnerEmailVerification(account) || actingOwner) {
+      if (sunriseStep2) {
+        sunriseStep2.hidden = true;
+        sunriseStep2.reset();
+      }
+      if (sunriseInfo) sunriseInfo.textContent = "Owner Sunrise verification confirmed. Unlocking control.";
+      finalizeSunriseUnlock(account);
+      return;
+    }
     sunriseState.code = issueTestEmailCode(sunriseState.email);
+    const delivery = await sendVerificationCodeEmail({
+      email: sunriseState.email,
+      code: sunriseState.code,
+      context: "sunrise",
+      name: verificationRecipientName(account)
+    });
 
     sunriseStep1.hidden = false;
     if (sunriseStep2) sunriseStep2.hidden = false;
     if (sunriseInfo) {
-      sunriseInfo.textContent = `VVS Sunrise email confirmation sent to ${sunriseState.email} from concierge@venture-voyagers.com (Subject: VVS email confirmation). Test code: ${sunriseState.code}.`;
+      sunriseInfo.textContent = buildVerificationDispatchMessage({
+        email: sunriseState.email,
+        code: sunriseState.code,
+        context: "sunrise",
+        delivery
+      });
     }
   });
 }

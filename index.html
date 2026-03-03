@@ -8,7 +8,7 @@
   <meta http-equiv="Expires" content="0" />
   <title>Venture Voyager Services - Concierge</title>
   <meta name="description" content="Venture Voyager Services (VVS) - discreet luxury concierge and private access." />
-  <link rel="stylesheet" href="styles.css?v=20260302-57" />
+  <link rel="stylesheet" href="styles.css?v=20260303-58" />
 </head>
 <body>
   <div class="wrap">
@@ -1272,6 +1272,39 @@
         </div>
       </div>
     </div>
+    <div class="contactOverlay" id="sunrise-vacation-overlay" hidden>
+      <div class="contactWindow sunriseMailWindow">
+        <div class="kicker"><span class="dot" aria-hidden="true"></span> Sunrise • Gmail Vacation Reply</div>
+        <h3 class="mailTitle">Owner Inbox Settings</h3>
+        <div class="mailFormGrid">
+          <label class="choice" style="grid-column:1/-1;">
+            <input type="checkbox" id="sunrise-vacation-enable" />
+            Enable automatic out-of-office reply
+          </label>
+          <label class="mailLabel" for="sunrise-vacation-start">Start</label>
+          <input class="input" id="sunrise-vacation-start" type="datetime-local" />
+          <label class="mailLabel" for="sunrise-vacation-end">End</label>
+          <input class="input" id="sunrise-vacation-end" type="datetime-local" />
+          <label class="mailLabel" for="sunrise-vacation-subject">Subject</label>
+          <input class="input" id="sunrise-vacation-subject" type="text" autocomplete="off" placeholder="Out of office" />
+          <label class="mailLabel" for="sunrise-vacation-body">Message</label>
+          <textarea class="input mailTextarea" id="sunrise-vacation-body" placeholder="Automatic reply message..."></textarea>
+          <label class="choice" style="grid-column:1/-1;">
+            <input type="checkbox" id="sunrise-vacation-restrict-contacts" />
+            Restrict replies to contacts only
+          </label>
+          <label class="choice" style="grid-column:1/-1;">
+            <input type="checkbox" id="sunrise-vacation-restrict-domain" />
+            Restrict replies to the domain only
+          </label>
+        </div>
+        <p class="authInfo" id="sunrise-vacation-info"></p>
+        <div class="viewActions" style="justify-content:center; margin-top:10px;">
+          <button class="btn primary" type="button" id="sunrise-vacation-save">Save Vacation Reply</button>
+          <button class="btn ghost" type="button" id="sunrise-vacation-close">Close</button>
+        </div>
+      </div>
+    </div>
     <div class="contactOverlay" id="inbox-signature-overlay" hidden>
       <div class="contactWindow sunriseMailWindow">
         <div class="kicker"><span class="dot" aria-hidden="true"></span> Sunrise Signatures</div>
@@ -1302,6 +1335,6 @@
     </footer>
   </div>
 
-  <script src="script.js?v=20260303-99"></script>
+  <script src="script.js?v=20260303-100"></script>
 </body>
 </html>

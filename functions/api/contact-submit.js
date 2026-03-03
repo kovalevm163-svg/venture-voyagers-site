@@ -6,7 +6,7 @@ import {
   envValue,
   json,
   readJson,
-  sendEmailViaResend,
+  sendEmailViaConfiguredProvider,
   toParagraphHtml
 } from "./_shared.js";
 
@@ -162,14 +162,14 @@ export async function onRequestPost(context) {
   `;
 
   const [internalEmailResult, customerEmailResult, contactResult] = await Promise.all([
-    sendEmailViaResend(context.env, {
+    sendEmailViaConfiguredProvider(context.env, {
       to: [internalRecipient],
       replyTo: [normalizedEmail],
       subject,
       html: internalHtml,
       text: cleanText(payload.requestDetails)
     }),
-    sendEmailViaResend(context.env, {
+    sendEmailViaConfiguredProvider(context.env, {
       to: [normalizedEmail],
       subject: `VVS Request Received - ${payload.serviceType}`,
       html: customerHtml,

@@ -1944,6 +1944,26 @@ body.sunrise-dock-visible main{
   color: rgba(245,220,199,.66);
 }
 
+.sunriseInboxAliasRow{
+  display:flex;
+  flex-wrap:wrap;
+  gap:8px;
+  margin:8px 0 10px;
+}
+
+.sunriseInboxAliasChip{
+  display:inline-flex;
+  align-items:center;
+  padding:7px 11px;
+  border-radius:999px;
+  border:1px solid rgba(223,167,131,.28);
+  background: rgba(19,11,10,.58);
+  color: rgba(252,237,221,.88);
+  font-size:11px;
+  letter-spacing:.08em;
+  text-transform:uppercase;
+}
+
 .sunriseInboxComposeGrid{
   display:grid;
   grid-template-columns: repeat(2, minmax(0, 1fr));
