@@ -203,7 +203,9 @@ async function fetchAliases(env) {
         email: String(entry.sendAsEmail || "").trim(),
         displayName: String(entry.displayName || "").trim(),
         isPrimary: !!entry.isPrimary,
-        isDefault: !!entry.isDefault
+        isDefault: !!entry.isDefault,
+        replyTo: String(entry.replyToAddress || "").trim(),
+        signatureHtml: String(entry.signature || "").trim()
       })).filter((entry) => entry.email)
     : [];
   return { ...response, aliases };

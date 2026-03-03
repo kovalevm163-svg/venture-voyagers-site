@@ -4635,6 +4635,8 @@ function getSunriseComposeSnapshot() {
     cc: readValue("sunrise-mail-cc"),
     bcc: readValue("sunrise-mail-bcc"),
     subject: readValue("sunrise-mail-subject"),
+    from: readValue("sunrise-mail-from"),
+    signature: readValue("sunrise-mail-signature"),
     body: readValue("sunrise-mail-body"),
     font: readValue("sunrise-mail-font"),
     fontSize: readValue("sunrise-mail-font-size"),
@@ -4663,7 +4665,7 @@ function sunriseComposeSnapshotChanged() {
   const current = getSunriseComposeSnapshot();
   if (!sunriseComposeDraftBaseline) return hasSnapshotContent(current);
   const baseline = sunriseComposeDraftBaseline;
-  const keys = ["to", "cc", "bcc", "subject", "body", "font", "fontSize", "priority", "schedule"];
+  const keys = ["to", "cc", "bcc", "subject", "from", "signature", "body", "font", "fontSize", "priority", "schedule"];
   const anyFieldChanged = keys.some((key) => String(current[key] || "") !== String(baseline[key] || ""));
   if (anyFieldChanged) return true;
   const currentFiles = Array.isArray(current.attachments) ? current.attachments : [];
@@ -5694,6 +5696,116 @@ function ownerInboxVacationSummary() {
   return `Vacation reply is active from ${start} to ${end}.`;
 }
 
+function htmlToSignatureText(value = "") {
+  return String(value || "")
+    .replace(/<br\s*\/?>/gi, "\n")
+    .replace(/<\/p>\s*<p[^>]*>/gi, "\n\n")
+    .replace(/<[^>]+>/g, " ")
+    .replace(/&nbsp;/gi, " ")
+    .replace(/\s+\n/g, "\n")
+    .replace(/\n{3,}/g, "\n\n")
+    .trim();
+}
+
+function ownerInboxSignatureProfiles() {
+  const aliases = Array.isArray(sunriseOwnerInboxState.aliases) ? sunriseOwnerInboxState.aliases : [];
+  return aliases.map((alias, index) => {
+    const email = String(alias?.email || "").trim();
+    const displayName = String(alias?.displayName || "").trim();
+    const signatureHtml = String(alias?.signatureHtml || "").trim();
+    const signatureText = htmlToSignatureText(signatureHtml);
+    return {
+      id: email || `gmail-signature-${index + 1}`,
+      email,
+      displayName,
+      replyTo: String(alias?.replyTo || "").trim(),
+      isPrimary: !!alias?.isPrimary,
+      isDefault: !!alias?.isDefault,
+      signatureHtml,
+      signatureText
+    };
+  }).filter((entry) => entry.email);
+}
+
+function ownerInboxDefaultSignatureProfile() {
+  const profiles = ownerInboxSignatureProfiles();
+  return profiles.find((profile) => profile.isDefault)
+    || profiles.find((profile) => profile.isPrimary)
+    || profiles[0]
+    || null;
+}
+
+function ownerInboxSenderAddress(profile = null) {
+  const email = String(profile?.email || "").trim();
+  const displayName = String(profile?.displayName || "").trim();
+  if (!email) return "Venture Voyager Services <concierge@venture-voyagers.com>";
+  return displayName ? `${displayName} <${email}>` : email;
+}
+
+function setComposeFieldVisibility(id = "", visible = false) {
+  const field = document.getElementById(id);
+  const label = document.querySelector(`label[for="${id}"]`);
+  if (field instanceof HTMLElement) field.hidden = !visible;
+  if (label instanceof HTMLElement) label.hidden = !visible;
+}
+
+function syncOwnerComposeIdentityControls({ forceDefault = false } = {}) {
+  const fromSelect = document.getElementById("sunrise-mail-from");
+  const signatureSelect = document.getElementById("sunrise-mail-signature");
+  const ownerMode = shouldUseOwnerGmailInbox();
+  setComposeFieldVisibility("sunrise-mail-from", ownerMode);
+  setComposeFieldVisibility("sunrise-mail-signature", ownerMode);
+  if (!(fromSelect instanceof HTMLSelectElement) || !(signatureSelect instanceof HTMLSelectElement)) return;
+  if (!ownerMode) {
+    fromSelect.innerHTML = `<option value="concierge@venture-voyagers.com">concierge@venture-voyagers.com</option>`;
+    fromSelect.value = "concierge@venture-voyagers.com";
+    signatureSelect.innerHTML = `<option value="">No signature</option>`;
+    signatureSelect.value = "";
+    return;
+  }
+  const profiles = ownerInboxSignatureProfiles();
+  const defaultProfile = ownerInboxDefaultSignatureProfile();
+  fromSelect.innerHTML = profiles.length
+    ? profiles.map((profile) => {
+      const label = profile.displayName ? `${profile.displayName} • ${profile.email}` : profile.email;
+      return `<option value="${profile.email}">${label}</option>`;
+    }).join("")
+    : `<option value="concierge@venture-voyagers.com">concierge@venture-voyagers.com</option>`;
+  signatureSelect.innerHTML = `<option value="">No signature</option>${profiles.map((profile) => {
+    const label = profile.displayName ? `${profile.displayName} • ${profile.email}` : profile.email;
+    return `<option value="${profile.email}">${label}</option>`;
+  }).join("")}`;
+  if (forceDefault || !fromSelect.value) {
+    fromSelect.value = String(defaultProfile?.email || "concierge@venture-voyagers.com");
+  }
+  const matchingProfile = profiles.find((profile) => profile.email === fromSelect.value) || defaultProfile;
+  if (forceDefault || !signatureSelect.value || !profiles.some((profile) => profile.email === signatureSelect.value)) {
+    signatureSelect.value = String(matchingProfile?.email || "");
+  }
+}
+
+function selectedOwnerComposeProfile(selectId = "sunrise-mail-from") {
+  const select = document.getElementById(selectId);
+  const selected = String(select instanceof HTMLSelectElement ? select.value : "").trim();
+  const profiles = ownerInboxSignatureProfiles();
+  return profiles.find((profile) => profile.email === selected)
+    || ownerInboxDefaultSignatureProfile();
+}
+
+function appendOwnerSignatureHtml(bodyHtml = "", profile = null) {
+  const signatureHtml = String(profile?.signatureHtml || "").trim();
+  if (!signatureHtml) return bodyHtml;
+  const content = String(bodyHtml || "").trim();
+  return content ? `${content}<br><br>${signatureHtml}` : signatureHtml;
+}
+
+function appendOwnerSignatureText(bodyText = "", profile = null) {
+  const signatureText = String(profile?.signatureText || "").trim();
+  if (!signatureText) return String(bodyText || "").trim();
+  const content = String(bodyText || "").trim();
+  return content ? `${content}\n\n${signatureText}` : signatureText;
+}
+
 async function requestOwnerGmailInbox(endpoint, payload = null, timeoutMs = 15000) {
   const result = await requestJsonWithTimeout(endpoint, {
     method: payload == null ? "GET" : "POST",
@@ -5763,6 +5875,7 @@ async function syncOwnerGmailInbox({
       ? ""
       : String(body.selectedMessage?.id || "").trim();
   }
+  syncOwnerComposeIdentityControls();
   if (currentVisibleRoute() === "sunrise-inbox") renderSunriseInboxPage();
   return true;
 }
@@ -6004,7 +6117,7 @@ function buildVerificationDispatchMessage({
 }
 
 function shouldBypassOwnerEmailVerification(account = null) {
-  return !!(account && isOwnerAccount(account));
+  return false;
 }
 
 function setRecoveryCodeFieldVisibility(step2Form = null, hidden = false) {
@@ -10107,6 +10220,26 @@ function renderSignatureManager() {
   if (!sunriseControlState) return;
   const wrap = document.getElementById("inbox-signature-manager");
   if (!wrap) return;
+  if (shouldUseOwnerGmailInbox()) {
+    const profiles = ownerInboxSignatureProfiles();
+    wrap.innerHTML = profiles.length
+      ? profiles.map((profile) => `
+        <article class="sunriseInboxSignatureItem">
+          <div class="sunriseInboxSignatureHead">
+            <div>
+              <b>${profile.displayName || profile.email}</b>
+              <p class="profileNote">${profile.email}${profile.replyTo ? ` • Reply-To: ${profile.replyTo}` : ""}</p>
+            </div>
+            <span class="sunriseInboxAliasChip${profile.isDefault || profile.isPrimary ? " sunriseStatusBadge" : ""}">${profile.isDefault ? "Default" : (profile.isPrimary ? "Primary" : "Gmail")}</span>
+          </div>
+          <div class="sunriseInboxMessageBody">${profile.signatureHtml || "<p class='profileNote'>No Gmail signature configured for this send identity.</p>"}</div>
+        </article>
+      `).join("")
+      : "<p class='profileNote'>No Gmail send-as signatures available yet.</p>";
+    const signatureInfo = document.getElementById("inbox-signature-manager-info");
+    if (signatureInfo) signatureInfo.textContent = "Signatures are mirrored directly from Gmail send-as settings.";
+    return;
+  }
   const inbox = sunriseControlState.inbox || {};
   const signatures = Array.isArray(inbox.signatures) ? inbox.signatures : [];
   const defaultId = String(inbox.defaultSignatureId || "");
@@ -10203,6 +10336,8 @@ function bindSunriseControlInteractions() {
   const sunriseMailCc = document.getElementById("sunrise-mail-cc");
   const sunriseMailBcc = document.getElementById("sunrise-mail-bcc");
   const sunriseMailSubject = document.getElementById("sunrise-mail-subject");
+  const sunriseMailFrom = document.getElementById("sunrise-mail-from");
+  const sunriseMailSignature = document.getElementById("sunrise-mail-signature");
   const sunriseMailBody = document.getElementById("sunrise-mail-body");
   const sunriseMailFont = document.getElementById("sunrise-mail-font");
   const sunriseMailFontSize = document.getElementById("sunrise-mail-font-size");
@@ -10374,6 +10509,7 @@ function bindSunriseControlInteractions() {
     const windowEl = sunriseEmailOverlay.querySelector(".sunriseMailWindow");
     const formEl = sunriseEmailOverlay.querySelector(".mailFormGrid");
     enhanceFilePickers(sunriseEmailOverlay);
+    syncOwnerComposeIdentityControls({ forceDefault: true });
     sunriseEmailOverlay.hidden = false;
     if (sunriseEmailOverlay instanceof HTMLElement) {
       sunriseEmailOverlay.style.placeItems = "start center";
@@ -10407,6 +10543,7 @@ function bindSunriseControlInteractions() {
     if (sunriseMailCc) sunriseMailCc.value = "";
     if (sunriseMailBcc) sunriseMailBcc.value = "";
     if (sunriseMailSubject) sunriseMailSubject.value = `VVS Operations Notice - ${userName}`;
+    syncOwnerComposeIdentityControls({ forceDefault: true });
     if (sunriseMailBody) sunriseMailBody.value = `Dear ${userName},\n\nPlease review the latest operational update.\n\nRegards,\nVVS Command`;
     if (sunriseMailFont) sunriseMailFont.value = "Arial, sans-serif";
     if (sunriseMailFontSize) sunriseMailFontSize.value = "14";
@@ -10422,6 +10559,7 @@ function bindSunriseControlInteractions() {
     if (sunriseMailCc) sunriseMailCc.value = "";
     if (sunriseMailBcc) sunriseMailBcc.value = "";
     if (sunriseMailSubject) sunriseMailSubject.value = "";
+    syncOwnerComposeIdentityControls({ forceDefault: true });
     if (sunriseMailBody) {
       sunriseMailBody.value = "";
       sunriseMailBody.style.fontWeight = "400";
@@ -10651,7 +10789,15 @@ function bindSunriseControlInteractions() {
       const sender = sunriseState.email || (activeAccount?.email || "concierge@venture-voyagers.com");
       const senderMailbox = activeSunriseMailbox();
       const folder = scheduledAt ? "sending" : "sent";
-      const html = `<p style="font-family:${font};font-size:${fontSize}px;">${body.replace(/\n/g, "<br>")}</p>`;
+      const ownerFromProfile = shouldUseOwnerGmailInbox() ? selectedOwnerComposeProfile("sunrise-mail-from") : null;
+      const ownerSignatureProfile = shouldUseOwnerGmailInbox() ? selectedOwnerComposeProfile("sunrise-mail-signature") : null;
+      const baseHtml = `<p style="font-family:${font};font-size:${fontSize}px;">${body.replace(/\n/g, "<br>")}</p>`;
+      const html = shouldUseOwnerGmailInbox()
+        ? appendOwnerSignatureHtml(baseHtml, ownerSignatureProfile)
+        : baseHtml;
+      const textBody = shouldUseOwnerGmailInbox()
+        ? appendOwnerSignatureText(body, ownerSignatureProfile)
+        : body;
       const attachmentPayload = await readEmailAttachments(sunriseMailAttach);
       if (shouldUseOwnerGmailInbox()) {
         const synced = await performOwnerGmailInboxAction("send", {
@@ -10660,16 +10806,16 @@ function bindSunriseControlInteractions() {
           bcc,
           subject,
           html,
-          text: body,
-          from: "Venture Voyager Services <concierge@venture-voyagers.com>",
-          replyTo: sender,
+          text: textBody,
+          from: ownerInboxSenderAddress(ownerFromProfile),
+          replyTo: ownerFromProfile?.replyTo || ownerFromProfile?.email || sender,
           attachments: attachmentPayload,
           scheduledAt
         }, {
           refreshFolder: folder,
           infoMessage: folder === "sending"
             ? "Scheduled draft synced to Gmail."
-            : `Message sent from concierge@venture-voyagers.com to ${recipients || to}.`
+            : `Message sent from ${ownerFromProfile?.email || "concierge@venture-voyagers.com"} to ${recipients || to}.`
         });
         if (sunriseMailInfo) {
           sunriseMailInfo.textContent = synced
@@ -10736,7 +10882,15 @@ function bindSunriseControlInteractions() {
         return;
       }
       const sender = sunriseState.email || (activeAccount?.email || "concierge@venture-voyagers.com");
-      const html = `<p style="font-family:${font};font-size:${fontSize}px;">${body.replace(/\n/g, "<br>")}</p>`;
+      const ownerFromProfile = shouldUseOwnerGmailInbox() ? selectedOwnerComposeProfile("sunrise-mail-from") : null;
+      const ownerSignatureProfile = shouldUseOwnerGmailInbox() ? selectedOwnerComposeProfile("sunrise-mail-signature") : null;
+      const baseHtml = `<p style="font-family:${font};font-size:${fontSize}px;">${body.replace(/\n/g, "<br>")}</p>`;
+      const html = shouldUseOwnerGmailInbox()
+        ? appendOwnerSignatureHtml(baseHtml, ownerSignatureProfile)
+        : baseHtml;
+      const textBody = shouldUseOwnerGmailInbox()
+        ? appendOwnerSignatureText(body, ownerSignatureProfile)
+        : body;
       if (shouldUseOwnerGmailInbox()) {
         const attachmentPayload = await readEmailAttachments(sunriseMailAttach);
         const targetFolder = scheduledAt ? "sending" : "drafts";
@@ -10746,9 +10900,9 @@ function bindSunriseControlInteractions() {
           bcc,
           subject,
           html,
-          text: body,
-          from: "Venture Voyager Services <concierge@venture-voyagers.com>",
-          replyTo: sender,
+          text: textBody,
+          from: ownerInboxSenderAddress(ownerFromProfile),
+          replyTo: ownerFromProfile?.replyTo || ownerFromProfile?.email || sender,
           attachments: attachmentPayload,
           scheduledAt
         }, {
@@ -11187,7 +11341,7 @@ function bindSunriseControlInteractions() {
     if (inboxSignatureManagerOpen) {
       renderSignatureManager();
       if (signatureOverlay) signatureOverlay.hidden = false;
-      if (signatureInfo) signatureInfo.textContent = "";
+      if (signatureInfo && !shouldUseOwnerGmailInbox()) signatureInfo.textContent = "";
       return;
     }
 
@@ -11197,6 +11351,7 @@ function bindSunriseControlInteractions() {
       if (sunriseMailCc) sunriseMailCc.value = "";
       if (sunriseMailBcc) sunriseMailBcc.value = "";
       if (sunriseMailSubject) sunriseMailSubject.value = "";
+      syncOwnerComposeIdentityControls({ forceDefault: true });
       if (sunriseMailBody) sunriseMailBody.value = "";
       if (sunriseMailFont) sunriseMailFont.value = "Arial, sans-serif";
       if (sunriseMailFontSize) sunriseMailFontSize.value = "14";
@@ -11727,6 +11882,14 @@ function bindSunriseControlInteractions() {
 
     if (t.id === "sunrise-mail-font" && sunriseMailBody) {
       sunriseMailBody.style.fontFamily = String((t instanceof HTMLSelectElement ? t.value : "Arial, sans-serif") || "Arial, sans-serif");
+      return;
+    }
+    if (t.id === "sunrise-mail-from" && t instanceof HTMLSelectElement) {
+      const signatureSelect = document.getElementById("sunrise-mail-signature");
+      const profiles = ownerInboxSignatureProfiles();
+      if (signatureSelect instanceof HTMLSelectElement && profiles.some((profile) => profile.email === t.value)) {
+        signatureSelect.value = t.value;
+      }
       return;
     }
     if (t.id === "sunrise-mail-font-size" && sunriseMailBody) {
@@ -12485,8 +12648,7 @@ if (sunriseStep1) {
 
     sunriseState.email = String(account.email || email).trim().toLowerCase();
     sunriseState.account = account;
-    const actingOwner = isOwnerAccount(activeAccount);
-    if (shouldBypassOwnerEmailVerification(account) || actingOwner) {
+    if (shouldBypassOwnerEmailVerification(account)) {
       if (sunriseStep2) {
         sunriseStep2.hidden = true;
         sunriseStep2.reset();
