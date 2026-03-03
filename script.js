@@ -5712,6 +5712,7 @@ async function requestOwnerGmailInbox(endpoint, payload = null, timeoutMs = 1500
 async function syncOwnerGmailInbox({
   folder = "",
   selectedMessageId = "",
+  clearSelectedMessage = false,
   silent = false
 } = {}) {
   if (!shouldUseOwnerGmailInbox()) return false;
@@ -5721,7 +5722,8 @@ async function syncOwnerGmailInbox({
   if (!silent) sunriseOwnerInboxState.error = "";
   if (sunriseControlState?.inbox) {
     sunriseControlState.inbox.activeFolder = nextFolder;
-    if (selectedMessageId) sunriseControlState.inbox.selectedMessageId = String(selectedMessageId || "").trim();
+    if (clearSelectedMessage) sunriseControlState.inbox.selectedMessageId = "";
+    else if (selectedMessageId) sunriseControlState.inbox.selectedMessageId = String(selectedMessageId || "").trim();
   }
   if (currentVisibleRoute() === "sunrise-inbox") renderSunriseInboxPage();
 
@@ -5729,7 +5731,9 @@ async function syncOwnerGmailInbox({
     mode: "bootstrap",
     folder: nextFolder
   });
-  const requestedId = String(selectedMessageId || ownerInboxSelectedMessageId()).trim();
+  const requestedId = clearSelectedMessage
+    ? ""
+    : String(selectedMessageId || ownerInboxSelectedMessageId()).trim();
   if (requestedId) params.set("id", requestedId);
   const response = await requestOwnerGmailInbox(`/api/gmail-inbox?${params.toString()}`);
 
@@ -5745,7 +5749,7 @@ async function syncOwnerGmailInbox({
   sunriseOwnerInboxState.ready = true;
   sunriseOwnerInboxState.error = "";
   sunriseOwnerInboxState.messages = Array.isArray(body.messages) ? body.messages : [];
-  sunriseOwnerInboxState.selectedMessage = body.selectedMessage || null;
+  sunriseOwnerInboxState.selectedMessage = clearSelectedMessage ? null : (body.selectedMessage || null);
   sunriseOwnerInboxState.customFolders = Array.isArray(body.customFolders) ? body.customFolders : [];
   sunriseOwnerInboxState.folderCounts = body.folderCounts || {};
   sunriseOwnerInboxState.aliases = Array.isArray(body.aliases) ? body.aliases : [];
@@ -5755,7 +5759,9 @@ async function syncOwnerGmailInbox({
   sunriseOwnerInboxState.nextPageToken = String(body.nextPageToken || "").trim();
   if (sunriseControlState?.inbox) {
     sunriseControlState.inbox.activeFolder = nextFolder;
-    sunriseControlState.inbox.selectedMessageId = String(body.selectedMessage?.id || "").trim();
+    sunriseControlState.inbox.selectedMessageId = clearSelectedMessage
+      ? ""
+      : String(body.selectedMessage?.id || "").trim();
   }
   if (currentVisibleRoute() === "sunrise-inbox") renderSunriseInboxPage();
   return true;
@@ -5780,6 +5786,7 @@ async function fetchOwnerGmailMessage(messageId = "") {
 async function performOwnerGmailInboxAction(action = "", payload = {}, {
   refreshFolder = "",
   selectedMessageId = "",
+  clearSelectedMessage = false,
   infoMessage = ""
 } = {}) {
   const response = await requestOwnerGmailInbox("/api/gmail-inbox", {
@@ -5795,7 +5802,8 @@ async function performOwnerGmailInboxAction(action = "", payload = {}, {
   sunriseOwnerInboxState.info = String(infoMessage || "").trim();
   return syncOwnerGmailInbox({
     folder: refreshFolder || ownerInboxActiveFolder(),
-    selectedMessageId
+    selectedMessageId,
+    clearSelectedMessage
   });
 }
 
@@ -5865,6 +5873,79 @@ function openOwnerVacationOverlay() {
 function closeOwnerVacationOverlay() {
   const overlay = document.getElementById("sunrise-vacation-overlay");
   if (overlay) overlay.hidden = true;
+}
+
+function closeSunriseInboxMessageOverlay() {
+  const overlay = document.getElementById("sunrise-inbox-message-overlay");
+  const body = document.getElementById("sunrise-inbox-message-body");
+  const info = document.getElementById("sunrise-inbox-message-info");
+  if (body) body.innerHTML = "";
+  if (info) info.textContent = "";
+  if (overlay) overlay.hidden = true;
+}
+
+function inboxMoveTargets() {
+  const standardFolders = ["inbox", "archive", "sent", "drafts", "spam", "trash", "sending"];
+  const customFolders = shouldUseOwnerGmailInbox()
+    ? (Array.isArray(sunriseOwnerInboxState.customFolders) ? sunriseOwnerInboxState.customFolders : [])
+    : (Array.isArray(sunriseControlState?.inbox?.customFolders) ? sunriseControlState.inbox.customFolders : []);
+  return [...standardFolders, ...customFolders]
+    .map((name) => String(name || "").trim())
+    .filter(Boolean)
+    .filter((name, index, list) => list.indexOf(name) === index);
+}
+
+function buildInboxMoveFolderOptions(selected = "") {
+  const selectedKey = String(selected || "").trim();
+  return inboxMoveTargets().map((name) => {
+    const label = name === "sending"
+      ? "Sending"
+      : `${String(name).charAt(0).toUpperCase()}${String(name).slice(1)}`;
+    const isSelected = name === selectedKey ? " selected" : "";
+    return `<option value="${name}"${isSelected}>${label}</option>`;
+  }).join("");
+}
+
+function buildSunriseInboxMessageWindow(message = {}) {
+  const fallbackFolder = shouldUseOwnerGmailInbox()
+    ? ownerInboxActiveFolder()
+    : String(sunriseControlState?.inbox?.activeFolder || "inbox");
+  const systemFolder = String(message.folder || fallbackFolder || "inbox").trim() || "inbox";
+  const folderList = [systemFolder, ...(Array.isArray(message.customFolders) ? message.customFolders : [])]
+    .map((folder) => String(folder || "").trim())
+    .filter(Boolean)
+    .filter((folder, index, list) => list.indexOf(folder) === index);
+  const badges = [
+    String(message.priority || "").trim(),
+    String(message.scheduledAt || "").trim() ? `Scheduled ${message.scheduledAt}` : "",
+    ...folderList
+  ].filter(Boolean).map((item) => `<span class="sunriseInboxMessageBadge">${item}</span>`).join("");
+  const metaRows = [
+    ["From", message.from || "-"],
+    ["To", message.to || "-"],
+    ["CC", message.cc || "-"],
+    ["BCC", message.bcc || "-"],
+    ["Created", message.createdAt || "-"],
+    ["Reply-To", message.replyTo || "-"],
+    ["Scheduled", message.scheduledAt || "-"]
+  ].map(([label, value]) => `<article class="sunriseInboxMessageMetaCard"><span>${label}</span><b>${value}</b></article>`).join("");
+  const attachments = Array.isArray(message.attachments) && message.attachments.length
+    ? `<div class="sunriseInboxAttachList">Attachments: ${message.attachments.join(", ")}</div>`
+    : `<div class="sunriseInboxAttachList">Attachments: none</div>`;
+  const moveOptions = buildInboxMoveFolderOptions(systemFolder);
+  return `<div class="sunriseInboxMessageShell"><div class="sunriseInboxMessageHead"><div><p class="profileLabel">Inbox Message</p><h3 class="sunriseInboxMessageSubject">${message.subject || "(No subject)"}</h3></div><div class="sunriseInboxMessageBadges">${badges || '<span class="sunriseInboxMessageBadge">Message</span>'}</div></div><div class="sunriseInboxMessageTools"><button class="sunriseMiniBtn" type="button" data-inbox-archive="${message.id}">Archive</button><select class="select" id="inbox-move-target"><option value="">Move to...</option>${moveOptions}</select><button class="sunriseMiniBtn" type="button" data-inbox-move="${message.id}">Move</button><button class="sunriseMiniBtn" type="button" data-inbox-delete="${message.id}">Delete to Trash</button></div><div class="sunriseInboxMessageMeta">${metaRows}</div><div class="sunriseInboxAttachList">${folderList.length ? `Folders: ${folderList.join(", ")}` : "Folders: system"}</div>${attachments}<div class="sunriseInboxMessageBody">${message.bodyHtml || `<p>${String(message.snippet || "No content.")}</p>`}</div></div>`;
+}
+
+function openSunriseInboxMessageOverlay(message = {}) {
+  const overlay = document.getElementById("sunrise-inbox-message-overlay");
+  const title = document.getElementById("sunrise-inbox-message-title");
+  const body = document.getElementById("sunrise-inbox-message-body");
+  const info = document.getElementById("sunrise-inbox-message-info");
+  if (!overlay || !body) return;
+  body.innerHTML = buildSunriseInboxMessageWindow(message);
+  if (title) title.textContent = String(message.subject || "Email Details").trim() || "Email Details";
+  if (info) info.textContent = String(message.createdAt || "").trim();
+  overlay.hidden = false;
 }
 
 function verificationEmailContextLabel(context = "") {
@@ -6703,8 +6784,45 @@ function resetSunriseState(options = {}) {
   updateSunriseAccessView();
 }
 
+function secureRandomInt(max = 10) {
+  const limit = Number(max || 0);
+  if (!Number.isFinite(limit) || limit <= 0) return 0;
+  if (window.crypto?.getRandomValues) {
+    const bytes = new Uint32Array(1);
+    window.crypto.getRandomValues(bytes);
+    return bytes[0] % limit;
+  }
+  return Math.floor(Math.random() * limit);
+}
+
+function generateCodeDigits() {
+  const digits = [];
+  while (digits.length < 6) {
+    const digit = String(secureRandomInt(10));
+    if (digits.includes(digit)) continue;
+    digits.push(digit);
+  }
+  return digits;
+}
+
+function codeLooksSimple(code = "") {
+  const digits = String(code || "").split("").map((digit) => Number(digit));
+  if (digits.length !== 6 || digits.some((digit) => Number.isNaN(digit))) return true;
+  const ascending = digits.slice(1).every((digit, index) => digit - digits[index] === 1);
+  const descending = digits.slice(1).every((digit, index) => digit - digits[index] === -1);
+  const paired = digits[0] === digits[1] && digits[2] === digits[3] && digits[4] === digits[5];
+  const mirrored = `${digits[0]}${digits[1]}${digits[2]}` === `${digits[5]}${digits[4]}${digits[3]}`;
+  return ascending || descending || paired || mirrored;
+}
+
 function generateCode() {
-  return String(Math.floor(100000 + Math.random() * 900000));
+  let code = "";
+  do {
+    const digits = generateCodeDigits();
+    const offset = secureRandomInt(digits.length);
+    code = digits.slice(offset).concat(digits.slice(0, offset)).join("");
+  } while (codeLooksSimple(code));
+  return code;
 }
 
 function issueTestEmailCode(email) {
@@ -9849,10 +9967,6 @@ function renderOwnerSunriseInboxPage(root) {
   const activeFolder = ownerInboxActiveFolder();
   const selectedMessage = sunriseOwnerInboxState.selectedMessage || null;
   const viewerProfile = sunriseInboxProfile();
-  const moveFolderOptions = ["inbox", "archive", "sent", "drafts", "spam", "trash", "sending", ...sunriseOwnerInboxState.customFolders]
-    .filter((name, index, list) => list.indexOf(name) === index)
-    .map((name) => `<option value="${name}">${String(name).charAt(0).toUpperCase() + String(name).slice(1)}</option>`)
-    .join("");
 
   if ((!sunriseOwnerInboxState.ready || sunriseOwnerInboxState.folder !== activeFolder) && !sunriseOwnerInboxState.loading) {
     syncOwnerGmailInbox({
@@ -9884,10 +9998,7 @@ function renderOwnerSunriseInboxPage(root) {
     const active = selectedMessage && id === String(selectedMessage.id || "") ? " isActive" : "";
     return `<button class="sunriseInboxRow${active}" type="button" data-inbox-open="${id}"><span class="sunriseInboxFrom">${from}</span><span class="sunriseInboxSubject">${subject}</span><span class="sunriseInboxMeta">${priority} • ${created}</span></button>`;
   }).join("");
-
-  const detailHtml = selectedMessage
-    ? `<article class="sunriseControlCard sunriseDetailWide"><div class="sunriseInboxTop"><h3>Email Details</h3><div class="sunriseControlActions"><button class="sunriseMiniBtn" type="button" data-inbox-archive="${selectedMessage.id}">Archive</button><select class="select" id="inbox-move-target"><option value="">Move to...</option>${moveFolderOptions}</select><button class="sunriseMiniBtn" type="button" data-inbox-move="${selectedMessage.id}">Move</button><button class="sunriseMiniBtn" type="button" data-inbox-delete="${selectedMessage.id}">Delete to Trash</button></div></div><div class="sunriseInboxDetailGrid"><p><b>From:</b> ${selectedMessage.from || "-"}</p><p><b>To:</b> ${selectedMessage.to || "-"}</p><p><b>CC:</b> ${selectedMessage.cc || "-"}</p><p><b>BCC:</b> ${selectedMessage.bcc || "-"}</p><p><b>Subject:</b> ${selectedMessage.subject || "-"}</p><p><b>Priority:</b> ${selectedMessage.priority || "Normal"}</p><p><b>Created:</b> ${selectedMessage.createdAt || "-"}</p><p><b>Scheduled:</b> ${selectedMessage.scheduledAt || "-"}</p></div><div class="sunriseInboxAttachList">${(selectedMessage.attachments || []).length ? `Attachments: ${(selectedMessage.attachments || []).join(", ")}` : "Attachments: none"}</div><div class="sunriseInboxAttachList">${(selectedMessage.customFolders || []).length ? `Folders: ${selectedMessage.customFolders.join(", ")}` : "Folders: system"}</div><div class="sunriseInboxDetailBody">${selectedMessage.bodyHtml || `<p>${String(selectedMessage.snippet || "No content.")}</p>`}</div></article>`
-    : `<article class="sunriseControlCard sunriseDetailWide"><p class="profileNote">${sunriseOwnerInboxState.loading ? "Synchronizing concierge@venture-voyagers.com..." : "Select an email to view details."}</p></article>`;
+  const detailHtml = `<article class="sunriseControlCard sunriseDetailWide"><div class="sunriseInboxTop"><h3>Windowed Email Review</h3><div class="sunriseControlActions"><button class="sunriseMiniBtn" type="button" data-inbox-refresh>Refresh</button></div></div><p class="profileNote">${sunriseOwnerInboxState.loading ? "Synchronizing concierge@venture-voyagers.com..." : "Open any email to review the full conversation in a dedicated Sunrise window without leaving this folder."}</p></article>`;
 
   const infoText = sunriseOwnerInboxState.error
     || sunriseOwnerInboxState.info
@@ -9936,12 +10047,6 @@ function renderSunriseInboxPage() {
     if (activeFolder === "folders") return customSet.has(folder);
     return folder === activeFolder;
   });
-  const selectedMessage = messages.find((msg) => String(msg.id || "") === selectedMessageId) || null;
-  const standardMoveFolders = ["inbox", "archive", "sent", "drafts", "spam", "trash", "sending"];
-  const moveFolderOptions = [...standardMoveFolders, ...customFolders]
-    .filter((name, idx, arr) => arr.indexOf(name) === idx)
-    .map((name) => `<option value="${name}">${name === "sending" ? "Sending" : String(name).charAt(0).toUpperCase() + String(name).slice(1)}</option>`)
-    .join("");
 
   const folderBtn = (folderKey, label) => {
     const active = activeFolder === folderKey ? " isActive" : "";
@@ -9977,9 +10082,7 @@ function renderSunriseInboxPage() {
     return `<article class="sunriseInboxSignatureItem"><div class="sunriseInboxSignatureHead"><input class="input" data-inbox-signature-name="${idx}" value="${sig.name || ""}" placeholder="Signature name"><label class="choice"><input type="radio" name="inbox-default-signature" data-inbox-signature-default="${id}" ${checked}/> Default</label><button class="sunriseMiniBtn" type="button" data-inbox-signature-del="${idx}">Delete</button></div><textarea class="input sunriseInboxSignatureArea" data-inbox-signature-text="${idx}" placeholder="Signature text">${sig.text || ""}</textarea><div class="sunriseControlActions"><input class="input" data-inbox-signature-image="${idx}" value="${sig.imageName || ""}" placeholder="Signature image name (optional)"><input class="input" type="file" accept=\"image/*\" data-inbox-signature-image-file="${idx}"></div></article>`;
   }).join("");
 
-  const detailHtml = selectedMessage
-    ? `<article class="sunriseControlCard sunriseDetailWide"><div class="sunriseInboxTop"><h3>Email Details</h3><div class="sunriseControlActions"><button class="sunriseMiniBtn" type="button" data-inbox-archive="${selectedMessage.id}">Archive</button><select class="select" id="inbox-move-target"><option value="">Move to...</option>${moveFolderOptions}</select><button class="sunriseMiniBtn" type="button" data-inbox-move="${selectedMessage.id}">Move</button><button class="sunriseMiniBtn" type="button" data-inbox-delete="${selectedMessage.id}">Delete to Trash</button></div></div><div class="sunriseInboxDetailGrid"><p><b>From:</b> ${selectedMessage.from || "-"}</p><p><b>To:</b> ${selectedMessage.to || "-"}</p><p><b>CC:</b> ${selectedMessage.cc || "-"}</p><p><b>BCC:</b> ${selectedMessage.bcc || "-"}</p><p><b>Subject:</b> ${selectedMessage.subject || "-"}</p><p><b>Priority:</b> ${selectedMessage.priority || "Normal"}</p><p><b>Created:</b> ${selectedMessage.createdAt || "-"}</p><p><b>Scheduled:</b> ${selectedMessage.scheduledAt || "-"}</p></div><div class="sunriseInboxAttachList">${(selectedMessage.attachments || []).length ? `Attachments: ${(selectedMessage.attachments || []).join(", ")}` : "Attachments: none"}</div><div class="sunriseInboxDetailBody">${selectedMessage.bodyHtml || "<p>No content.</p>"}</div></article>`
-    : `<article class="sunriseControlCard sunriseDetailWide"><p class="profileNote">Select an email to view details.</p></article>`;
+  const detailHtml = `<article class="sunriseControlCard sunriseDetailWide"><div class="sunriseInboxTop"><h3>Windowed Email Review</h3><div class="sunriseControlActions"><button class="sunriseMiniBtn" type="button" data-inbox-refresh>Refresh</button></div></div><p class="profileNote">Open any email to review the full conversation in a dedicated Sunrise window without leaving this folder.</p></article>`;
 
   const trashAction = activeFolder === "trash"
     ? `<button class="sunriseMiniBtn" type="button" data-inbox-clear-trash>Clear Trash</button>`
@@ -10118,6 +10221,8 @@ function bindSunriseControlInteractions() {
   const vacationClose = document.getElementById("sunrise-vacation-close");
   const vacationSave = document.getElementById("sunrise-vacation-save");
   const vacationInfo = document.getElementById("sunrise-vacation-info");
+  const inboxMessageOverlay = document.getElementById("sunrise-inbox-message-overlay");
+  const inboxMessageClose = document.getElementById("sunrise-inbox-message-close");
   if (notosPathClose && notosPathClose.dataset.boundNotosClose !== "1") {
     notosPathClose.addEventListener("click", () => {
       if (notosPathOverlay) notosPathOverlay.hidden = true;
@@ -10147,6 +10252,18 @@ function bindSunriseControlInteractions() {
       if (event.target === vacationOverlay) closeOwnerVacationOverlay();
     });
     vacationOverlay.dataset.boundVacationBackdrop = "1";
+  }
+  if (inboxMessageClose && inboxMessageClose.dataset.boundInboxMessageClose !== "1") {
+    inboxMessageClose.addEventListener("click", () => {
+      closeSunriseInboxMessageOverlay();
+    });
+    inboxMessageClose.dataset.boundInboxMessageClose = "1";
+  }
+  if (inboxMessageOverlay && inboxMessageOverlay.dataset.boundInboxMessageBackdrop !== "1") {
+    inboxMessageOverlay.addEventListener("click", (event) => {
+      if (event.target === inboxMessageOverlay) closeSunriseInboxMessageOverlay();
+    });
+    inboxMessageOverlay.dataset.boundInboxMessageBackdrop = "1";
   }
   if (vacationSave && vacationSave.dataset.boundVacationSave !== "1") {
     vacationSave.addEventListener("click", async () => {
@@ -10966,6 +11083,7 @@ function bindSunriseControlInteractions() {
     const inboxFolderBtn = clickTarget.closest("[data-inbox-folder]");
     if (inboxFolderBtn && sunriseControlState) {
       const nextFolder = String(inboxFolderBtn.getAttribute("data-inbox-folder") || "inbox");
+      closeSunriseInboxMessageOverlay();
       if (shouldUseOwnerGmailInbox()) {
         sunriseOwnerInboxState.info = "";
         if (sunriseControlState?.inbox) {
@@ -10973,7 +11091,7 @@ function bindSunriseControlInteractions() {
         }
         await syncOwnerGmailInbox({
           folder: nextFolder,
-          selectedMessageId: ""
+          clearSelectedMessage: true
         });
         return;
       }
@@ -11103,7 +11221,10 @@ function bindSunriseControlInteractions() {
     if (inboxOpen && sunriseControlState) {
       const id = String(inboxOpen.getAttribute("data-inbox-open") || "");
       if (shouldUseOwnerGmailInbox()) {
-        await fetchOwnerGmailMessage(id);
+        const loaded = await fetchOwnerGmailMessage(id);
+        if (loaded && sunriseOwnerInboxState.selectedMessage) {
+          openSunriseInboxMessageOverlay(sunriseOwnerInboxState.selectedMessage);
+        }
         return;
       }
       const inbox = sunriseControlState.inbox || {};
@@ -11113,6 +11234,7 @@ function bindSunriseControlInteractions() {
       sunriseControlState.inbox = inbox;
       saveSunriseControlState();
       renderSunriseInboxPage();
+      openSunriseInboxMessageOverlay(msg);
       return;
     }
 
@@ -11120,23 +11242,28 @@ function bindSunriseControlInteractions() {
     if (inboxArchive && sunriseControlState) {
       if (shouldUseOwnerGmailInbox()) {
         const id = String(inboxArchive.getAttribute("data-inbox-archive") || "");
-        await performOwnerGmailInboxAction("archive", { id }, {
-          refreshFolder: "archive",
+        const currentFolder = ownerInboxActiveFolder();
+        const completed = await performOwnerGmailInboxAction("archive", { id }, {
+          refreshFolder: currentFolder,
+          clearSelectedMessage: true,
           infoMessage: "Email archived."
         });
+        if (completed) closeSunriseInboxMessageOverlay();
         return;
       }
       const inbox = sunriseControlState.inbox || {};
       const id = String(inboxArchive.getAttribute("data-inbox-archive") || "");
       const msg = (Array.isArray(inbox.messages) ? inbox.messages : []).find((m) => String(m.id) === id);
       if (!msg) return;
+      const currentFolder = String(inbox.activeFolder || "inbox");
       msg.folder = "archive";
-      inbox.selectedMessageId = id;
-      inbox.activeFolder = "archive";
+      inbox.selectedMessageId = "";
+      inbox.activeFolder = currentFolder;
       inbox.lastInfo = "Email archived.";
       sunriseControlState.inbox = inbox;
       saveSunriseControlState();
       renderSunriseInboxPage();
+      closeSunriseInboxMessageOverlay();
       return;
     }
 
@@ -11146,13 +11273,16 @@ function bindSunriseControlInteractions() {
         const id = String(inboxMove.getAttribute("data-inbox-move") || "");
         const target = String(document.getElementById("inbox-move-target")?.value || "").trim();
         if (!target) return;
-        await performOwnerGmailInboxAction("move", {
+        const currentFolder = ownerInboxActiveFolder();
+        const completed = await performOwnerGmailInboxAction("move", {
           id,
           targetFolder: target
         }, {
-          refreshFolder: target,
+          refreshFolder: currentFolder,
+          clearSelectedMessage: true,
           infoMessage: `Email moved to ${target}.`
         });
+        if (completed) closeSunriseInboxMessageOverlay();
         return;
       }
       const inbox = sunriseControlState.inbox || {};
@@ -11161,13 +11291,15 @@ function bindSunriseControlInteractions() {
       if (!target) return;
       const msg = (Array.isArray(inbox.messages) ? inbox.messages : []).find((m) => String(m.id) === id);
       if (!msg) return;
+      const currentFolder = String(inbox.activeFolder || "inbox");
       msg.folder = target;
-      inbox.activeFolder = target;
-      inbox.selectedMessageId = id;
+      inbox.activeFolder = currentFolder;
+      inbox.selectedMessageId = "";
       inbox.lastInfo = `Email moved to ${target}.`;
       sunriseControlState.inbox = inbox;
       saveSunriseControlState();
       renderSunriseInboxPage();
+      closeSunriseInboxMessageOverlay();
       return;
     }
 
@@ -11175,33 +11307,40 @@ function bindSunriseControlInteractions() {
     if (inboxDelete && sunriseControlState) {
       if (shouldUseOwnerGmailInbox()) {
         const id = String(inboxDelete.getAttribute("data-inbox-delete") || "");
-        await performOwnerGmailInboxAction("trash", { id }, {
-          refreshFolder: "trash",
+        const currentFolder = ownerInboxActiveFolder();
+        const completed = await performOwnerGmailInboxAction("trash", { id }, {
+          refreshFolder: currentFolder,
+          clearSelectedMessage: true,
           infoMessage: "Email moved to trash."
         });
+        if (completed) closeSunriseInboxMessageOverlay();
         return;
       }
       const inbox = sunriseControlState.inbox || {};
       const id = String(inboxDelete.getAttribute("data-inbox-delete") || "");
       const msg = (Array.isArray(inbox.messages) ? inbox.messages : []).find((m) => String(m.id) === id);
       if (!msg) return;
+      const currentFolder = String(inbox.activeFolder || "inbox");
       msg.folder = "trash";
-      inbox.activeFolder = "trash";
-      inbox.selectedMessageId = id;
+      inbox.activeFolder = currentFolder;
+      inbox.selectedMessageId = "";
       inbox.lastInfo = "Email moved to trash.";
       sunriseControlState.inbox = inbox;
       saveSunriseControlState();
       renderSunriseInboxPage();
+      closeSunriseInboxMessageOverlay();
       return;
     }
 
     const inboxClearTrash = clickTarget.closest("[data-inbox-clear-trash]");
     if (inboxClearTrash && sunriseControlState) {
       if (shouldUseOwnerGmailInbox()) {
-        await performOwnerGmailInboxAction("clear-trash", {}, {
+        const completed = await performOwnerGmailInboxAction("clear-trash", {}, {
           refreshFolder: "trash",
+          clearSelectedMessage: true,
           infoMessage: "Trash cleared permanently."
         });
+        if (completed) closeSunriseInboxMessageOverlay();
         return;
       }
       const inbox = sunriseControlState.inbox || {};
@@ -11217,6 +11356,7 @@ function bindSunriseControlInteractions() {
       sunriseControlState.inbox = inbox;
       saveSunriseControlState();
       renderSunriseInboxPage();
+      closeSunriseInboxMessageOverlay();
       return;
     }
 

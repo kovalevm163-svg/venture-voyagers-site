@@ -1853,7 +1853,7 @@ body.sunrise-dock-visible main{
 .sunriseInboxShell{
   display:grid;
   grid-template-columns: 290px minmax(0, 1fr);
-  gap:12px;
+  gap:16px;
 }
 
 .sunriseInboxSidebar{
@@ -1864,20 +1864,20 @@ body.sunrise-dock-visible main{
 .sunriseInboxFolders,
 .sunriseInboxSettings{
   border:1px solid rgba(223,167,131,.34);
-  border-radius:14px;
-  background: linear-gradient(145deg, rgba(50,26,17,.82), rgba(98,62,38,.58));
-  box-shadow: 0 12px 26px rgba(0,0,0,.26);
-  padding:12px;
+  border-radius:18px;
+  background: linear-gradient(145deg, rgba(42,21,15,.88), rgba(96,58,34,.62));
+  box-shadow: 0 16px 34px rgba(0,0,0,.28);
+  padding:14px;
 }
 
 .sunriseInboxFolderBtn{
   width:100%;
   border:1px solid rgba(223,167,131,.28);
-  border-radius:12px;
-  background: rgba(20,12,10,.55);
+  border-radius:14px;
+  background: rgba(20,12,10,.6);
   color: rgba(255,233,216,.9);
-  padding:8px 10px;
-  margin-top:8px;
+  padding:10px 12px;
+  margin-top:9px;
   display:flex;
   justify-content:space-between;
   align-items:center;
@@ -1885,11 +1885,18 @@ body.sunrise-dock-visible main{
   letter-spacing:.06em;
   text-transform:uppercase;
   cursor:pointer;
+  transition: transform .16s ease, border-color .16s ease, background .16s ease;
+}
+
+.sunriseInboxFolderBtn:hover{
+  transform: translateY(-1px);
+  border-color: rgba(233,185,138,.46);
+  background: rgba(82,49,31,.58);
 }
 
 .sunriseInboxFolderBtn.isActive{
   border-color: rgba(233,185,138,.5);
-  background: rgba(146,87,48,.32);
+  background: linear-gradient(145deg, rgba(150,90,48,.42), rgba(98,57,33,.48));
 }
 
 .sunriseInboxMain{
@@ -1906,26 +1913,33 @@ body.sunrise-dock-visible main{
 
 .sunriseInboxList{
   display:grid;
-  gap:8px;
-  margin-top:8px;
+  gap:10px;
+  margin-top:10px;
 }
 
 .sunriseInboxRow{
   width:100%;
   border:1px solid rgba(223,167,131,.24);
-  border-radius:12px;
-  background: rgba(18,12,10,.5);
+  border-radius:16px;
+  background: linear-gradient(145deg, rgba(18,12,10,.68), rgba(43,24,17,.72));
   color: rgba(249,236,223,.9);
   text-align:left;
-  padding:9px 10px;
+  padding:12px 13px;
   display:grid;
-  gap:4px;
+  gap:6px;
   cursor:pointer;
+  transition: transform .16s ease, border-color .16s ease, box-shadow .16s ease;
+}
+
+.sunriseInboxRow:hover{
+  transform: translateY(-1px);
+  border-color: rgba(233,185,138,.44);
+  box-shadow: 0 10px 24px rgba(0,0,0,.22);
 }
 
 .sunriseInboxRow.isActive{
   border-color: rgba(233,185,138,.58);
-  background: rgba(98,62,38,.52);
+  background: linear-gradient(145deg, rgba(112,66,38,.64), rgba(80,45,27,.7));
 }
 
 .sunriseInboxFrom{
@@ -1936,7 +1950,8 @@ body.sunrise-dock-visible main{
 }
 
 .sunriseInboxSubject{
-  font-size:14px;
+  font-size:15px;
+  font-weight: 600;
 }
 
 .sunriseInboxMeta{
@@ -1962,6 +1977,106 @@ body.sunrise-dock-visible main{
   font-size:11px;
   letter-spacing:.08em;
   text-transform:uppercase;
+}
+
+.sunriseInboxMessageWindow{
+  width:min(1040px, calc(100vw - 28px));
+}
+
+.sunriseInboxMessageShell{
+  display:grid;
+  gap:14px;
+}
+
+.sunriseInboxMessageHead{
+  display:flex;
+  justify-content:space-between;
+  align-items:flex-start;
+  gap:12px;
+}
+
+.sunriseInboxMessageSubject{
+  margin:0;
+  font-size: clamp(24px, 3vw, 34px);
+  line-height:1.08;
+}
+
+.sunriseInboxMessageBadges{
+  display:flex;
+  flex-wrap:wrap;
+  gap:8px;
+}
+
+.sunriseInboxMessageBadge{
+  display:inline-flex;
+  align-items:center;
+  padding:7px 11px;
+  border-radius:999px;
+  border:1px solid rgba(223,167,131,.26);
+  background: rgba(20,12,10,.58);
+  color: rgba(252,237,221,.86);
+  font-size:11px;
+  letter-spacing:.08em;
+  text-transform:uppercase;
+}
+
+.sunriseInboxMessageMeta{
+  display:grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap:10px 14px;
+}
+
+.sunriseInboxMessageMetaCard{
+  border:1px solid rgba(223,167,131,.22);
+  border-radius:16px;
+  padding:12px 14px;
+  background: rgba(15,10,8,.56);
+}
+
+.sunriseInboxMessageMetaCard span{
+  display:block;
+  margin-bottom:6px;
+  font-size:11px;
+  letter-spacing:.12em;
+  text-transform:uppercase;
+  color: rgba(230,199,170,.68);
+}
+
+.sunriseInboxMessageMetaCard b{
+  font-size:14px;
+  color: rgba(248,236,226,.94);
+  word-break: break-word;
+}
+
+.sunriseInboxMessageBody{
+  border:1px solid rgba(223,167,131,.22);
+  border-radius:18px;
+  padding:18px;
+  background: linear-gradient(180deg, rgba(16,10,8,.76), rgba(30,18,13,.7));
+  color: rgba(248,236,226,.94);
+  line-height:1.6;
+  max-height: 58vh;
+  overflow:auto;
+}
+
+.sunriseInboxMessageTools{
+  display:flex;
+  flex-wrap:wrap;
+  gap:10px;
+  align-items:center;
+}
+
+.sunriseInboxMessageTools .select{
+  min-width: 220px;
+  flex: 1 1 240px;
+}
+
+.sunriseInboxMessageBody > :first-child{
+  margin-top:0;
+}
+
+.sunriseInboxMessageBody > :last-child{
+  margin-bottom:0;
 }
 
 .sunriseInboxComposeGrid{
