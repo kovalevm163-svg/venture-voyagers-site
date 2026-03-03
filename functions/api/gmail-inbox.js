@@ -618,75 +618,89 @@ async function updateVacation(env, payload = {}) {
 }
 
 export async function onRequestGet(context) {
-  if (!hasConfiguredGmailProvider(context.env)) {
-    return json({ ok: false, message: "Gmail inbox integration is not configured." }, 503);
+  try {
+    if (!hasConfiguredGmailProvider(context.env)) {
+      return json({ ok: false, message: "Gmail inbox integration is not configured." }, 503);
+    }
+
+    const url = new URL(context.request.url);
+    const mode = String(url.searchParams.get("mode") || "bootstrap").trim().toLowerCase();
+    const folder = String(url.searchParams.get("folder") || "inbox").trim();
+    const id = String(url.searchParams.get("id") || "").trim();
+
+    if (mode === "message") {
+      if (!id) return json({ ok: false, message: "Message id is required." }, 400);
+      const labelsResponse = await fetchLabels(context.env);
+      if (!labelsResponse.ok) return json(labelsResponse, 502);
+      const response = await fetchMessage(context.env, id, labelsResponse.catalog, "full");
+      return json(response, response.ok ? 200 : 502);
+    }
+
+    const bootstrap = await fetchBootstrap(context.env, folder, id);
+    return json(bootstrap, bootstrap.ok ? 200 : 502);
+  } catch (error) {
+    return json({
+      ok: false,
+      message: error?.message || "Unhandled Gmail inbox error."
+    }, 500);
   }
-
-  const url = new URL(context.request.url);
-  const mode = String(url.searchParams.get("mode") || "bootstrap").trim().toLowerCase();
-  const folder = String(url.searchParams.get("folder") || "inbox").trim();
-  const id = String(url.searchParams.get("id") || "").trim();
-
-  if (mode === "message") {
-    if (!id) return json({ ok: false, message: "Message id is required." }, 400);
-    const labelsResponse = await fetchLabels(context.env);
-    if (!labelsResponse.ok) return json(labelsResponse, 502);
-    const response = await fetchMessage(context.env, id, labelsResponse.catalog, "full");
-    return json(response, response.ok ? 200 : 502);
-  }
-
-  const bootstrap = await fetchBootstrap(context.env, folder, id);
-  return json(bootstrap, bootstrap.ok ? 200 : 502);
 }
 
 export async function onRequestPost(context) {
-  if (!hasConfiguredGmailProvider(context.env)) {
-    return json({ ok: false, message: "Gmail inbox integration is not configured." }, 503);
+  try {
+    if (!hasConfiguredGmailProvider(context.env)) {
+      return json({ ok: false, message: "Gmail inbox integration is not configured." }, 503);
+    }
+
+    const payload = await readJson(context.request);
+    if (!payload) return json({ ok: false, message: "Invalid JSON body." }, 400);
+    const action = String(payload.action || "").trim().toLowerCase();
+
+    if (action === "create-folder") {
+      const response = await ensureLabel(context.env, payload.name);
+      return json(response, response.ok ? 200 : 502);
+    }
+
+    if (action === "archive") {
+      const response = await moveMessage(context.env, { id: payload.id, targetFolder: "archive" });
+      return json(response, response.ok ? 200 : 502);
+    }
+
+    if (action === "move") {
+      const response = await moveMessage(context.env, { id: payload.id, targetFolder: payload.targetFolder });
+      return json(response, response.ok ? 200 : 502);
+    }
+
+    if (action === "trash") {
+      const response = await moveMessage(context.env, { id: payload.id, targetFolder: "trash" });
+      return json(response, response.ok ? 200 : 502);
+    }
+
+    if (action === "clear-trash") {
+      const response = await clearTrash(context.env);
+      return json(response, response.ok ? 200 : 502);
+    }
+
+    if (action === "draft-save") {
+      const response = await saveDraft(context.env, payload);
+      return json(response, response.ok ? 200 : 502);
+    }
+
+    if (action === "send") {
+      const response = await sendMessage(context.env, payload);
+      return json(response, response.ok ? 200 : 502);
+    }
+
+    if (action === "vacation-update") {
+      const response = await updateVacation(context.env, payload);
+      return json(response, response.ok ? 200 : 502);
+    }
+
+    return json({ ok: false, message: "Unsupported Gmail inbox action." }, 400);
+  } catch (error) {
+    return json({
+      ok: false,
+      message: error?.message || "Unhandled Gmail inbox action error."
+    }, 500);
   }
-
-  const payload = await readJson(context.request);
-  if (!payload) return json({ ok: false, message: "Invalid JSON body." }, 400);
-  const action = String(payload.action || "").trim().toLowerCase();
-
-  if (action === "create-folder") {
-    const response = await ensureLabel(context.env, payload.name);
-    return json(response, response.ok ? 200 : 502);
-  }
-
-  if (action === "archive") {
-    const response = await moveMessage(context.env, { id: payload.id, targetFolder: "archive" });
-    return json(response, response.ok ? 200 : 502);
-  }
-
-  if (action === "move") {
-    const response = await moveMessage(context.env, { id: payload.id, targetFolder: payload.targetFolder });
-    return json(response, response.ok ? 200 : 502);
-  }
-
-  if (action === "trash") {
-    const response = await moveMessage(context.env, { id: payload.id, targetFolder: "trash" });
-    return json(response, response.ok ? 200 : 502);
-  }
-
-  if (action === "clear-trash") {
-    const response = await clearTrash(context.env);
-    return json(response, response.ok ? 200 : 502);
-  }
-
-  if (action === "draft-save") {
-    const response = await saveDraft(context.env, payload);
-    return json(response, response.ok ? 200 : 502);
-  }
-
-  if (action === "send") {
-    const response = await sendMessage(context.env, payload);
-    return json(response, response.ok ? 200 : 502);
-  }
-
-  if (action === "vacation-update") {
-    const response = await updateVacation(context.env, payload);
-    return json(response, response.ok ? 200 : 502);
-  }
-
-  return json({ ok: false, message: "Unsupported Gmail inbox action." }, 400);
 }

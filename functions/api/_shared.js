@@ -52,6 +52,12 @@ function envValue(env, key) {
   return String(env?.[key] || "").trim();
 }
 
+let gmailTokenCache = {
+  cacheKey: "",
+  accessToken: "",
+  expiresAt: 0
+};
+
 async function resendRequest(env, payload) {
   const apiKey = envValue(env, "RESEND_API_KEY");
   if (!apiKey) {
@@ -284,6 +290,25 @@ async function getGoogleAccessToken(env) {
     return { ok: false, skipped: true, provider: "gmail", message: "GMAIL provider secrets are not configured." };
   }
 
+  const now = Date.now();
+  const cacheKey = [
+    envValue(env, "GMAIL_CLIENT_ID"),
+    envValue(env, "GMAIL_ACCOUNT_EMAIL")
+  ].join("::");
+  if (
+    gmailTokenCache.cacheKey === cacheKey
+    && gmailTokenCache.accessToken
+    && gmailTokenCache.expiresAt - now > 60_000
+  ) {
+    return {
+      ok: true,
+      skipped: false,
+      provider: "gmail",
+      accessToken: gmailTokenCache.accessToken,
+      expiresIn: Math.max(0, Math.floor((gmailTokenCache.expiresAt - now) / 1000))
+    };
+  }
+
   const response = await fetch("https://oauth2.googleapis.com/token", {
     method: "POST",
     headers: {
@@ -309,11 +334,17 @@ async function getGoogleAccessToken(env) {
     };
   }
 
+  gmailTokenCache = {
+    cacheKey,
+    accessToken: String(body.access_token),
+    expiresAt: now + (Number(body.expires_in || 0) * 1000)
+  };
+
   return {
     ok: true,
     skipped: false,
     provider: "gmail",
-    accessToken: String(body.access_token),
+    accessToken: gmailTokenCache.accessToken,
     expiresIn: Number(body.expires_in || 0)
   };
 }
