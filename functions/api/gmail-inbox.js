@@ -270,50 +270,61 @@ async function fetchMessage(env, id, catalog, format = "full") {
 
 async function fetchArchiveCount(env) {
   const user = gmailUserId(env);
-  const params = new URLSearchParams();
-  params.set("maxResults", "1");
-  params.set("q", "-in:inbox -in:sent -in:drafts -in:spam -in:trash");
+  const params = buildFolderListParams("archive", { byName: new Map() }, "", 1);
   const response = await gmailRequest(env, `/users/${user}/messages?${params.toString()}`, { method: "GET" });
   if (!response.ok) return 0;
   return Number(response.body?.resultSizeEstimate || 0);
 }
 
-async function estimateFolderCount(env, folder = "", catalog = { byName: new Map() }) {
-  const normalizedFolder = String(folder || "").trim();
-  if (!normalizedFolder) return 0;
-  if (normalizedFolder === "archive") return fetchArchiveCount(env);
-  const response = await listFolderMessages(env, normalizedFolder, catalog);
-  if (!response.ok) return 0;
-  return Number(response.resultSizeEstimate || response.messages?.length || 0);
-}
-
-async function listFolderMessages(env, folder = "inbox", catalog = { byName: new Map() }, pageToken = "") {
+function buildFolderListParams(folder = "inbox", catalog = { byName: new Map() }, pageToken = "", maxResults = MAX_RESULTS) {
   const normalizedFolder = String(folder || "inbox").trim();
-  const user = gmailUserId(env);
   const params = new URLSearchParams();
-  params.set("maxResults", String(MAX_RESULTS));
+  params.set("maxResults", String(maxResults));
   if (pageToken) params.set("pageToken", pageToken);
 
   if (normalizedFolder === "archive") {
     params.set("q", "-in:inbox -in:sent -in:drafts -in:spam -in:trash");
   } else if (normalizedFolder === "sending") {
     const scheduledLabel = catalog.byName.get(SCHEDULED_LABEL_NAME.toLowerCase());
-    if (!scheduledLabel) {
-      return { ok: true, skipped: false, provider: "gmail", messages: [], nextPageToken: "", resultSizeEstimate: 0 };
-    }
-    params.append("labelIds", String(scheduledLabel.id));
+    if (scheduledLabel) params.append("labelIds", String(scheduledLabel.id));
   } else if (FOLDER_LABELS[normalizedFolder]) {
     params.append("labelIds", FOLDER_LABELS[normalizedFolder]);
   } else if (normalizedFolder !== "folders") {
     const customLabel = catalog.byName.get(normalizedFolder.toLowerCase());
-    if (!customLabel) {
-      return { ok: true, skipped: false, provider: "gmail", messages: [], nextPageToken: "", resultSizeEstimate: 0 };
-    }
-    params.append("labelIds", String(customLabel.id));
+    if (customLabel) params.append("labelIds", String(customLabel.id));
   }
 
   if (normalizedFolder === "spam" || normalizedFolder === "trash") {
     params.set("includeSpamTrash", "true");
+  }
+
+  return params;
+}
+
+async function estimateFolderCount(env, folder = "", catalog = { byName: new Map() }) {
+  const normalizedFolder = String(folder || "").trim();
+  if (!normalizedFolder) return 0;
+  if (normalizedFolder === "archive") return fetchArchiveCount(env);
+  const user = gmailUserId(env);
+  const params = buildFolderListParams(normalizedFolder, catalog, "", 1);
+  if (normalizedFolder === "sending" && !params.getAll("labelIds").length) return 0;
+  if (!FOLDER_LABELS[normalizedFolder] && normalizedFolder !== "sending" && normalizedFolder !== "archive" && normalizedFolder !== "folders" && !catalog.byName.get(normalizedFolder.toLowerCase())) {
+    return 0;
+  }
+  const response = await gmailRequest(env, `/users/${user}/messages?${params.toString()}`, { method: "GET" });
+  if (!response.ok) return 0;
+  return Number(response.body?.resultSizeEstimate || 0);
+}
+
+async function listFolderMessages(env, folder = "inbox", catalog = { byName: new Map() }, pageToken = "") {
+  const normalizedFolder = String(folder || "inbox").trim();
+  const user = gmailUserId(env);
+  const params = buildFolderListParams(normalizedFolder, catalog, pageToken, MAX_RESULTS);
+  if (normalizedFolder === "sending" && !params.getAll("labelIds").length) {
+    return { ok: true, skipped: false, provider: "gmail", messages: [], nextPageToken: "", resultSizeEstimate: 0 };
+  }
+  if (!FOLDER_LABELS[normalizedFolder] && normalizedFolder !== "sending" && normalizedFolder !== "archive" && normalizedFolder !== "folders" && !catalog.byName.get(normalizedFolder.toLowerCase())) {
+    return { ok: true, skipped: false, provider: "gmail", messages: [], nextPageToken: "", resultSizeEstimate: 0 };
   }
 
   const listResponse = await gmailRequest(env, `/users/${user}/messages?${params.toString()}`, { method: "GET" });
