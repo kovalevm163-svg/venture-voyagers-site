@@ -9865,12 +9865,14 @@ function renderOwnerSunriseInboxPage(root) {
 
   const folderBtn = (folderKey, label) => {
     const active = activeFolder === folderKey ? " isActive" : "";
-    return `<button class="sunriseInboxFolderBtn${active}" type="button" data-inbox-folder="${folderKey}"><span>${label}</span><b>${ownerInboxFolderCount(folderKey)}</b></button>`;
+    const countMarkup = active ? `<b>${(sunriseOwnerInboxState.messages || []).length}</b>` : "";
+    return `<button class="sunriseInboxFolderBtn${active}" type="button" data-inbox-folder="${folderKey}"><span>${label}</span>${countMarkup}</button>`;
   };
 
   const customFolderBtns = (sunriseOwnerInboxState.customFolders || []).map((name) => {
     const active = activeFolder === name ? " isActive" : "";
-    return `<button class="sunriseInboxFolderBtn${active}" type="button" data-inbox-folder="${name}"><span>${name}</span><b>${ownerInboxFolderCount(name)}</b></button>`;
+    const countMarkup = active ? `<b>${(sunriseOwnerInboxState.messages || []).length}</b>` : "";
+    return `<button class="sunriseInboxFolderBtn${active}" type="button" data-inbox-folder="${name}"><span>${name}</span>${countMarkup}</button>`;
   }).join("");
 
   const rows = (sunriseOwnerInboxState.messages || []).map((msg) => {
