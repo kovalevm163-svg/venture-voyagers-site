@@ -6382,6 +6382,7 @@ function findAccountByEmail(email) {
 function greetingPrefixByCountry(country) {
   const key = normalizeCountryKey(country);
   if (key === "united arab emirates") return "Marhaba";
+  if (key === "russia") return "Здравствуйте";
   if (key === "russian federation") return "Здравствуйте";
   if (key === "ukraine") return "Вітаю";
   if (key === "bulgaria") return "Здравейте";
