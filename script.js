@@ -8,6 +8,7 @@ const SESSION_EMAIL_KEY = "vvs_active_account_email";
 const SESSION_ACCOUNT_SNAPSHOT_KEY = "vvs_active_account_snapshot";
 const SUNRISE_SESSION_KEY = "vvs_sunrise_session";
 const SUNRISE_CONTROL_DATA_KEY = "vvs_sunrise_control_data";
+const MONARCH_ARCHANGEL_DATA_KEY = "vvs_monarch_archangel_data";
 const ACCOUNTS_DATA_KEY = "vvs_accounts_data";
 const WEBSITE_SHUTDOWN_KEY = "vvs_website_shutdown_v3";
 
@@ -1552,6 +1553,7 @@ function persistAccountsData() {
     syncSocServicesToClientAccounts();
     scheduleSunriseAdminRenders();
   }
+  queueMonarchArchangelSync();
 }
 
 function loadAccountsDataFromStorage() {
@@ -2778,7 +2780,8 @@ const sunriseModuleRoutes = [
   "sunrise-lcs",
   "sunrise-amp",
   "sunrise-alp",
-  "sunrise-mcc"
+  "sunrise-mcc",
+  "sunrise-monarch"
 ];
 const sunriseShortcutRouteMap = {
   rev1: "sunrise-revenue",
@@ -2807,7 +2810,9 @@ const sunriseShortcutRouteMap = {
   notos: "sunrise-lcs",
   amp: "sunrise-amp",
   alp: "sunrise-alp",
-  mcc: "sunrise-mcc"
+  mcc: "sunrise-mcc",
+  ma1: "sunrise-monarch",
+  maa1: "sunrise-monarch"
 };
 
 const sunriseShortcutDescriptions = {
@@ -2824,6 +2829,8 @@ const sunriseShortcutDescriptions = {
   amp: "Account Management Page",
   alp: "Access Levels Page",
   mcc: "Manage & Create Codes",
+  ma1: "Monarch Archangel",
+  maa1: "Monarch Archangel",
   ws: "Website shutdown (freeze public access to 404)",
   wr: "Website restore"
 };
@@ -2856,6 +2863,7 @@ const sunriseAccessKeywordRoutes = {
   revenue: ["sunrise-revenue"],
   amp: ["sunrise-amp"],
   alp: ["sunrise-alp"],
+  monarch: ["sunrise-monarch"],
   locations: ["sunrise-locations"],
   maintenance: ["sunrise-maintenance"],
   rta: ["sunrise-rta"],
@@ -3522,6 +3530,13 @@ function getCurrentSunriseOperator() {
 function sunriseAccessMeta(account) {
   const fallback = { code: "SA", title: "Sunrise Associate", access: "Operational dashboards" };
   if (!account) return fallback;
+  if (isMikhailOwnerAccount(account)) {
+    return {
+      code: "CR",
+      title: "Creator",
+      access: "Creator command authority + Monarch Archangel + full Sunrise executive archive oversight"
+    };
+  }
   const code = (isOwnerAccount(account) ? "OW" : String(account.sunriseAccessLevel || "SA")).trim().toUpperCase();
   const levels = Array.isArray(sunriseControlState?.accessLevels) ? sunriseControlState.accessLevels : [];
   const row = levels.find((item) => String(item?.code || "").trim().toUpperCase() === code);
@@ -3572,6 +3587,7 @@ function canAccessSunriseRoute(account, route, shortcutToken = "") {
   if (!normalizedRoute || normalizedRoute === "sunrise") return true;
   if (!sunriseModuleRoutes.includes(normalizedRoute)) return true;
   if (!account || !hasSunriseAccess(account)) return false;
+  if (normalizedRoute === "sunrise-monarch") return isOwnerAccount(account);
   if (isOwnerAccount(account)) return true;
   const token = String(shortcutToken || "").trim().toLowerCase();
   if ((token === "ws" || token === "wr") && !isOwnerAccount(account)) return false;
@@ -3579,10 +3595,14 @@ function canAccessSunriseRoute(account, route, shortcutToken = "") {
   return allowed.has(normalizedRoute);
 }
 
-function sunriseAccessCodesList() {
+function currentSunriseCreatorViewer(account = getCurrentSunriseOperator()) {
+  return isMikhailOwnerAccount(account || sunriseState?.account || activeAccount || null);
+}
+
+function sunriseAccessCodesList(viewer = getCurrentSunriseOperator()) {
   const levels = Array.isArray(sunriseControlState?.accessLevels) ? sunriseControlState.accessLevels : [];
   const fromLevels = levels.map((row) => String(row?.code || "").trim().toUpperCase()).filter(Boolean);
-  const merged = Array.from(new Set(["STA", "SA", "SS", "SM", "DA", "CA", "OW", ...fromLevels]));
+  const merged = Array.from(new Set(["STA", "SA", "SS", "SM", "DA", "CA", "OW", ...(currentSunriseCreatorViewer(viewer) ? ["CR"] : []), ...fromLevels]));
   return merged;
 }
 
@@ -3590,6 +3610,7 @@ function suggestedAccessForShortcut(code, route) {
   const c = String(code || "").toLowerCase();
   const r = String(route || "").toLowerCase();
   if (c === "ws" || c === "wr") return "OW";
+  if (c === "ma1" || c === "maa1" || r === "sunrise-monarch") return currentSunriseCreatorViewer() ? "CR,OW" : "OW";
   if (c === "amp" || c === "alp" || c === "mcc") return "SM,DA,CA,OW";
   if (c === "lcs" || c === "notos" || r === "sunrise-lcs") return "SS,SM,DA,CA,OW";
   if (c === "rta" || r === "sunrise-rta") return "SM,DA,CA,OW";
@@ -5928,6 +5949,7 @@ function setSharedRegistrySnapshot(registry = null, { mergeIntoAccounts = true, 
       } catch (_) {}
     }
   }
+  queueMonarchArchangelSync();
 }
 
 function recentSharedRegistryActivities(limit = 20) {
@@ -6424,6 +6446,104 @@ function saveOwnerSignatureProfiles(nextProfiles = [], nextDefaultId = "") {
   })).filter((profile) => profile.id);
   inbox.ownerDefaultSignatureId = String(nextDefaultId || inbox.ownerDefaultSignatureId || defaultOwnerSignaturePresetId()).trim();
   sunriseControlState.inbox = inbox;
+  queueMonarchArchangelSync();
+}
+
+function ownerSignatureProfileById(profileId = "") {
+  const id = String(profileId || "").trim();
+  return ownerInboxSignatureProfiles().find((profile) => profile.id === id) || null;
+}
+
+function normalizeOwnerSignatureEditorHtml(value = "") {
+  return String(value || "")
+    .replace(/<div><br><\/div>/gi, "")
+    .replace(/<div>/gi, "<p>")
+    .replace(/<\/div>/gi, "</p>")
+    .replace(/<p>\s*<\/p>/gi, "")
+    .trim();
+}
+
+function persistOwnerSignatureProfileUpdate(profileId = "", updater = null, { rerender = false, forceDefault = false } = {}) {
+  const id = String(profileId || "").trim();
+  if (!id || typeof updater !== "function") return false;
+  const profiles = ownerInboxSignatureProfiles();
+  const idx = profiles.findIndex((profile) => profile.id === id);
+  if (idx < 0) return false;
+  updater(profiles[idx]);
+  saveOwnerSignatureProfiles(
+    profiles,
+    String(sunriseControlState?.inbox?.ownerDefaultSignatureId || defaultOwnerSignaturePresetId()).trim()
+  );
+  syncOwnerComposeIdentityControls(forceDefault ? { forceDefault: true } : {});
+  saveSunriseControlState({ markDirty: false });
+  if (rerender) renderSignatureManager();
+  return true;
+}
+
+function ownerSignatureEditorElement(profileId = "") {
+  return document.querySelector(`[data-owner-signature-editor="${CSS.escape(String(profileId || "").trim())}"]`);
+}
+
+function ownerSignaturePreviewElement(profileId = "") {
+  return document.querySelector(`[data-owner-signature-preview="${CSS.escape(String(profileId || "").trim())}"]`);
+}
+
+function ownerSignatureEditorHtml(profileId = "") {
+  const editor = ownerSignatureEditorElement(profileId);
+  return editor instanceof HTMLElement
+    ? normalizeOwnerSignatureEditorHtml(editor.innerHTML)
+    : String(ownerSignatureProfileById(profileId)?.signatureHtml || "").trim();
+}
+
+function refreshOwnerSignaturePreview(profileId = "", html = "") {
+  const preview = ownerSignaturePreviewElement(profileId);
+  if (!(preview instanceof HTMLElement)) return;
+  const nextHtml = normalizeOwnerSignatureEditorHtml(html || ownerSignatureEditorHtml(profileId));
+  preview.innerHTML = nextHtml || "<p class='profileNote'>No owner signature configured.</p>";
+}
+
+function syncOwnerSignatureEditorValue(profileId = "", { rerender = false } = {}) {
+  const id = String(profileId || "").trim();
+  if (!id) return false;
+  const html = ownerSignatureEditorHtml(id);
+  const updated = persistOwnerSignatureProfileUpdate(id, (profile) => {
+    profile.signatureHtml = html;
+  }, { rerender });
+  refreshOwnerSignaturePreview(id, html);
+  return updated;
+}
+
+function focusOwnerSignatureEditor(profileId = "") {
+  const editor = ownerSignatureEditorElement(profileId);
+  if (editor instanceof HTMLElement) editor.focus();
+  return editor instanceof HTMLElement ? editor : null;
+}
+
+function runOwnerSignatureEditorCommand(profileId = "", command = "") {
+  const id = String(profileId || "").trim();
+  const editor = focusOwnerSignatureEditor(id);
+  if (!editor) return false;
+  const cmd = String(command || "").trim().toLowerCase();
+  if (!cmd) return false;
+  if (cmd === "title") {
+    document.execCommand("formatBlock", false, "h3");
+  } else if (cmd === "body") {
+    document.execCommand("formatBlock", false, "p");
+  } else if (cmd === "divider") {
+    document.execCommand("insertHTML", false, "<p>────────────</p>");
+  } else if (cmd === "website") {
+    document.execCommand("insertHTML", false, `<p><a href="https://www.venture-voyagers.com" target="_blank">www.venture-voyagers.com</a></p>`);
+  } else if (cmd === "email") {
+    document.execCommand("insertHTML", false, `<p>concierge@venture-voyagers.com</p>`);
+  } else if (cmd === "phone") {
+    const profile = ownerSignatureProfileById(id);
+    const phone = String(profile?.ownerCode || "").trim() === "AO1" ? "+971 529529110" : "+1 512 534 7616";
+    document.execCommand("insertHTML", false, `<p>${phone}</p>`);
+  } else {
+    document.execCommand(cmd, false);
+  }
+  syncOwnerSignatureEditorValue(id);
+  return true;
 }
 
 function ownerInboxSenderAddress(profile = null) {
@@ -7196,6 +7316,377 @@ const SUNRISE_OWNER_CODES = {
   "aleks.sunrise@vvs.com": "AO1",
   "mikhail.sunrise@vvs.com": "MO1"
 };
+
+const MONARCH_ARCHANGEL_OWNER_ACCESS = {
+  AO1: {
+    code: "A/127186/MA/S/OW",
+    password: "AMA4356817",
+    notosId: "NTS-A01",
+    ownerKey: "aleks.sunrise@vvs.com",
+    ownerName: "Aleks Totev"
+  },
+  MO1: {
+    code: "M/171717/MA/S/OW",
+    password: "MMACR777",
+    notosId: "NTS-M01",
+    ownerKey: "mikhail.sunrise@vvs.com",
+    ownerName: "Mikhail Kovalev"
+  }
+};
+
+let monarchArchangelState = loadMonarchArchangelState();
+const monarchArchangelRuntime = {
+  unlocked: false,
+  ownerOperatorCode: "",
+  filterCategory: "all",
+  filterQuery: "",
+  detailsRecordId: "",
+  info: ""
+};
+let monarchArchangelPersistTimer = 0;
+let monarchArchangelSyncQueued = false;
+
+function monarchDeepClone(value) {
+  try {
+    return JSON.parse(JSON.stringify(value == null ? null : value));
+  } catch (_) {
+    return value == null ? null : value;
+  }
+}
+
+function emptyMonarchArchangelState() {
+  return {
+    records: {},
+    updatedAt: ""
+  };
+}
+
+function loadMonarchArchangelState() {
+  try {
+    const raw = localStorage.getItem(MONARCH_ARCHANGEL_DATA_KEY);
+    if (!raw) return emptyMonarchArchangelState();
+    const parsed = JSON.parse(raw);
+    return parsed && typeof parsed === "object"
+      ? {
+        records: parsed.records && typeof parsed.records === "object" ? parsed.records : {},
+        updatedAt: String(parsed.updatedAt || "").trim()
+      }
+      : emptyMonarchArchangelState();
+  } catch (_) {
+    return emptyMonarchArchangelState();
+  }
+}
+
+function persistMonarchArchangelState() {
+  try {
+    localStorage.setItem(MONARCH_ARCHANGEL_DATA_KEY, JSON.stringify(monarchArchangelState || emptyMonarchArchangelState()));
+  } catch (_) {}
+}
+
+function flushMonarchArchangelSync() {
+  if (monarchArchangelPersistTimer) {
+    window.clearTimeout(monarchArchangelPersistTimer);
+    monarchArchangelPersistTimer = 0;
+  }
+  monarchArchangelSyncQueued = false;
+  syncMonarchArchangelArchive({ immediate: true });
+}
+
+function queueMonarchArchangelSync() {
+  monarchArchangelSyncQueued = true;
+  if (monarchArchangelPersistTimer) return;
+  monarchArchangelPersistTimer = window.setTimeout(() => {
+    monarchArchangelPersistTimer = 0;
+    if (!monarchArchangelSyncQueued) return;
+    monarchArchangelSyncQueued = false;
+    syncMonarchArchangelArchive({ immediate: true });
+  }, 180);
+}
+
+function currentMonarchOwnerProfile(account = getCurrentSunriseOperator() || activeAccount || null) {
+  if (!isOwnerAccount(account)) return null;
+  const operatorCode = String(resolveSunriseOwnerCode(account) || "").trim().toUpperCase();
+  const profile = MONARCH_ARCHANGEL_OWNER_ACCESS[operatorCode] || null;
+  return profile ? { ...profile, operatorCode } : null;
+}
+
+function shouldShowMonarchArchangelForAccount(account = getCurrentSunriseOperator() || activeAccount || null) {
+  return !!currentMonarchOwnerProfile(account);
+}
+
+function resetMonarchArchangelAccess() {
+  monarchArchangelRuntime.unlocked = false;
+  monarchArchangelRuntime.ownerOperatorCode = "";
+  monarchArchangelRuntime.detailsRecordId = "";
+  monarchArchangelRuntime.info = "";
+}
+
+function monarchArchiveRecordId(category = "", sourceType = "", sourceKey = "") {
+  return `${String(category || "").trim()}::${String(sourceType || "").trim()}::${String(sourceKey || "").trim()}`;
+}
+
+function monarchArchiveSummaryFromPayload(sourceType = "", payload = null) {
+  const type = String(sourceType || "").trim();
+  if (!payload || typeof payload !== "object") return "Archive snapshot.";
+  if (type === "account") {
+    const kind = payload.sunriseCredential ? "Sunrise credential" : (isOwnerAccount(payload) ? "Owner" : (String(payload.membership || "").trim() || "Client"));
+    return [String(payload.email || "").trim().toLowerCase(), String(payload.country || "").trim(), kind].filter(Boolean).join(" • ");
+  }
+  if (type.startsWith("soc-")) {
+    return [
+      String(payload.client || payload.clientName || "").trim(),
+      String(payload.status || "").trim(),
+      String(payload.tier || "").trim()
+    ].filter(Boolean).join(" • ");
+  }
+  if (type === "rta") {
+    return [String(payload.clientEmail || "").trim(), String(payload.status || "").trim()].filter(Boolean).join(" • ");
+  }
+  if (type === "lcs") {
+    return [String(payload.employee || "").trim(), String(payload.permission || "").trim(), String(payload.loginAt || "").trim()].filter(Boolean).join(" • ");
+  }
+  if (type === "mail") {
+    return [String(payload.from || "").trim(), String(payload.subject || "").trim(), String(payload.createdAt || "").trim()].filter(Boolean).join(" • ");
+  }
+  if (type === "activity") {
+    return [humanizeRegistryEventType(payload.eventType), String(payload.status || "").trim(), String(payload.occurredAt || "").trim()].filter(Boolean).join(" • ");
+  }
+  if (type === "access-level") {
+    return [String(payload.title || "").trim(), String(payload.access || "").trim()].filter(Boolean).join(" • ");
+  }
+  if (type === "shortcut-code") {
+    return [String(payload.route || "").trim(), String(payload.access || "").trim()].filter(Boolean).join(" • ");
+  }
+  if (Object.prototype.hasOwnProperty.call(payload, "amount")) {
+    return [String(payload.name || "").trim(), money(payload.amount)].filter(Boolean).join(" • ");
+  }
+  return Object.entries(payload).slice(0, 3).map(([, value]) => String(value || "").trim()).filter(Boolean).join(" • ") || "Archive snapshot.";
+}
+
+function createMonarchArchiveRecord({
+  category = "operations",
+  sourceType = "",
+  sourceKey = "",
+  title = "",
+  payload = null
+} = {}) {
+  return {
+    id: monarchArchiveRecordId(category, sourceType, sourceKey),
+    category: String(category || "").trim(),
+    sourceType: String(sourceType || "").trim(),
+    sourceKey: String(sourceKey || "").trim(),
+    title: String(title || sourceKey || sourceType || "Record").trim(),
+    summary: monarchArchiveSummaryFromPayload(sourceType, payload),
+    payload: monarchDeepClone(payload),
+    deletedInSource: false
+  };
+}
+
+function collectMonarchArchiveMailMessages() {
+  const merged = [];
+  const seen = new Set();
+  const ownerMessages = Array.isArray(sunriseOwnerInboxState?.messages) ? sunriseOwnerInboxState.messages : [];
+  const localMessages = Array.isArray(sunriseControlState?.inbox?.messages) ? sunriseControlState.inbox.messages : [];
+  [...ownerMessages, ...localMessages].forEach((message) => {
+    const id = String(message?.id || "").trim();
+    if (!id || seen.has(id)) return;
+    seen.add(id);
+    merged.push(message);
+  });
+  return merged;
+}
+
+function collectMonarchArchangelLiveRecords() {
+  const records = [];
+  Object.entries(accounts).forEach(([key, account]) => {
+    records.push(createMonarchArchiveRecord({
+      category: "credentials",
+      sourceType: "account",
+      sourceKey: key,
+      title: `${String(account?.firstName || "").trim()} ${String(account?.lastName || "").trim()}`.trim() || String(account?.email || key).trim().toLowerCase(),
+      payload: account
+    }));
+  });
+
+  if (sunriseControlState) {
+    ["current", "past", "deleted"].forEach((bucket) => {
+      const list = Array.isArray(sunriseControlState?.socServices?.[bucket]) ? sunriseControlState.socServices[bucket] : [];
+      list.forEach((service) => {
+        records.push(createMonarchArchiveRecord({
+          category: "services",
+          sourceType: `soc-${bucket}`,
+          sourceKey: String(service?.id || "").trim().toUpperCase(),
+          title: String(service?.title || "Service Record").trim(),
+          payload: service
+        }));
+      });
+    });
+    (Array.isArray(sunriseControlState.rtaAssignments) ? sunriseControlState.rtaAssignments : []).forEach((row) => {
+      records.push(createMonarchArchiveRecord({
+        category: "operations",
+        sourceType: "rta",
+        sourceKey: String(row?.clientKey || "").trim().toLowerCase(),
+        title: String(row?.clientName || row?.clientEmail || "RTA Assignment").trim(),
+        payload: row
+      }));
+    });
+    (Array.isArray(sunriseControlState.rimInvites) ? sunriseControlState.rimInvites : []).forEach((row) => {
+      records.push(createMonarchArchiveRecord({
+        category: "operations",
+        sourceType: "rim",
+        sourceKey: String(row?.id || row?.email || "").trim(),
+        title: String(row?.name || row?.email || "Red Invitation").trim(),
+        payload: row
+      }));
+    });
+    (Array.isArray(sunriseControlState.ecsEmployees) ? sunriseControlState.ecsEmployees : []).forEach((row) => {
+      records.push(createMonarchArchiveRecord({
+        category: "operations",
+        sourceType: "ecs",
+        sourceKey: String(row?.id || row?.email || "").trim(),
+        title: String(row?.name || row?.email || "Employee").trim(),
+        payload: row
+      }));
+    });
+    (Array.isArray(sunriseControlState.accessLevels) ? sunriseControlState.accessLevels : []).forEach((row) => {
+      records.push(createMonarchArchiveRecord({
+        category: "operations",
+        sourceType: "access-level",
+        sourceKey: String(row?.code || "").trim().toUpperCase(),
+        title: String(row?.title || row?.code || "Access Level").trim(),
+        payload: row
+      }));
+    });
+    (Array.isArray(sunriseControlState.shortcutCodes) ? sunriseControlState.shortcutCodes : []).forEach((row) => {
+      records.push(createMonarchArchiveRecord({
+        category: "operations",
+        sourceType: "shortcut-code",
+        sourceKey: String(row?.code || "").trim().toUpperCase(),
+        title: String(row?.title || row?.code || "Shortcut Code").trim(),
+        payload: row
+      }));
+    });
+    (Array.isArray(sunriseControlState.eamExpenses) ? sunriseControlState.eamExpenses : []).forEach((row) => {
+      records.push(createMonarchArchiveRecord({
+        category: "payments",
+        sourceType: "eam",
+        sourceKey: String(row?.id || "").trim(),
+        title: String(row?.name || row?.id || "Expense").trim(),
+        payload: row
+      }));
+    });
+    (Array.isArray(sunriseControlState.ifsIncome) ? sunriseControlState.ifsIncome : []).forEach((row) => {
+      records.push(createMonarchArchiveRecord({
+        category: "payments",
+        sourceType: "ifs",
+        sourceKey: String(row?.id || "").trim(),
+        title: String(row?.name || row?.id || "Income").trim(),
+        payload: row
+      }));
+    });
+    (Array.isArray(sunriseControlState.smca) ? sunriseControlState.smca : []).forEach((row) => {
+      records.push(createMonarchArchiveRecord({
+        category: "payments",
+        sourceType: "smca",
+        sourceKey: String(row?.id || "").trim(),
+        title: String(row?.name || row?.id || "Commission").trim(),
+        payload: row
+      }));
+    });
+    (Array.isArray(sunriseControlState.lcsSessions) ? sunriseControlState.lcsSessions : []).forEach((row) => {
+      records.push(createMonarchArchiveRecord({
+        category: "logins",
+        sourceType: "lcs",
+        sourceKey: String(row?.id || "").trim(),
+        title: String(row?.employee || row?.code || "NOTOS Session").trim(),
+        payload: row
+      }));
+    });
+  }
+
+  collectMonarchArchiveMailMessages().forEach((row) => {
+    records.push(createMonarchArchiveRecord({
+      category: "mail",
+      sourceType: "mail",
+      sourceKey: String(row?.id || "").trim(),
+      title: String(row?.subject || "Mailbox Message").trim(),
+      payload: row
+    }));
+  });
+
+  recentSharedRegistryActivities(120).forEach((row) => {
+    records.push(createMonarchArchiveRecord({
+      category: "changes",
+      sourceType: "activity",
+      sourceKey: String(row?.id || `${row?.email || ""}:${row?.occurredAt || ""}`).trim(),
+      title: humanizeRegistryEventType(row?.eventType || "Activity"),
+      payload: row
+    }));
+  });
+
+  return records.filter((record) => record.sourceKey);
+}
+
+function syncMonarchArchangelArchive({ immediate = false } = {}) {
+  if (!monarchArchangelState || typeof monarchArchangelState !== "object") {
+    monarchArchangelState = emptyMonarchArchangelState();
+  }
+  const now = formatUtcTimestamp(new Date());
+  const existing = monarchArchangelState.records && typeof monarchArchangelState.records === "object"
+    ? monarchArchangelState.records
+    : {};
+  const nextRecords = {};
+  const liveRecords = collectMonarchArchangelLiveRecords();
+  const liveIds = new Set();
+
+  liveRecords.forEach((liveRecord) => {
+    const id = String(liveRecord.id || "").trim();
+    if (!id) return;
+    liveIds.add(id);
+    const previous = existing[id] && typeof existing[id] === "object" ? existing[id] : null;
+    const useManualPayload = !!previous?.manualOverride;
+    nextRecords[id] = {
+      ...previous,
+      ...liveRecord,
+      payload: useManualPayload ? monarchDeepClone(previous.payload) : monarchDeepClone(liveRecord.payload),
+      liveSnapshot: monarchDeepClone(liveRecord.payload),
+      summary: liveRecord.summary,
+      deletedInSource: false,
+      manualOverride: useManualPayload,
+      createdAt: String(previous?.createdAt || now).trim(),
+      updatedAt: now,
+      lastSyncedAt: now
+    };
+  });
+
+  Object.values(existing).forEach((record) => {
+    const id = String(record?.id || "").trim();
+    if (!id || liveIds.has(id)) return;
+    nextRecords[id] = {
+      ...record,
+      deletedInSource: true,
+      updatedAt: now,
+      lastSyncedAt: now
+    };
+  });
+
+  monarchArchangelState.records = nextRecords;
+  monarchArchangelState.updatedAt = now;
+  if (immediate) persistMonarchArchangelState();
+  else queueMonarchArchangelSync();
+}
+
+function monarchArchiveRecordsList() {
+  return Object.values(monarchArchangelState?.records || {})
+    .filter((record) => record && typeof record === "object")
+    .sort((a, b) => String(b.updatedAt || "").localeCompare(String(a.updatedAt || "")));
+}
+
+function findMonarchArchiveRecord(recordId = "") {
+  const id = String(recordId || "").trim();
+  if (!id) return null;
+  return monarchArchangelState?.records?.[id] || null;
+}
 
 function normalizeMembershipTier(value) {
   return String(value || "").trim().toLowerCase().replace(/\s+/g, " ");
@@ -8499,6 +8990,7 @@ function renderSunrise(account) {
   const greetingEl = document.getElementById("sunrise-greeting");
   const subtitleEl = document.getElementById("sunrise-subtitle");
   const panel = document.getElementById("sunrise-panel");
+  const monarchBtn = document.getElementById("sunrise-monarch-btn");
   const meta = sunriseAccessMeta(account);
   const controlAccount = sunriseState.account;
   const isOwnerControllingOther = !!(
@@ -8512,7 +9004,7 @@ function renderSunrise(account) {
       const controlledRole = String(controlAccount.roleTitle || "Sunrise Operator").trim();
       greetingEl.textContent = `${dayPartGreetingForAccount(account)}, ${account.prefix} ${account.lastName} - Session Overview: ${controlledName}, ${controlledRole}`;
     } else {
-      const accessLevel = isOwnerAccount(account) ? "Owner" : meta.code;
+      const accessLevel = isOwnerAccount(account) ? meta.title : meta.code;
       greetingEl.textContent = `${dayPartGreetingForAccount(account)}, ${account.prefix} ${account.lastName} - Welcome to Sunrise, Access Level - ${accessLevel}`;
     }
   }
@@ -8520,7 +9012,7 @@ function renderSunrise(account) {
     if (isOwnerControllingOther) {
       subtitleEl.textContent = `Executive session mirror for ${controlAccount.firstName || ""} ${controlAccount.lastName || ""} (${controlAccount.roleTitle || "Sunrise Operator"}).`;
     } else if (isOwnerAccount(account)) {
-      subtitleEl.textContent = "Owner command modules for strategic control of VVS operations.";
+      subtitleEl.textContent = `${meta.title} command modules for strategic control of VVS operations.`;
     } else {
       const role = String(account.roleTitle || meta.title || "Sunrise Associate").trim();
       const accessSummary = String(meta.access || "Operational dashboard access.").trim();
@@ -8549,6 +9041,7 @@ function renderSunrise(account) {
       card.hidden = !anyVisible;
     });
   }
+  if (monarchBtn) monarchBtn.hidden = !shouldShowMonarchArchangelForAccount(account);
   updateSunriseAccessView();
 }
 
@@ -8578,7 +9071,8 @@ const sunriseStaffRouteLabels = {
   "sunrise-lcs": "Notos Login Control System",
   "sunrise-amp": "Account Management Page",
   "sunrise-alp": "Access Levels Page",
-  "sunrise-mcc": "Manage & Create Codes"
+  "sunrise-mcc": "Manage & Create Codes",
+  "sunrise-monarch": "Monarch Archangel"
 };
 
 function sunriseStaffRouteLabel(route = "") {
@@ -10173,6 +10667,7 @@ function flushSunriseControlState() {
   try {
     localStorage.setItem(SUNRISE_CONTROL_DATA_KEY, JSON.stringify(sunriseControlState));
   } catch (_) {}
+  syncMonarchArchangelArchive({ immediate: true });
   persistAccountsData();
 }
 
@@ -10261,6 +10756,338 @@ function ensureSunriseSaveButtons() {
     actions.prepend(saveBtn);
   });
   updateSunriseSaveButtonsState();
+}
+
+function monarchArchiveCounts() {
+  const records = monarchArchiveRecordsList();
+  const counts = {
+    total: records.length,
+    credentials: 0,
+    services: 0,
+    operations: 0,
+    payments: 0,
+    mail: 0,
+    logins: 0,
+    changes: 0,
+    deleted: 0
+  };
+  records.forEach((record) => {
+    const category = String(record?.category || "").trim().toLowerCase();
+    if (Object.prototype.hasOwnProperty.call(counts, category)) counts[category] += 1;
+    if (record?.deletedInSource) counts.deleted += 1;
+  });
+  return counts;
+}
+
+function filteredMonarchArchiveRecords() {
+  const category = String(monarchArchangelRuntime.filterCategory || "all").trim().toLowerCase();
+  const query = String(monarchArchangelRuntime.filterQuery || "").trim().toLowerCase();
+  return monarchArchiveRecordsList().filter((record) => {
+    if (category !== "all" && String(record?.category || "").trim().toLowerCase() !== category) return false;
+    if (!query) return true;
+    const payloadText = JSON.stringify(record?.payload || {}).toLowerCase();
+    return [
+      record?.title,
+      record?.summary,
+      record?.sourceType,
+      record?.sourceKey,
+      record?.updatedAt,
+      payloadText
+    ].some((value) => String(value || "").toLowerCase().includes(query));
+  });
+}
+
+function monarchRecordDetailPayload(record = null) {
+  return JSON.stringify(monarchDeepClone(record?.payload || {}), null, 2);
+}
+
+function openMonarchRecordOverlay(recordId = "") {
+  const overlay = document.getElementById("monarch-record-overlay");
+  const record = findMonarchArchiveRecord(recordId);
+  if (!overlay || !record) return;
+  monarchArchangelRuntime.detailsRecordId = String(recordId || "").trim();
+  const titleEl = document.getElementById("monarch-record-title");
+  const summaryEl = document.getElementById("monarch-record-summary");
+  const metaEl = document.getElementById("monarch-record-meta");
+  const payloadEl = document.getElementById("monarch-record-payload");
+  const infoEl = document.getElementById("monarch-record-info");
+  if (titleEl) titleEl.textContent = String(record.title || "Archive Record").trim();
+  if (summaryEl) summaryEl.textContent = String(record.summary || "Archive snapshot").trim();
+  if (metaEl) metaEl.textContent = `${String(record.category || "").trim()} • ${String(record.sourceType || "").trim()} • ${String(record.updatedAt || "").trim()}`;
+  if (payloadEl instanceof HTMLTextAreaElement) payloadEl.value = monarchRecordDetailPayload(record);
+  if (infoEl) infoEl.textContent = "";
+  overlay.hidden = false;
+}
+
+function closeMonarchRecordOverlay() {
+  const overlay = document.getElementById("monarch-record-overlay");
+  if (overlay) overlay.hidden = true;
+}
+
+function openMonarchCredentialOverlay() {
+  const overlay = document.getElementById("monarch-credential-overlay");
+  const body = document.getElementById("monarch-credential-body");
+  if (!overlay || !body) return;
+  const aleks = MONARCH_ARCHANGEL_OWNER_ACCESS.AO1;
+  const aleksAccount = accounts[String(aleks.ownerKey || "").trim().toLowerCase()] || null;
+  const aleksNotosId = String(aleksAccount?.notosId || aleks.notosId || "").trim();
+  body.innerHTML = `<div class="monarchCredentialVault">
+    <div class="monarchCredentialVaultRow"><span>Owner</span><b>${aleks.ownerName}</b></div>
+    <div class="monarchCredentialVaultRow"><span>MA Owner Code</span><b>${aleks.code}</b></div>
+    <div class="monarchCredentialVaultRow"><span>MA Password</span><b>${aleks.password}</b></div>
+    <div class="monarchCredentialVaultRow"><span>Required NOTOS ID</span><b>${aleksNotosId}</b></div>
+  </div>`;
+  overlay.hidden = false;
+}
+
+function closeMonarchCredentialOverlay() {
+  const overlay = document.getElementById("monarch-credential-overlay");
+  if (overlay) overlay.hidden = true;
+}
+
+function upsertRecordInCollection(list, payload, resolveKey) {
+  if (!Array.isArray(list)) return;
+  const key = String(resolveKey(payload) || "").trim().toLowerCase();
+  if (!key) return;
+  const existingIdx = list.findIndex((row) => String(resolveKey(row) || "").trim().toLowerCase() === key);
+  if (existingIdx >= 0) list[existingIdx] = monarchDeepClone(payload);
+  else list.unshift(monarchDeepClone(payload));
+}
+
+function restoreMonarchArchiveRecord(recordId = "") {
+  const record = findMonarchArchiveRecord(recordId);
+  if (!record) return { ok: false, message: "Archive record not found." };
+  const payload = monarchDeepClone(record.payload);
+  const sourceType = String(record.sourceType || "").trim();
+  if (!payload || typeof payload !== "object") return { ok: false, message: "Archive payload is invalid." };
+
+  if (sourceType === "account") {
+    const key = normalizeEmailAddress(payload.email || record.sourceKey || "");
+    if (!key) return { ok: false, message: "Account email is required for restore." };
+    accounts[key] = normalizeAccountServiceCards(payload);
+    persistAccountsData();
+    syncMonarchArchangelArchive({ immediate: true });
+    return { ok: true, message: "Account restored to VVS and AMP." };
+  }
+
+  if (!sunriseControlState) return { ok: false, message: "Sunrise storage is unavailable." };
+
+  if (sourceType === "rta") {
+    ensureRtaAssignmentsStore();
+    upsertRecordInCollection(sunriseControlState.rtaAssignments, normalizeRtaAssignment(payload), (row) => row?.clientKey);
+    saveSunriseControlState({ immediate: true, markDirty: false });
+    return { ok: true, message: "RTA record restored to Sunrise." };
+  }
+  if (sourceType === "rim") {
+    upsertRecordInCollection(sunriseControlState.rimInvites, payload, (row) => row?.id || row?.email);
+    saveSunriseControlState({ immediate: true, markDirty: false });
+    return { ok: true, message: "RIM record restored to Sunrise." };
+  }
+  if (sourceType === "ecs") {
+    upsertRecordInCollection(sunriseControlState.ecsEmployees, payload, (row) => row?.id || row?.email);
+    saveSunriseControlState({ immediate: true, markDirty: false });
+    return { ok: true, message: "ECS employee restored to Sunrise." };
+  }
+  if (sourceType === "eam") {
+    upsertRecordInCollection(sunriseControlState.eamExpenses, payload, (row) => row?.id);
+    saveSunriseControlState({ immediate: true, markDirty: false });
+    return { ok: true, message: "Expense record restored to Sunrise." };
+  }
+  if (sourceType === "ifs") {
+    upsertRecordInCollection(sunriseControlState.ifsIncome, payload, (row) => row?.id);
+    saveSunriseControlState({ immediate: true, markDirty: false });
+    return { ok: true, message: "Income record restored to Sunrise." };
+  }
+  if (sourceType === "smca") {
+    upsertRecordInCollection(sunriseControlState.smca, payload, (row) => row?.id);
+    saveSunriseControlState({ immediate: true, markDirty: false });
+    return { ok: true, message: "Commission record restored to Sunrise." };
+  }
+  if (sourceType === "lcs") {
+    upsertRecordInCollection(sunriseControlState.lcsSessions, payload, (row) => row?.id);
+    saveSunriseControlState({ immediate: true, markDirty: false });
+    return { ok: true, message: "NOTOS session restored to Sunrise." };
+  }
+  if (sourceType === "mail") {
+    const inbox = sunriseControlState.inbox || {};
+    if (!Array.isArray(inbox.messages)) inbox.messages = [];
+    upsertRecordInCollection(inbox.messages, payload, (row) => row?.id);
+    sunriseControlState.inbox = inbox;
+    saveSunriseControlState({ immediate: true, markDirty: false });
+    return { ok: true, message: "Mail record restored to Sunrise inbox storage." };
+  }
+  if (sourceType === "access-level") {
+    upsertRecordInCollection(sunriseControlState.accessLevels, payload, (row) => row?.code);
+    saveSunriseControlState({ immediate: true, markDirty: false });
+    return { ok: true, message: "Access level restored to ALP." };
+  }
+  if (sourceType === "shortcut-code") {
+    ensureShortcutCodeRegistry();
+    upsertRecordInCollection(sunriseControlState.shortcutCodes, payload, (row) => row?.code);
+    saveSunriseControlState({ immediate: true, markDirty: false });
+    return { ok: true, message: "Shortcut code restored to MCC." };
+  }
+  if (sourceType.startsWith("soc-")) {
+    const bucket = sourceType.replace("soc-", "");
+    const targetList = Array.isArray(sunriseControlState?.socServices?.[bucket]) ? sunriseControlState.socServices[bucket] : null;
+    if (!targetList) return { ok: false, message: "SOC collection is unavailable." };
+    upsertRecordInCollection(targetList, payload, (row) => row?.id);
+    saveSunriseControlState({ immediate: true, markDirty: false });
+    return { ok: true, message: "SOC service restored to Sunrise." };
+  }
+
+  return { ok: false, message: "This archive type is view-only." };
+}
+
+function saveMonarchArchiveRecord(recordId = "", nextPayloadText = "") {
+  const record = findMonarchArchiveRecord(recordId);
+  if (!record) return { ok: false, message: "Archive record not found." };
+  try {
+    const parsed = JSON.parse(String(nextPayloadText || "").trim() || "{}");
+    record.payload = monarchDeepClone(parsed);
+    record.summary = monarchArchiveSummaryFromPayload(record.sourceType, parsed);
+    record.manualOverride = true;
+    record.updatedAt = formatUtcTimestamp(new Date());
+    persistMonarchArchangelState();
+    return { ok: true, message: "Archive record updated." };
+  } catch (_) {
+    return { ok: false, message: "Payload must be valid JSON." };
+  }
+}
+
+function deleteMonarchArchiveRecord(recordId = "") {
+  const id = String(recordId || "").trim();
+  if (!id || !monarchArchangelState?.records?.[id]) return { ok: false, message: "Archive record not found." };
+  delete monarchArchangelState.records[id];
+  monarchArchangelState.updatedAt = formatUtcTimestamp(new Date());
+  persistMonarchArchangelState();
+  if (monarchArchangelRuntime.detailsRecordId === id) monarchArchangelRuntime.detailsRecordId = "";
+  return { ok: true, message: "Archive record deleted." };
+}
+
+function renderMonarchArchiveCards(records = []) {
+  if (!Array.isArray(records) || !records.length) {
+    return `<article class="monarchArchiveEmpty"><p>No archive records match the current filter.</p></article>`;
+  }
+  return records.map((record) => {
+    const deletedClass = record?.deletedInSource ? " isDeleted" : "";
+    const deletedLabel = record?.deletedInSource ? `<span class="monarchArchiveFlag">Deleted in Sunrise</span>` : `<span class="monarchArchiveFlag isLive">Live</span>`;
+    return `<article class="monarchArchiveCard${deletedClass}">
+      <div class="monarchArchiveCardTop">
+        <div>
+          <p class="monarchArchiveEyebrow">${String(record?.category || "").trim()}</p>
+          <h4>${encodeHtmlEntities(String(record?.title || "Archive Record").trim())}</h4>
+        </div>
+        ${deletedLabel}
+      </div>
+      <p class="monarchArchiveSummary">${encodeHtmlEntities(String(record?.summary || "Archive snapshot").trim())}</p>
+      <div class="monarchArchiveMeta">
+        <span>${encodeHtmlEntities(String(record?.sourceType || "").trim())}</span>
+        <span>${encodeHtmlEntities(String(record?.sourceKey || "").trim())}</span>
+        <span>${encodeHtmlEntities(String(record?.updatedAt || "").trim())}</span>
+      </div>
+      <div class="viewActions monarchArchiveActions">
+        <button class="sunriseMiniBtn" type="button" data-monarch-details="${encodeHtmlEntities(record.id)}">Details</button>
+        <button class="sunriseMiniBtn" type="button" data-monarch-restore="${encodeHtmlEntities(record.id)}">Restore</button>
+        <button class="sunriseMiniBtn" type="button" data-monarch-delete="${encodeHtmlEntities(record.id)}">Delete</button>
+      </div>
+    </article>`;
+  }).join("");
+}
+
+function renderMonarchArchangelPage() {
+  const grid = document.getElementById("sunrise-monarch-grid");
+  if (!grid) return;
+  const operator = getCurrentSunriseOperator() || activeAccount || null;
+  const ownerProfile = currentMonarchOwnerProfile(operator);
+  const requiredNotosId = String(operator?.notosId || ownerProfile?.notosId || "").trim();
+  if (!ownerProfile) {
+    grid.innerHTML = `<article class="sunriseControlCard sunriseDetailWide"><h3>Monarch Archangel</h3><p class="profileNote">Owner access only.</p></article>`;
+    return;
+  }
+
+  syncMonarchArchangelArchive({ immediate: true });
+  const counts = monarchArchiveCounts();
+  if (!monarchArchangelRuntime.unlocked || monarchArchangelRuntime.ownerOperatorCode !== ownerProfile.operatorCode) {
+    grid.innerHTML = `<article class="sunriseControlCard sunriseDetailWide monarchLoginCard">
+      <h3>Monarch Archangel Access</h3>
+      <p class="profileNote">Guardian archive access requires the owner code, MA password, and active NOTOS ID.</p>
+      <form class="authGrid" id="monarch-auth-form" novalidate>
+        <div class="field">
+          <label for="monarch-owner-code">Owner Code</label>
+          <input class="input" id="monarch-owner-code" type="text" autocomplete="off" placeholder="${ownerProfile.code}">
+        </div>
+        <div class="field">
+          <label for="monarch-owner-password">MA Password</label>
+          <input class="input" id="monarch-owner-password" type="password" autocomplete="off">
+        </div>
+        <div class="field full">
+          <label for="monarch-owner-notos">NOTOS ID</label>
+          <input class="input" id="monarch-owner-notos" type="text" autocomplete="off" placeholder="${requiredNotosId}">
+        </div>
+        <div class="viewActions"><button class="btn primary" type="submit">Unlock Monarch Archangel</button></div>
+      </form>
+      <p class="authInfo" id="monarch-auth-info">${encodeHtmlEntities(String(monarchArchangelRuntime.info || "").trim())}</p>
+    </article>`;
+    return;
+  }
+
+  const records = filteredMonarchArchiveRecords();
+  const categoryButtons = [
+    ["all", "All Records"],
+    ["credentials", "Credentials"],
+    ["services", "Services"],
+    ["operations", "Operations"],
+    ["payments", "Payments"],
+    ["mail", "Mail"],
+    ["logins", "Logins"],
+    ["changes", "Changes"]
+  ].map(([key, label]) => `<button class="sunriseMiniBtn ${monarchArchangelRuntime.filterCategory === key ? "isActive" : ""}" type="button" data-monarch-category="${key}">${label}</button>`).join("");
+  const mikhailVault = ownerProfile.operatorCode === "MO1"
+    ? `<article class="sunriseControlCard sunriseDetailWide monarchExecutiveCard">
+        <div class="monarchExecutiveTop">
+          <div>
+            <p class="ampSectionEyebrow">Executive Vault</p>
+            <h3>Aleks MA Credentials</h3>
+            <p class="profileNote">Separate Aleks credential window available only inside Mikhail's Monarch Archangel session.</p>
+          </div>
+          <button class="btn ghost" type="button" id="monarch-open-aleks-vault">Open Aleks Vault</button>
+        </div>
+      </article>`
+    : "";
+  grid.innerHTML = `<section class="monarchShell">
+    <article class="monarchHero">
+      <div>
+        <p class="monarchKicker">Owner-only archive</p>
+        <h2>MONARCH ARCHANGEL</h2>
+        <p class="profileNote">Guardian archive for Sunrise and VVS records, credentials, services, payments, mail, and login intelligence.</p>
+      </div>
+      <div class="monarchHeroActions">
+        <button class="btn ghost" type="button" id="monarch-lock-btn">Lock</button>
+      </div>
+    </article>
+    <section class="monarchStatsGrid">
+      <article class="monarchStatCard"><span>Archive Records</span><b>${counts.total}</b></article>
+      <article class="monarchStatCard"><span>Credentials</span><b>${counts.credentials}</b></article>
+      <article class="monarchStatCard"><span>Services</span><b>${counts.services}</b></article>
+      <article class="monarchStatCard"><span>Operations</span><b>${counts.operations}</b></article>
+      <article class="monarchStatCard"><span>Payments</span><b>${counts.payments}</b></article>
+      <article class="monarchStatCard"><span>Mail / Logins</span><b>${counts.mail + counts.logins}</b></article>
+      <article class="monarchStatCard"><span>Change Trace</span><b>${counts.changes}</b></article>
+      <article class="monarchStatCard"><span>Deleted in Source</span><b>${counts.deleted}</b></article>
+    </section>
+    ${mikhailVault}
+    <article class="sunriseControlCard sunriseDetailWide monarchControlCard">
+      <div class="monarchControlBar">
+        <input class="input" id="monarch-search" placeholder="Search title, source, payload, or timestamp" value="${encodeHtmlEntities(monarchArchangelRuntime.filterQuery)}">
+        <button class="sunriseMiniBtn" type="button" data-monarch-search>Search</button>
+      </div>
+      <div class="sunriseSectionTabs monarchTabs">${categoryButtons}</div>
+      <p class="profileNote">Archive sync ${encodeHtmlEntities(String(monarchArchangelState?.updatedAt || "").trim() || "pending")}.</p>
+      <p class="authInfo">${encodeHtmlEntities(String(monarchArchangelRuntime.info || "").trim())}</p>
+    </article>
+    <section class="monarchArchiveGrid">${renderMonarchArchiveCards(records)}</section>
+  </section>`;
 }
 
 function parseSunriseScheduleInput(rawValue = "") {
@@ -10702,6 +11529,13 @@ function ampStaffGroupDescription(group = "") {
 
 function sunriseAccessMetaByCode(code = "") {
   const normalized = String(code || "").trim().toUpperCase();
+  if (normalized === "CR") {
+    return {
+      code: "CR",
+      title: "Creator",
+      access: "Creator command authority + Monarch Archangel + full Sunrise executive archive oversight"
+    };
+  }
   const row = Array.isArray(sunriseControlState?.accessLevels)
     ? sunriseControlState.accessLevels.find((item) => String(item?.code || "").trim().toUpperCase() === normalized)
     : null;
@@ -11303,8 +12137,18 @@ function renderALPPage(filter = "") {
   if (!grid || !sunriseControlState) return;
   const section = normalizeAdminSection(sunriseAdminViewState.alpSection);
   sunriseAdminViewState.alpSection = section;
+  const viewer = getCurrentSunriseOperator() || activeAccount || null;
   if (!Array.isArray(sunriseControlState.accessLevels)) sunriseControlState.accessLevels = [];
   const renderAccessRow = (row, originalIdx) => {
+    const virtualCreator = originalIdx === "virtual-creator";
+    if (virtualCreator) {
+      return `<tr>
+        <td><input class="input" value="${row.code || ""}" readonly></td>
+        <td><input class="input" value="${row.title || ""}" readonly></td>
+        <td><input class="input" value="${row.access || ""}" readonly></td>
+        <td><span class="profileNote">Mikhail view only</span></td>
+      </tr>`;
+    }
     const lockedForAleks = isAleksAlpRestrictedAccessRow(row);
     const lockAttrs = lockedForAleks ? "readonly aria-disabled=\"true\"" : "";
     const deleteAction = lockedForAleks
@@ -11344,7 +12188,15 @@ function renderALPPage(filter = "") {
       .sort((a, b) => hierarchySortIndex(String(a.row.code || "")) - hierarchySortIndex(String(b.row.code || "")))
       .map(({ row, originalIdx }) => renderAccessRow(row, originalIdx))
       .join("");
-    return `<article class="sunriseControlCard sunriseDetailWide"><h3>${band.label} Hierarchy</h3><table class="sunriseControlTable"><thead><tr><th>Code</th><th>Level</th><th>Access Detail</th><th>Action</th></tr></thead><tbody>${bandRows || "<tr><td colspan='4'>No levels in this hierarchy band.</td></tr>"}</tbody></table></article>`;
+    const creatorRow = band.label === "Executive" && currentSunriseCreatorViewer(viewer)
+      && matchesSearch(["CR", "Creator", "Monarch Archangel"], filter)
+      ? renderAccessRow({
+        code: "CR",
+        title: "Creator",
+        access: "Creator command authority + Monarch Archangel + full Sunrise executive archive oversight"
+      }, "virtual-creator")
+      : "";
+    return `<article class="sunriseControlCard sunriseDetailWide"><h3>${band.label} Hierarchy</h3><table class="sunriseControlTable"><thead><tr><th>Code</th><th>Level</th><th>Access Detail</th><th>Action</th></tr></thead><tbody>${creatorRow}${bandRows || (!creatorRow ? "<tr><td colspan='4'>No levels in this hierarchy band.</td></tr>" : "")}</tbody></table></article>`;
   }).join("");
 
   const sectionBody = section === "staff"
@@ -11577,16 +12429,58 @@ function renderSignatureManager() {
     const profiles = ownerInboxSignatureProfiles();
     const defaultId = String(ownerInboxDefaultSignatureProfile()?.id || "");
     wrap.innerHTML = profiles.length
-      ? profiles.map((profile) => `
-        <article class="sunriseInboxSignatureItem">
-          <div class="sunriseInboxSignatureHead">
-            <input class="input" data-owner-signature-name="${profile.id}" value="${encodeHtmlEntities(profile.name)}" placeholder="Signature name">
-            <label class="choice"><input type="radio" name="owner-default-signature" data-owner-signature-default="${profile.id}" ${profile.id === defaultId ? "checked" : ""}/> Default</label>
+      ? `<section class="sunriseOwnerSignatureStudio">${profiles.map((profile) => {
+        const ownerLabel = String(profile.ownerCode || "").trim() === "MO1" ? "Mikhail" : "Aleks";
+        const defaultClass = profile.id === defaultId ? " isDefault" : "";
+        return `<article class="sunriseOwnerSignatureCard${defaultClass}">
+          <div class="sunriseOwnerSignatureHead">
+            <div class="sunriseOwnerSignatureMeta">
+              <span>${ownerLabel} Signature</span>
+              <b>${encodeHtmlEntities(profile.name)}</b>
+            </div>
+            <label class="sunriseOwnerSignatureToggle">
+              <input type="radio" name="owner-default-signature" data-owner-signature-default="${profile.id}" ${profile.id === defaultId ? "checked" : ""}/>
+              <span>Default</span>
+            </label>
           </div>
-          <textarea class="input sunriseInboxSignatureArea" data-owner-signature-html="${profile.id}" placeholder="Signature HTML">${encodeHtmlEntities(profile.signatureHtml)}</textarea>
-          <div class="sunriseInboxMessageBody">${profile.signatureHtml || "<p class='profileNote'>No owner signature configured.</p>"}</div>
-        </article>
-      `).join("")
+          <div class="sunriseOwnerSignatureFields">
+            <label class="sunriseOwnerSignatureField">
+              <span>Signature Label</span>
+              <input class="input" data-owner-signature-name="${profile.id}" value="${encodeHtmlEntities(profile.name)}" placeholder="Signature name">
+            </label>
+            <label class="sunriseOwnerSignatureField">
+              <span>Linked Owner</span>
+              <input class="input" value="${ownerLabel}" readonly>
+            </label>
+          </div>
+          <div class="sunriseOwnerSignatureToolbar">
+            <button class="sunriseMiniBtn" type="button" data-owner-signature-command="bold" data-owner-signature-target="${profile.id}"><b>B</b></button>
+            <button class="sunriseMiniBtn" type="button" data-owner-signature-command="italic" data-owner-signature-target="${profile.id}"><i>I</i></button>
+            <button class="sunriseMiniBtn" type="button" data-owner-signature-command="underline" data-owner-signature-target="${profile.id}"><u>U</u></button>
+            <button class="sunriseMiniBtn" type="button" data-owner-signature-command="title" data-owner-signature-target="${profile.id}">Title</button>
+            <button class="sunriseMiniBtn" type="button" data-owner-signature-command="body" data-owner-signature-target="${profile.id}">Body</button>
+            <button class="sunriseMiniBtn" type="button" data-owner-signature-command="divider" data-owner-signature-target="${profile.id}">Divider</button>
+            <button class="sunriseMiniBtn" type="button" data-owner-signature-command="website" data-owner-signature-target="${profile.id}">Website</button>
+            <button class="sunriseMiniBtn" type="button" data-owner-signature-command="email" data-owner-signature-target="${profile.id}">Email</button>
+            <button class="sunriseMiniBtn" type="button" data-owner-signature-command="phone" data-owner-signature-target="${profile.id}">Phone</button>
+          </div>
+          <div class="sunriseOwnerSignatureEditorWrap">
+            <div class="sunriseOwnerSignatureEditorPane">
+              <div class="sunriseOwnerSignaturePanelHead">
+                <span>Editor</span>
+              </div>
+              <div class="sunriseOwnerSignatureEditor" contenteditable="true" spellcheck="true" data-owner-signature-editor="${profile.id}">${profile.signatureHtml || ""}</div>
+            </div>
+            <div class="sunriseOwnerSignaturePreviewPane">
+              <div class="sunriseOwnerSignaturePanelHead">
+                <span>Preview</span>
+              </div>
+              <div class="sunriseOwnerSignaturePreview" data-owner-signature-preview="${profile.id}">${profile.signatureHtml || "<p class='profileNote'>No owner signature configured.</p>"}</div>
+            </div>
+          </div>
+          <p class="sunriseOwnerSignatureHint">Gmail-style rich editing inside Sunrise. Changes sync to compose immediately and stay tied to this owner preset.</p>
+        </article>`;
+      }).join("")}</section>`
       : "<p class='profileNote'>No Gmail send-as signatures available yet.</p>";
     const signatureInfo = document.getElementById("inbox-signature-manager-info");
     if (signatureInfo) signatureInfo.textContent = "Aleks and Mikhail signature presets are available here and apply to Sunrise compose immediately.";
@@ -11674,6 +12568,10 @@ function renderCustomSunriseControlPages() {
     renderLCSPage();
     return;
   }
+  if (route === "sunrise-monarch") {
+    renderMonarchArchangelPage();
+    return;
+  }
   if (route === "sunrise-amp" || route === "sunrise-alp" || route === "sunrise-mcc") {
     scheduleSunriseAdminRenders();
     return;
@@ -11710,6 +12608,14 @@ function bindSunriseControlInteractions() {
   const vacationInfo = document.getElementById("sunrise-vacation-info");
   const inboxMessageOverlay = document.getElementById("sunrise-inbox-message-overlay");
   const inboxMessageClose = document.getElementById("sunrise-inbox-message-close");
+  const monarchRecordOverlay = document.getElementById("monarch-record-overlay");
+  const monarchRecordClose = document.getElementById("monarch-record-close");
+  const monarchRecordSave = document.getElementById("monarch-record-save");
+  const monarchRecordRestore = document.getElementById("monarch-record-restore");
+  const monarchRecordDelete = document.getElementById("monarch-record-delete");
+  const monarchRecordInfo = document.getElementById("monarch-record-info");
+  const monarchCredentialOverlay = document.getElementById("monarch-credential-overlay");
+  const monarchCredentialClose = document.getElementById("monarch-credential-close");
   if (notosPathClose && notosPathClose.dataset.boundNotosClose !== "1") {
     notosPathClose.addEventListener("click", () => {
       if (notosPathOverlay) notosPathOverlay.hidden = true;
@@ -11751,6 +12657,30 @@ function bindSunriseControlInteractions() {
       if (event.target === inboxMessageOverlay) closeSunriseInboxMessageOverlay();
     });
     inboxMessageOverlay.dataset.boundInboxMessageBackdrop = "1";
+  }
+  if (monarchRecordClose && monarchRecordClose.dataset.boundMonarchRecordClose !== "1") {
+    monarchRecordClose.addEventListener("click", () => {
+      closeMonarchRecordOverlay();
+    });
+    monarchRecordClose.dataset.boundMonarchRecordClose = "1";
+  }
+  if (monarchRecordOverlay && monarchRecordOverlay.dataset.boundMonarchRecordBackdrop !== "1") {
+    monarchRecordOverlay.addEventListener("click", (event) => {
+      if (event.target === monarchRecordOverlay) closeMonarchRecordOverlay();
+    });
+    monarchRecordOverlay.dataset.boundMonarchRecordBackdrop = "1";
+  }
+  if (monarchCredentialClose && monarchCredentialClose.dataset.boundMonarchCredentialClose !== "1") {
+    monarchCredentialClose.addEventListener("click", () => {
+      closeMonarchCredentialOverlay();
+    });
+    monarchCredentialClose.dataset.boundMonarchCredentialClose = "1";
+  }
+  if (monarchCredentialOverlay && monarchCredentialOverlay.dataset.boundMonarchCredentialBackdrop !== "1") {
+    monarchCredentialOverlay.addEventListener("click", (event) => {
+      if (event.target === monarchCredentialOverlay) closeMonarchCredentialOverlay();
+    });
+    monarchCredentialOverlay.dataset.boundMonarchCredentialBackdrop = "1";
   }
   if (vacationSave && vacationSave.dataset.boundVacationSave !== "1") {
     vacationSave.addEventListener("click", async () => {
@@ -11795,6 +12725,43 @@ function bindSunriseControlInteractions() {
       if (signatureInfo) signatureInfo.textContent = "";
     });
     signatureClose.dataset.boundSigClose = "1";
+  }
+  if (monarchRecordSave && monarchRecordSave.dataset.boundMonarchRecordSave !== "1") {
+    monarchRecordSave.addEventListener("click", () => {
+      const payloadEl = document.getElementById("monarch-record-payload");
+      const result = saveMonarchArchiveRecord(
+        monarchArchangelRuntime.detailsRecordId,
+        payloadEl instanceof HTMLTextAreaElement ? payloadEl.value : ""
+      );
+      if (monarchRecordInfo) monarchRecordInfo.textContent = result.message;
+      if (result.ok) {
+        syncMonarchArchangelArchive({ immediate: true });
+        renderMonarchArchangelPage();
+      }
+    });
+    monarchRecordSave.dataset.boundMonarchRecordSave = "1";
+  }
+  if (monarchRecordRestore && monarchRecordRestore.dataset.boundMonarchRecordRestore !== "1") {
+    monarchRecordRestore.addEventListener("click", () => {
+      const result = restoreMonarchArchiveRecord(monarchArchangelRuntime.detailsRecordId);
+      if (monarchRecordInfo) monarchRecordInfo.textContent = result.message;
+      if (result.ok) {
+        syncMonarchArchangelArchive({ immediate: true });
+        renderMonarchArchangelPage();
+      }
+    });
+    monarchRecordRestore.dataset.boundMonarchRecordRestore = "1";
+  }
+  if (monarchRecordDelete && monarchRecordDelete.dataset.boundMonarchRecordDelete !== "1") {
+    monarchRecordDelete.addEventListener("click", () => {
+      const result = deleteMonarchArchiveRecord(monarchArchangelRuntime.detailsRecordId);
+      if (monarchRecordInfo) monarchRecordInfo.textContent = result.message;
+      if (result.ok) {
+        closeMonarchRecordOverlay();
+        renderMonarchArchangelPage();
+      }
+    });
+    monarchRecordDelete.dataset.boundMonarchRecordDelete = "1";
   }
 
   const resetSunriseComposerViewport = () => {
@@ -11981,6 +12948,65 @@ function bindSunriseControlInteractions() {
     const saveBtn = clickTarget.closest("[data-sunrise-save-changes]");
     if (saveBtn) {
       commitSunriseChanges();
+      return;
+    }
+
+    const ownerSignatureCommand = clickTarget.closest("[data-owner-signature-command]");
+    if (ownerSignatureCommand) {
+      const command = String(ownerSignatureCommand.getAttribute("data-owner-signature-command") || "").trim();
+      const profileId = String(ownerSignatureCommand.getAttribute("data-owner-signature-target") || "").trim();
+      runOwnerSignatureEditorCommand(profileId, command);
+      return;
+    }
+
+    const monarchLockBtn = clickTarget.closest("#monarch-lock-btn");
+    if (monarchLockBtn) {
+      resetMonarchArchangelAccess();
+      renderMonarchArchangelPage();
+      return;
+    }
+
+    const monarchVaultBtn = clickTarget.closest("#monarch-open-aleks-vault");
+    if (monarchVaultBtn) {
+      openMonarchCredentialOverlay();
+      return;
+    }
+
+    const monarchCategoryBtn = clickTarget.closest("[data-monarch-category]");
+    if (monarchCategoryBtn) {
+      monarchArchangelRuntime.filterCategory = String(monarchCategoryBtn.getAttribute("data-monarch-category") || "all").trim().toLowerCase() || "all";
+      renderMonarchArchangelPage();
+      return;
+    }
+
+    const monarchSearchBtn = clickTarget.closest("[data-monarch-search]");
+    if (monarchSearchBtn) {
+      const searchInput = document.getElementById("monarch-search");
+      monarchArchangelRuntime.filterQuery = String(searchInput?.value || "").trim();
+      renderMonarchArchangelPage();
+      return;
+    }
+
+    const monarchDetailsBtn = clickTarget.closest("[data-monarch-details]");
+    if (monarchDetailsBtn) {
+      openMonarchRecordOverlay(String(monarchDetailsBtn.getAttribute("data-monarch-details") || "").trim());
+      return;
+    }
+
+    const monarchRestoreBtn = clickTarget.closest("[data-monarch-restore]");
+    if (monarchRestoreBtn) {
+      const result = restoreMonarchArchiveRecord(String(monarchRestoreBtn.getAttribute("data-monarch-restore") || "").trim());
+      monarchArchangelRuntime.info = result.message;
+      syncMonarchArchangelArchive({ immediate: true });
+      renderMonarchArchangelPage();
+      return;
+    }
+
+    const monarchDeleteBtn = clickTarget.closest("[data-monarch-delete]");
+    if (monarchDeleteBtn) {
+      const result = deleteMonarchArchiveRecord(String(monarchDeleteBtn.getAttribute("data-monarch-delete") || "").trim());
+      monarchArchangelRuntime.info = result.message;
+      renderMonarchArchangelPage();
       return;
     }
 
@@ -13236,6 +14262,55 @@ function bindSunriseControlInteractions() {
       syncSunriseDockCodesPreview(sunriseControlState.shortcutCodes);
       saveSunriseControlState();
       scheduleSunriseAdminRenders();
+      return;
+    }
+  });
+
+  document.addEventListener("submit", (event) => {
+    const form = event.target instanceof HTMLFormElement ? event.target : null;
+    if (!form) return;
+
+    if (form.id === "monarch-auth-form") {
+      event.preventDefault();
+      const operator = getCurrentSunriseOperator() || activeAccount || null;
+      const ownerProfile = currentMonarchOwnerProfile(operator);
+      const codeInput = document.getElementById("monarch-owner-code");
+      const passwordInput = document.getElementById("monarch-owner-password");
+      const notosInput = document.getElementById("monarch-owner-notos");
+      const infoEl = document.getElementById("monarch-auth-info");
+      if (!ownerProfile) return;
+      const code = String(codeInput?.value || "").trim();
+      const password = String(passwordInput?.value || "").trim();
+      const notosId = String(notosInput?.value || "").trim();
+      const expectedNotos = String(operator?.notosId || ownerProfile.notosId || "").trim();
+      const authorized = code === ownerProfile.code
+        && password === ownerProfile.password
+        && notosId === expectedNotos;
+      if (!authorized) {
+        monarchArchangelRuntime.unlocked = false;
+        monarchArchangelRuntime.ownerOperatorCode = "";
+        monarchArchangelRuntime.info = "Access denied. Use the owner-specific MA code, password, and linked NOTOS ID.";
+        if (infoEl) infoEl.textContent = monarchArchangelRuntime.info;
+        return;
+      }
+      monarchArchangelRuntime.unlocked = true;
+      monarchArchangelRuntime.ownerOperatorCode = ownerProfile.operatorCode;
+      monarchArchangelRuntime.info = "";
+      renderMonarchArchangelPage();
+    }
+  });
+
+  document.addEventListener("input", (event) => {
+    const target = event.target instanceof HTMLElement ? event.target : null;
+    if (!target) return;
+
+    if (target.hasAttribute("data-owner-signature-editor")) {
+      syncOwnerSignatureEditorValue(String(target.getAttribute("data-owner-signature-editor") || "").trim());
+      return;
+    }
+
+    if (target.id === "monarch-search") {
+      monarchArchangelRuntime.filterQuery = String(target instanceof HTMLInputElement ? target.value : "").trim();
       return;
     }
   });

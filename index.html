@@ -8,7 +8,7 @@
   <meta http-equiv="Expires" content="0" />
   <title>Venture Voyager Services - Concierge</title>
   <meta name="description" content="Venture Voyager Services (VVS) - discreet luxury concierge and private access." />
-  <link rel="stylesheet" href="styles.css?v=20260304-61" />
+  <link rel="stylesheet" href="styles.css?v=20260304-62" />
 </head>
 <body>
   <div class="wrap">
@@ -833,6 +833,9 @@
             <section id="sunrise-panel" hidden>
               <h2 class="viewTitle" id="sunrise-greeting">Good Morning, Mr. Totev - Welcome to Sunrise, Access Level - Owner</h2>
               <p class="viewSub" id="sunrise-subtitle">Owner command modules for strategic control of VVS operations.</p>
+              <div class="viewActions sunriseExecutiveActions" style="margin-top:0;">
+                <a class="btn ghost sunriseMonarchBtn" href="#sunrise-monarch" data-route="sunrise-monarch" id="sunrise-monarch-btn" hidden>MONARCH ARCHANGEL</a>
+              </div>
 
               <div class="sunriseOpsSummary" id="sunrise-ops-summary">
                 <article class="sunriseSummaryCard"><p class="sunriseCategoryTitle">DTS Documents</p><b id="sum-dts-count">0</b></article>
@@ -974,6 +977,22 @@
       </section>
       <section class="routePage" data-page="sunrise-mcc" aria-label="Sunrise MCC Page" hidden>
         <section class="view"><div class="viewInner sunriseShell sunriseDetailShell"><div class="viewTop"><div class="kicker"><span class="dot"></span> Sunrise • MCC</div><div class="viewActions" style="margin-top:0;"><button class="btn ghost" type="button" data-sunrise-logout>Log Out</button><a class="btn ghost" href="#sunrise" data-route="sunrise">Back</a></div></div><h2 class="viewTitle">Manage &amp; Create Codes</h2><div class="sunriseDetailGrid" id="sunrise-mcc-grid"></div></div></section>
+      </section>
+      <section class="routePage" data-page="sunrise-monarch" aria-label="Sunrise Monarch Archangel Page" hidden>
+        <section class="view">
+          <div class="viewInner sunriseShell sunriseDetailShell sunriseMonarchPage">
+            <div class="viewTop">
+              <div class="kicker"><span class="dot"></span> Sunrise • Monarch Archangel</div>
+              <div class="viewActions" style="margin-top:0;">
+                <button class="btn ghost" type="button" data-sunrise-logout>Log Out</button>
+                <a class="btn ghost" href="#sunrise" data-route="sunrise">Back</a>
+              </div>
+            </div>
+            <h2 class="viewTitle">Monarch Archangel</h2>
+            <p class="viewSub">Owner-only guardian archive for operations, credentials, services, financial records, sensitive changes, and synchronized Sunrise/VVS intelligence.</p>
+            <div class="sunriseDetailGrid" id="sunrise-monarch-grid"></div>
+          </div>
+        </section>
       </section>
       <section class="routePage" data-page="shutdown-404" aria-label="Website Shutdown Page" hidden>
         <section class="view"><div class="viewInner sunriseShell sunriseDetailShell"><div class="viewTop"><div class="kicker"><span class="dot"></span> System Status</div></div><h2 class="viewTitle">404 - VVS will be back as soon as possible</h2><p class="viewSub">VVS web system is currently frozen by command. Access will be restored when the owner executes the restore command.</p></div></section>
@@ -1532,13 +1551,45 @@
       </div>
     </div>
     <div class="contactOverlay" id="inbox-signature-overlay" hidden>
-      <div class="contactWindow sunriseMailWindow">
-        <div class="kicker"><span class="dot" aria-hidden="true"></span> Sunrise Signatures</div>
-        <h3 class="mailTitle">Manage Signatures</h3>
+      <div class="contactWindow sunriseMailWindow sunriseSignatureWindow">
+        <div class="kicker"><span class="dot" aria-hidden="true"></span> Sunrise Signatures Studio</div>
+        <h3 class="mailTitle">Manage Owner Signatures</h3>
         <div id="inbox-signature-manager"></div>
         <p class="authInfo" id="inbox-signature-manager-info"></p>
         <div class="viewActions" style="justify-content:center; margin-top:10px;">
           <button class="btn ghost" type="button" id="inbox-signature-close">Close</button>
+        </div>
+      </div>
+    </div>
+    <div class="contactOverlay" id="monarch-record-overlay" hidden>
+      <div class="contactWindow sunriseMailWindow sunriseAuditWindow monarchRecordWindow">
+        <div class="kicker"><span class="dot" aria-hidden="true"></span> Monarch Archangel • Archive Record</div>
+        <h3 class="mailTitle" id="monarch-record-title">Archive Record</h3>
+        <p class="authInfo" id="monarch-record-summary"></p>
+        <p class="authInfo" id="monarch-record-meta"></p>
+        <div class="mailFormGrid sunriseAuditBody">
+          <div class="field full">
+            <label for="monarch-record-payload">Record Payload</label>
+            <textarea class="input mailTextarea monarchRecordPayload" id="monarch-record-payload" spellcheck="false"></textarea>
+          </div>
+        </div>
+        <p class="authInfo" id="monarch-record-info"></p>
+        <div class="viewActions" style="justify-content:center; margin-top:10px;">
+          <button class="btn primary" type="button" id="monarch-record-save">Save Record</button>
+          <button class="btn" type="button" id="monarch-record-restore">Restore to Sunrise</button>
+          <button class="btn ghost" type="button" id="monarch-record-delete">Delete Archive Record</button>
+          <button class="btn ghost" type="button" id="monarch-record-close">Close</button>
+        </div>
+      </div>
+    </div>
+    <div class="contactOverlay" id="monarch-credential-overlay" hidden>
+      <div class="contactWindow sunriseMailWindow monarchCredentialWindow">
+        <div class="kicker"><span class="dot" aria-hidden="true"></span> Monarch Archangel • Executive Vault</div>
+        <h3 class="mailTitle">Aleks MA Credentials</h3>
+        <div id="monarch-credential-body"></div>
+        <p class="authInfo" id="monarch-credential-info"></p>
+        <div class="viewActions" style="justify-content:center; margin-top:10px;">
+          <button class="btn ghost" type="button" id="monarch-credential-close">Close</button>
         </div>
       </div>
     </div>
@@ -1561,6 +1612,6 @@
     </footer>
   </div>
 
-  <script src="script.js?v=20260304-114"></script>
+  <script src="script.js?v=20260304-115"></script>
 </body>
 </html>

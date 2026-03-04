@@ -2518,12 +2518,434 @@ input[type="file"]::-webkit-file-upload-button{
   display:none;
 }
 
+.sunriseExecutiveActions{
+  margin-bottom:14px;
+}
+
+.sunriseMonarchBtn{
+  border-color: rgba(124,173,255,.34);
+  background: linear-gradient(145deg, rgba(9,17,42,.88), rgba(17,32,74,.72));
+  box-shadow: 0 18px 34px rgba(3,8,26,.42), inset 0 1px 0 rgba(199,220,255,.06);
+}
+
+.sunriseMonarchBtn:hover{
+  border-color: rgba(160,199,255,.52);
+  background: linear-gradient(145deg, rgba(14,26,63,.92), rgba(22,41,91,.78));
+}
+
 .sunriseInboxSignatureItem{
   margin-top:8px;
   border:1px solid rgba(223,167,131,.22);
   border-radius:10px;
   padding:8px;
   background: rgba(18,12,10,.45);
+}
+
+.sunriseSignatureWindow{
+  width:min(1180px, calc(100vw - 28px));
+}
+
+.sunriseOwnerSignatureStudio{
+  display:grid;
+  gap:14px;
+}
+
+.sunriseOwnerSignatureCard{
+  border:1px solid rgba(221,184,153,.18);
+  border-radius:22px;
+  padding:16px;
+  background: linear-gradient(160deg, rgba(12,9,13,.82), rgba(41,24,20,.56));
+  box-shadow: inset 0 1px 0 rgba(255,255,255,.02), 0 16px 34px rgba(0,0,0,.24);
+}
+
+.sunriseOwnerSignatureCard.isDefault{
+  border-color: rgba(236,199,163,.36);
+  box-shadow: inset 0 0 0 1px rgba(253,226,203,.05), 0 18px 36px rgba(0,0,0,.26);
+}
+
+.sunriseOwnerSignatureHead{
+  display:flex;
+  justify-content:space-between;
+  align-items:flex-start;
+  gap:12px;
+  margin-bottom:12px;
+}
+
+.sunriseOwnerSignatureMeta{
+  display:grid;
+  gap:4px;
+}
+
+.sunriseOwnerSignatureMeta b{
+  font-size:18px;
+  color: rgba(253,242,233,.96);
+}
+
+.sunriseOwnerSignatureMeta span{
+  font-size:12px;
+  letter-spacing:.12em;
+  text-transform:uppercase;
+  color: rgba(233,207,184,.68);
+}
+
+.sunriseOwnerSignatureToggle{
+  display:inline-flex;
+  align-items:center;
+  gap:8px;
+  padding:8px 12px;
+  border-radius:999px;
+  border:1px solid rgba(232,194,158,.18);
+  background: rgba(11,10,16,.46);
+  color: rgba(249,232,216,.9);
+}
+
+.sunriseOwnerSignatureFields{
+  display:grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap:10px 12px;
+  margin-bottom:12px;
+}
+
+.sunriseOwnerSignatureField{
+  display:grid;
+  gap:6px;
+}
+
+.sunriseOwnerSignatureField span{
+  font-size:11px;
+  letter-spacing:.14em;
+  text-transform:uppercase;
+  color: rgba(231,203,180,.72);
+}
+
+.sunriseOwnerSignatureToolbar{
+  display:flex;
+  flex-wrap:wrap;
+  gap:8px;
+  margin:4px 0 10px;
+}
+
+.sunriseOwnerSignatureToolbar .sunriseMiniBtn{
+  min-width:44px;
+}
+
+.sunriseOwnerSignatureEditorWrap{
+  display:grid;
+  grid-template-columns: minmax(0, 1.02fr) minmax(0, .98fr);
+  gap:12px;
+  align-items:start;
+}
+
+.sunriseOwnerSignatureEditorPane,
+.sunriseOwnerSignaturePreviewPane{
+  border:1px solid rgba(224,185,152,.18);
+  border-radius:18px;
+  background: linear-gradient(180deg, rgba(10,8,12,.86), rgba(23,14,16,.74));
+  overflow:hidden;
+}
+
+.sunriseOwnerSignaturePanelHead{
+  display:flex;
+  justify-content:space-between;
+  align-items:center;
+  gap:10px;
+  padding:12px 14px;
+  border-bottom:1px solid rgba(224,185,152,.12);
+  background: rgba(255,255,255,.02);
+}
+
+.sunriseOwnerSignaturePanelHead span{
+  font-size:11px;
+  letter-spacing:.16em;
+  text-transform:uppercase;
+  color: rgba(233,206,185,.7);
+}
+
+.sunriseOwnerSignatureEditor{
+  min-height:270px;
+  padding:16px;
+  color: rgba(251,238,227,.96);
+  font-size:14px;
+  line-height:1.6;
+  outline:none;
+  overflow:auto;
+}
+
+.sunriseOwnerSignatureEditor:focus{
+  box-shadow: inset 0 0 0 1px rgba(248,216,186,.1);
+}
+
+.sunriseOwnerSignatureEditor p{
+  margin:0 0 12px;
+}
+
+.sunriseOwnerSignatureEditor p:last-child{
+  margin-bottom:0;
+}
+
+.sunriseOwnerSignaturePreview{
+  min-height:270px;
+  padding:16px;
+  color: rgba(251,238,227,.96);
+  overflow:auto;
+}
+
+.sunriseOwnerSignatureEditor img,
+.sunriseOwnerSignaturePreview img{
+  max-width:100%;
+  height:auto;
+}
+
+.sunriseOwnerSignatureEditor a,
+.sunriseOwnerSignaturePreview a{
+  color: rgba(176,209,255,.96);
+}
+
+.sunriseOwnerSignatureHint{
+  margin-top:10px;
+  font-size:12px;
+  color: rgba(237,214,194,.7);
+}
+
+.sunriseMonarchPage,
+.sunriseDetailShell{
+  overflow-x: clip;
+}
+
+.monarchShell{
+  display:grid;
+  gap:14px;
+}
+
+.monarchHero{
+  display:flex;
+  justify-content:space-between;
+  align-items:flex-start;
+  gap:16px;
+  border:1px solid rgba(110,151,230,.18);
+  border-radius:28px;
+  padding:22px 24px;
+  background:
+    radial-gradient(120% 140% at 8% 0%, rgba(74,122,255,.18), transparent 52%),
+    radial-gradient(100% 120% at 100% 100%, rgba(18,86,164,.16), transparent 56%),
+    linear-gradient(145deg, rgba(5,10,26,.96), rgba(9,18,42,.92) 45%, rgba(2,7,20,.98));
+  box-shadow: 0 26px 56px rgba(0,0,0,.36), inset 0 1px 0 rgba(190,216,255,.04);
+}
+
+.monarchKicker{
+  margin:0 0 10px;
+  font-size:11px;
+  letter-spacing:.22em;
+  text-transform:uppercase;
+  color: rgba(177,201,244,.76);
+}
+
+.monarchHero h2{
+  margin:0;
+  font-size: clamp(30px, 4vw, 46px);
+  letter-spacing:.12em;
+  color: rgba(244,248,255,.96);
+}
+
+.monarchHero .profileNote{
+  max-width:760px;
+  color: rgba(214,227,252,.78);
+}
+
+.monarchHeroActions{
+  display:flex;
+  align-items:center;
+  gap:10px;
+}
+
+.monarchStatsGrid{
+  display:grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap:12px;
+}
+
+.monarchStatCard{
+  border:1px solid rgba(112,152,232,.16);
+  border-radius:20px;
+  padding:16px;
+  background: linear-gradient(160deg, rgba(7,14,33,.9), rgba(13,22,53,.72));
+  box-shadow: 0 14px 28px rgba(0,0,0,.28);
+}
+
+.monarchStatCard span{
+  display:block;
+  margin-bottom:10px;
+  font-size:11px;
+  letter-spacing:.16em;
+  text-transform:uppercase;
+  color: rgba(177,204,244,.68);
+}
+
+.monarchStatCard b{
+  font-size:28px;
+  color: rgba(247,250,255,.96);
+}
+
+.monarchExecutiveCard,
+.monarchControlCard,
+.monarchLoginCard{
+  border-color: rgba(115,153,228,.16);
+  background:
+    radial-gradient(90% 130% at 0% 0%, rgba(67,119,255,.14), transparent 48%),
+    linear-gradient(155deg, rgba(4,10,26,.96), rgba(10,20,45,.88));
+}
+
+.monarchExecutiveTop,
+.monarchControlBar{
+  display:grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  gap:12px;
+  align-items:center;
+}
+
+.monarchTabs .sunriseMiniBtn{
+  border-color: rgba(112,154,232,.22);
+  background: rgba(8,15,32,.68);
+}
+
+.monarchTabs .sunriseMiniBtn.isActive{
+  border-color: rgba(165,203,255,.44);
+  background: linear-gradient(145deg, rgba(27,53,114,.78), rgba(17,35,82,.84));
+}
+
+.monarchArchiveGrid{
+  display:grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap:12px;
+}
+
+.monarchArchiveCard,
+.monarchArchiveEmpty{
+  border:1px solid rgba(112,152,232,.16);
+  border-radius:22px;
+  padding:16px;
+  background:
+    radial-gradient(120% 150% at 100% 0%, rgba(50,96,203,.12), transparent 44%),
+    linear-gradient(155deg, rgba(4,10,24,.94), rgba(10,17,38,.88));
+  box-shadow: 0 16px 34px rgba(0,0,0,.28);
+}
+
+.monarchArchiveCard.isDeleted{
+  border-color: rgba(205,131,126,.24);
+}
+
+.monarchArchiveCardTop{
+  display:flex;
+  justify-content:space-between;
+  align-items:flex-start;
+  gap:12px;
+}
+
+.monarchArchiveEyebrow{
+  margin:0 0 8px;
+  font-size:11px;
+  letter-spacing:.18em;
+  text-transform:uppercase;
+  color: rgba(175,201,239,.7);
+}
+
+.monarchArchiveCard h4{
+  margin:0;
+  font-size:18px;
+  color: rgba(245,249,255,.96);
+}
+
+.monarchArchiveFlag{
+  display:inline-flex;
+  align-items:center;
+  padding:7px 11px;
+  border-radius:999px;
+  border:1px solid rgba(214,144,139,.28);
+  background: rgba(58,18,24,.42);
+  color: rgba(255,224,220,.92);
+  font-size:10px;
+  letter-spacing:.14em;
+  text-transform:uppercase;
+}
+
+.monarchArchiveFlag.isLive{
+  border-color: rgba(141,180,237,.24);
+  background: rgba(17,41,88,.34);
+  color: rgba(224,236,255,.92);
+}
+
+.monarchArchiveSummary{
+  margin:12px 0;
+  color: rgba(224,234,248,.82);
+  line-height:1.58;
+}
+
+.monarchArchiveMeta{
+  display:flex;
+  flex-wrap:wrap;
+  gap:8px;
+  margin-bottom:12px;
+}
+
+.monarchArchiveMeta span{
+  display:inline-flex;
+  align-items:center;
+  padding:7px 10px;
+  border-radius:999px;
+  background: rgba(12,18,36,.68);
+  border:1px solid rgba(112,151,230,.14);
+  color: rgba(198,217,246,.78);
+  font-size:10px;
+  letter-spacing:.12em;
+  text-transform:uppercase;
+  overflow-wrap:anywhere;
+}
+
+.monarchArchiveActions{
+  justify-content:flex-start;
+  gap:8px;
+  flex-wrap:wrap;
+}
+
+.monarchRecordWindow{
+  width:min(980px, calc(100vw - 28px));
+}
+
+.monarchRecordPayload{
+  min-height:420px;
+  font-family: "SFMono-Regular", Menlo, Consolas, monospace;
+  line-height:1.45;
+}
+
+.monarchCredentialWindow{
+  width:min(640px, calc(100vw - 28px));
+}
+
+.monarchCredentialVault{
+  display:grid;
+  gap:10px;
+}
+
+.monarchCredentialVaultRow{
+  display:grid;
+  gap:6px;
+  border:1px solid rgba(114,154,232,.16);
+  border-radius:18px;
+  padding:14px;
+  background: linear-gradient(160deg, rgba(6,13,29,.94), rgba(12,20,45,.84));
+}
+
+.monarchCredentialVaultRow span{
+  font-size:11px;
+  letter-spacing:.16em;
+  text-transform:uppercase;
+  color: rgba(178,205,244,.7);
+}
+
+.monarchCredentialVaultRow b{
+  font-size:16px;
+  color: rgba(247,251,255,.96);
+  overflow-wrap:anywhere;
 }
 
 .sunriseInboxSignatureHead{
@@ -3833,6 +4255,12 @@ footer{
   .sunriseInboxComposeGrid{grid-template-columns:1fr;}
   .sunriseInboxDetailGrid{grid-template-columns:1fr;}
   .sunriseInboxSignatureHead{grid-template-columns:1fr;}
+  .sunriseOwnerSignatureFields{grid-template-columns:1fr 1fr;}
+  .sunriseOwnerSignatureEditorWrap{grid-template-columns:1fr;}
+  .monarchStatsGrid{grid-template-columns:1fr 1fr;}
+  .monarchArchiveGrid{grid-template-columns:1fr;}
+  .monarchExecutiveTop,
+  .monarchControlBar{grid-template-columns:1fr;}
   .sunriseReplyForm{grid-template-columns:1fr;}
   .serviceQuick{grid-template-columns:1fr;}
   .contactLayout{grid-template-columns:1fr;}
@@ -3945,6 +4373,12 @@ footer{
     line-height:1.48;
     margin-bottom:16px;
   }
+  .sunriseExecutiveActions{
+    width:100%;
+  }
+  .sunriseExecutiveActions .btn{
+    width:100%;
+  }
   .card{
     min-height:unset;
     padding:14px;
@@ -4019,6 +4453,31 @@ footer{
     height:74px;
     border-radius:16px;
     top:31%;
+  }
+  .sunriseOwnerSignatureFields{grid-template-columns:1fr;}
+  .monarchHero{
+    padding:18px 16px;
+    border-radius:22px;
+  }
+  .monarchStatsGrid{grid-template-columns:1fr;}
+  .monarchArchiveCard,
+  .monarchArchiveEmpty,
+  .monarchStatCard,
+  .sunriseOwnerSignatureCard{
+    padding:14px;
+  }
+  .monarchArchiveActions .sunriseMiniBtn,
+  .monarchControlBar .sunriseMiniBtn{
+    width:100%;
+  }
+  .monarchRecordPayload{
+    min-height:300px;
+  }
+  .sunriseSignatureWindow,
+  .monarchRecordWindow,
+  .monarchCredentialWindow,
+  .accountSettingsWindow{
+    width:min(100vw - 16px, 1000px);
   }
   .heroHat{
     width:48px;
