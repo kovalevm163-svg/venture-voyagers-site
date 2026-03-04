@@ -1237,6 +1237,47 @@ function cloneAccountsPayload(value = null) {
   }
 }
 
+function isBlankLikeStoredString(value = "") {
+  const text = String(value ?? "").trim();
+  if (!text) return true;
+  return /^(undefined|null)$/i.test(text);
+}
+
+function mergeStoredValuePreservingSeed(seedValue, incomingValue) {
+  if (incomingValue === undefined || incomingValue === null) {
+    return cloneAccountsPayload(seedValue) ?? seedValue;
+  }
+  if (seedValue === undefined || seedValue === null) {
+    return cloneAccountsPayload(incomingValue) ?? incomingValue;
+  }
+  if (typeof seedValue === "string" || typeof incomingValue === "string") {
+    if (isBlankLikeStoredString(incomingValue) && !isBlankLikeStoredString(seedValue)) {
+      return String(seedValue);
+    }
+    return String(incomingValue);
+  }
+  if (Array.isArray(seedValue) || Array.isArray(incomingValue)) {
+    const seedArray = Array.isArray(seedValue) ? seedValue : [];
+    const incomingArray = Array.isArray(incomingValue) ? incomingValue : [];
+    if (!incomingArray.length && seedArray.length) {
+      return cloneAccountsPayload(seedArray) ?? seedArray.slice();
+    }
+    return cloneAccountsPayload(incomingArray) ?? incomingArray.slice();
+  }
+  if (typeof seedValue === "object" && typeof incomingValue === "object") {
+    const merged = {};
+    const keys = new Set([
+      ...Object.keys(seedValue || {}),
+      ...Object.keys(incomingValue || {})
+    ]);
+    keys.forEach((key) => {
+      merged[key] = mergeStoredValuePreservingSeed(seedValue?.[key], incomingValue?.[key]);
+    });
+    return merged;
+  }
+  return incomingValue;
+}
+
 function buildMergedAccountsPayload(nextAccounts) {
   const seeded = normalizeAccountsObject(cloneAccountsPayload(SEEDED_ACCOUNTS_DATA)) || {};
   const incoming = normalizeAccountsObject(nextAccounts) || {};
@@ -1244,11 +1285,13 @@ function buildMergedAccountsPayload(nextAccounts) {
   Object.entries(incoming).forEach(([key, value]) => {
     const seededAccount = seeded[key] && typeof seeded[key] === "object" ? seeded[key] : {};
     const incomingAccount = value && typeof value === "object" ? value : {};
-    merged[key] = {
-      ...cloneAccountsPayload(seededAccount),
-      ...cloneAccountsPayload(incomingAccount),
+    merged[key] = normalizeAccountServiceCards({
+      ...mergeStoredValuePreservingSeed(
+        cloneAccountsPayload(seededAccount) || {},
+        cloneAccountsPayload(incomingAccount) || {}
+      ),
       email: String(incomingAccount.email || seededAccount.email || key).trim()
-    };
+    });
   });
   return Object.keys(merged).length ? merged : null;
 }
@@ -1310,6 +1353,8 @@ function isCustomerAccount(account = null) {
 
 function normalizeCustomerCredentialFields(account = null) {
   if (!isCustomerAccount(account)) return account;
+  const emailKey = normalizeEmailAddress(account.email || "");
+  const seededAccount = emailKey ? SEEDED_ACCOUNTS_DATA[emailKey] : null;
   const createdAt = String(account.createdAt || "").trim();
   const verifiedAt = String(account.verifiedAt || account.emailVerifiedAt || "").trim();
   const contactMethod = String(
@@ -1318,6 +1363,15 @@ function normalizeCustomerCredentialFields(account = null) {
     || (account.email ? "email" : (account.phone ? "phone" : ""))
   ).trim().toLowerCase();
   const nextCountryCode = String(account.countryCode || resolveCountryCode(account.country) || "").trim().toUpperCase();
+  if ((!account.phone || !String(account.phone).trim()) && seededAccount) {
+    const dialCode = dialCodeForCountry(account.country || seededAccount.country || nextCountryCode || "");
+    const localSeed = Array.from((emailKey || seededAccount.email || "client").replace(/[^a-z0-9]/gi, ""))
+      .reduce((sum, char) => sum + char.charCodeAt(0), 0);
+    const first = String(100 + (localSeed % 900)).padStart(3, "0");
+    const second = String(100 + ((localSeed * 7) % 900)).padStart(3, "0");
+    const third = String(1000 + ((localSeed * 13) % 9000)).padStart(4, "0");
+    account.phone = `${dialCode} ${first} ${second} ${third}`;
+  }
   account.countryCode = nextCountryCode;
   account.country = countryDisplayName(account.country || nextCountryCode || "");
   account.preferredContactMethod = contactMethod;
@@ -1486,6 +1540,7 @@ function persistAccountsData() {
   } catch (_) {}
   if (sunriseControlState) {
     ensureRtaAssignmentsStore();
+    ensureSocServicesStore();
     syncRedTeamAssignmentsToClientAccounts();
     syncSocServicesToClientAccounts();
     scheduleSunriseAdminRenders();
@@ -5452,6 +5507,95 @@ function createSocServiceRecord({
   };
 }
 
+function normalizeProfileCardTime(value = "") {
+  const text = String(value || "").trim();
+  if (!text || text === "N/A") return "";
+  return text;
+}
+
+function mapProfileStatusToSocStatus(statusText = "") {
+  const normalized = String(statusText || "").trim().toLowerCase();
+  if (!normalized) return "Awaiting Confirmation";
+  if (normalized.includes("completed") || normalized.includes("closed")) return "Closed";
+  if (normalized.includes("confirmed")) return "Confirmed";
+  if (normalized.includes("assigned")) return "Assigned";
+  return "Awaiting Confirmation";
+}
+
+function socRecordMatchesAccount(record = {}, accountKey = "", serviceTitle = "") {
+  const normalizedKey = normalizeEmailAddress(accountKey);
+  const normalizedTitle = String(serviceTitle || "").trim().toLowerCase();
+  return normalizeEmailAddress(record?.clientAccountEmail || record?.clientEmail || "") === normalizedKey
+    && String(record?.title || "").trim().toLowerCase() === normalizedTitle;
+}
+
+function ensureSocServicesStore() {
+  if (!sunriseControlState) return;
+  if (!sunriseControlState.socServices || typeof sunriseControlState.socServices !== "object") {
+    sunriseControlState.socServices = { current: [], past: [], deleted: [] };
+  }
+  ["current", "past", "deleted"].forEach((bucket) => {
+    if (!Array.isArray(sunriseControlState.socServices[bucket])) sunriseControlState.socServices[bucket] = [];
+  });
+  Object.entries(accounts).forEach(([key, account]) => {
+    if (!account || account.sunriseCredential || isStaffAccountForAdmin(account)) return;
+    const normalizedKey = normalizeEmailAddress(key);
+    const tier = String(account.membership || "Non-Member").trim() || "Non-Member";
+    const assigned = String(account.lastAssignedConcierge?.name || "").trim() || "Unassigned";
+    const upcoming = normalizeClientUpcomingServiceCard(account.upcomingService);
+    if (upcoming.title && upcoming.title !== defaultClientUpcomingServiceCard().title) {
+      const existsCurrent = sunriseControlState.socServices.current.some((row) => socRecordMatchesAccount(row, normalizedKey, upcoming.title));
+      const existsPast = sunriseControlState.socServices.past.some((row) => socRecordMatchesAccount(row, normalizedKey, upcoming.title));
+      if (!existsCurrent && !existsPast) {
+        sunriseControlState.socServices.current.push(createSocServiceRecord({
+          serviceId: String(account.socUpcomingServiceId || "").trim().toUpperCase(),
+          serviceType: upcoming.title,
+          clientName: `${String(account.firstName || "").trim()} ${String(account.lastName || "").trim()}`.trim(),
+          tier,
+          desiredExecutionTime: normalizeProfileCardTime(upcoming.startsAt),
+          details: String(upcoming.details || "").trim(),
+          assigned,
+          assignedAt: "",
+          confirmedAt: "",
+          status: mapProfileStatusToSocStatus(upcoming.statusText),
+          stage: "Current",
+          clientTitle: String(account.prefix || "").trim(),
+          clientEmail: String(account.email || normalizedKey).trim(),
+          clientPhone: String(account.phone || "").trim(),
+          clientCountry: String(account.country || "").trim(),
+          preferredContactMethod: String(account.preferredContactMethod || account.lastContactMethod || "").trim(),
+          clientAccountEmail: normalizedKey
+        }));
+      }
+    }
+    const past = normalizeClientPastServiceCard(account.pastService);
+    if (past.title && past.title !== defaultClientPastServiceCard().title) {
+      const existsPast = sunriseControlState.socServices.past.some((row) => socRecordMatchesAccount(row, normalizedKey, past.title));
+      if (!existsPast) {
+        sunriseControlState.socServices.past.push(createSocServiceRecord({
+          serviceId: String(account.socPastServiceId || "").trim().toUpperCase(),
+          serviceType: past.title,
+          clientName: `${String(account.firstName || "").trim()} ${String(account.lastName || "").trim()}`.trim(),
+          tier,
+          desiredExecutionTime: "",
+          details: String(past.details || "").trim(),
+          assigned,
+          assignedAt: "",
+          confirmedAt: normalizeProfileCardTime(past.endedAt),
+          status: "Closed",
+          stage: "Past",
+          clientTitle: String(account.prefix || "").trim(),
+          clientEmail: String(account.email || normalizedKey).trim(),
+          clientPhone: String(account.phone || "").trim(),
+          clientCountry: String(account.country || "").trim(),
+          preferredContactMethod: String(account.preferredContactMethod || account.lastContactMethod || "").trim(),
+          clientAccountEmail: normalizedKey
+        }));
+      }
+    }
+  });
+}
+
 function submitServiceIntoSOC({
   serviceType = "",
   clientName = "",
@@ -9057,7 +9201,12 @@ function mergeStateCollectionsByKey(defaultRows = [], storedRows = [], resolveKe
     if (!key) return;
     if (!merged.has(key)) order.push(key);
     const current = merged.get(key);
-    merged.set(key, current && sourcePriority > 0 ? { ...current, ...normalized } : normalized);
+    merged.set(
+      key,
+      current && sourcePriority > 0
+        ? mergeStoredValuePreservingSeed(current, normalized)
+        : normalized
+    );
   };
   defaultRows.forEach((row, idx) => upsert(row, idx, 0));
   storedRows.forEach((row, idx) => upsert(row, idx, 1));
@@ -12984,7 +13133,12 @@ function bindSunriseReplyForms() {
 sunriseControlState = loadSunriseControlState();
 syncEcsWithStaffAccounts();
 ensureRtaAssignmentsStore();
+ensureSocServicesStore();
 syncRedTeamAssignmentsToClientAccounts();
+syncSocServicesToClientAccounts();
+try {
+  localStorage.setItem(SUNRISE_CONTROL_DATA_KEY, JSON.stringify(sunriseControlState));
+} catch (_) {}
 sunriseCommittedStateHash = snapshotSunriseControlState();
 sunriseHasUnsavedChanges = false;
 ensureShortcutCodeRegistry();
