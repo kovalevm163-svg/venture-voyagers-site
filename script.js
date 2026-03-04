@@ -1483,6 +1483,12 @@ function persistAccountsData() {
   try {
     localStorage.setItem(ACCOUNTS_DATA_KEY, JSON.stringify(accounts));
   } catch (_) {}
+  if (sunriseControlState) {
+    ensureRtaAssignmentsStore();
+    syncRedTeamAssignmentsToClientAccounts();
+    syncSocServicesToClientAccounts();
+    scheduleSunriseAdminRenders();
+  }
 }
 
 function loadAccountsDataFromStorage() {
@@ -9041,6 +9047,23 @@ function cloneDefaultSunriseControlState() {
   return JSON.parse(JSON.stringify(sunriseControlDefaults));
 }
 
+function mergeStateCollectionsByKey(defaultRows = [], storedRows = [], resolveKey = (_row, idx) => String(idx), normalizeRow = (row) => row) {
+  const order = [];
+  const merged = new Map();
+  const upsert = (row, idx, sourcePriority = 0) => {
+    const normalized = normalizeRow(row, idx);
+    if (!normalized || typeof normalized !== "object") return;
+    const key = String(resolveKey(normalized, idx) || "").trim();
+    if (!key) return;
+    if (!merged.has(key)) order.push(key);
+    const current = merged.get(key);
+    merged.set(key, current && sourcePriority > 0 ? { ...current, ...normalized } : normalized);
+  };
+  defaultRows.forEach((row, idx) => upsert(row, idx, 0));
+  storedRows.forEach((row, idx) => upsert(row, idx, 1));
+  return order.map((key) => merged.get(key)).filter(Boolean);
+}
+
 function loadSunriseControlState() {
   const fallback = cloneDefaultSunriseControlState();
   try {
@@ -9048,17 +9071,71 @@ function loadSunriseControlState() {
     if (!raw) return fallback;
     const parsed = JSON.parse(raw);
     if (!parsed || typeof parsed !== "object") return fallback;
+    const dtsDocs = mergeStateCollectionsByKey(
+      fallback.dtsDocs,
+      Array.isArray(parsed.dtsDocs) ? parsed.dtsDocs : [],
+      (row, idx) => String(row?.id || `DTS-${idx}`),
+      (row) => ({
+        id: String(row?.id || ""),
+        name: String(row?.name || ""),
+        note: String(row?.note || ""),
+        status: String(row?.status || "Pending")
+      })
+    );
+    const eamExpenses = mergeStateCollectionsByKey(
+      fallback.eamExpenses,
+      Array.isArray(parsed.eamExpenses) ? parsed.eamExpenses : [],
+      (row, idx) => String(row?.id || `EAM-${idx}`),
+      (row) => ({
+        id: String(row?.id || ""),
+        name: String(row?.name || ""),
+        amount: Number(row?.amount || 0)
+      })
+    );
+    const ifsIncome = mergeStateCollectionsByKey(
+      fallback.ifsIncome,
+      Array.isArray(parsed.ifsIncome) ? parsed.ifsIncome : [],
+      (row, idx) => String(row?.id || `IFS-${idx}`),
+      (row) => ({
+        id: String(row?.id || ""),
+        name: String(row?.name || ""),
+        amount: Number(row?.amount || 0)
+      })
+    );
+    const smca = mergeStateCollectionsByKey(
+      fallback.smca,
+      Array.isArray(parsed.smca) ? parsed.smca : [],
+      (row, idx) => String(row?.id || `SMCA-${idx}`),
+      (row) => ({
+        id: String(row?.id || ""),
+        name: String(row?.name || ""),
+        role: String(row?.role || ""),
+        position: String(row?.position || row?.role || ""),
+        commission: Number(row?.commission || 0)
+      })
+    );
+    const normalizeEcsEmployee = (row = {}) => ({
+      ...row,
+      role: String(row?.role || "Concierge"),
+      position: String(row?.position || row?.role || "Concierge Associate"),
+      division: normalizeStaffDivision(row?.division, row?.position || row?.role),
+      rtaRoles: normalizeRtaRoles(row?.rtaRoles, row?.position || row?.role)
+    });
     const ecsEmployees = Array.isArray(parsed.ecsEmployees)
-      ? parsed.ecsEmployees.map((row) => ({
-          ...row,
-          role: String(row?.role || "Concierge"),
-          position: String(row?.position || row?.role || "Concierge Associate"),
-          division: normalizeStaffDivision(row?.division, row?.position || row?.role),
-          rtaRoles: normalizeRtaRoles(row?.rtaRoles, row?.position || row?.role)
-        }))
+      ? mergeStateCollectionsByKey(
+          fallback.ecsEmployees,
+          parsed.ecsEmployees,
+          (row, idx) => String(row?.id || row?.email || row?.login || idx),
+          normalizeEcsEmployee
+        )
       : fallback.ecsEmployees;
     const rtaAssignments = Array.isArray(parsed.rtaAssignments)
-      ? parsed.rtaAssignments.map((row) => normalizeRtaAssignment(row))
+      ? mergeStateCollectionsByKey(
+          fallback.rtaAssignments,
+          parsed.rtaAssignments,
+          (row, idx) => String(row?.clientKey || row?.clientEmail || idx).trim().toLowerCase(),
+          (row) => normalizeRtaAssignment(row)
+        )
       : fallback.rtaAssignments;
     const normalizeSocService = (row = {}) => {
       const steps = Array.isArray(row.steps) && row.steps.length
@@ -9088,9 +9165,24 @@ function loadSunriseControlState() {
     const socServices = {
       ...fallback.socServices,
       ...parsedSoc,
-      current: (Array.isArray(parsedSoc.current) ? parsedSoc.current : fallback.socServices.current).map(normalizeSocService),
-      past: (Array.isArray(parsedSoc.past) ? parsedSoc.past : fallback.socServices.past).map(normalizeSocService),
-      deleted: (Array.isArray(parsedSoc.deleted) ? parsedSoc.deleted : fallback.socServices.deleted).map(normalizeSocService)
+      current: mergeStateCollectionsByKey(
+        fallback.socServices.current,
+        Array.isArray(parsedSoc.current) ? parsedSoc.current : [],
+        (row, idx) => String(row?.id || `soc-current-${idx}`).trim().toUpperCase(),
+        normalizeSocService
+      ),
+      past: mergeStateCollectionsByKey(
+        fallback.socServices.past,
+        Array.isArray(parsedSoc.past) ? parsedSoc.past : [],
+        (row, idx) => String(row?.id || `soc-past-${idx}`).trim().toUpperCase(),
+        normalizeSocService
+      ),
+      deleted: mergeStateCollectionsByKey(
+        fallback.socServices.deleted,
+        Array.isArray(parsedSoc.deleted) ? parsedSoc.deleted : [],
+        (row, idx) => String(row?.id || `soc-deleted-${idx}`).trim().toUpperCase(),
+        normalizeSocService
+      )
     };
     const parsedInbox = parsed.inbox || {};
     const parsedLcs = Array.isArray(parsed.lcsSessions) ? parsed.lcsSessions : fallback.lcsSessions;
@@ -9124,32 +9216,41 @@ function loadSunriseControlState() {
       selectedMessageId: String(parsedInbox.selectedMessageId || ""),
       composeOpen: !!parsedInbox.composeOpen,
       lastInfo: String(parsedInbox.lastInfo || ""),
-      customFolders: Array.isArray(parsedInbox.customFolders) ? parsedInbox.customFolders : fallback.inbox.customFolders,
-      signatures: Array.isArray(parsedInbox.signatures) && parsedInbox.signatures.length
-        ? parsedInbox.signatures.map((sig, idx) => ({
-            id: String(sig?.id || `SIG-${String(idx + 1).padStart(3, "0")}`),
-            name: String(sig?.name || `Signature ${idx + 1}`),
-            text: String(sig?.text || sig?.html || ""),
-            imageName: String(sig?.imageName || "")
-          }))
-        : fallback.inbox.signatures,
-      messages: Array.isArray(parsedInbox.messages)
-        ? parsedInbox.messages.map((msg, idx) => ({
-            id: String(msg?.id || `MAIL-${String(idx + 1000).padStart(4, "0")}`),
-            folder: String(msg?.folder || "inbox"),
-            mailbox: String(msg?.mailbox || "shared"),
-            from: String(msg?.from || ""),
-            to: String(msg?.to || ""),
-            cc: String(msg?.cc || ""),
-            bcc: String(msg?.bcc || ""),
-            subject: String(msg?.subject || ""),
-            bodyHtml: String(msg?.bodyHtml || ""),
-            priority: String(msg?.priority || "Normal"),
-            scheduledAt: String(msg?.scheduledAt || ""),
-            createdAt: String(msg?.createdAt || ""),
-            attachments: Array.isArray(msg?.attachments) ? msg.attachments.map((item) => String(item)) : []
-          }))
-        : fallback.inbox.messages
+      customFolders: Array.from(new Set([
+        ...(Array.isArray(fallback.inbox.customFolders) ? fallback.inbox.customFolders : []),
+        ...(Array.isArray(parsedInbox.customFolders) ? parsedInbox.customFolders : [])
+      ].map((item) => String(item || "").trim()).filter(Boolean))),
+      signatures: mergeStateCollectionsByKey(
+        fallback.inbox.signatures,
+        Array.isArray(parsedInbox.signatures) ? parsedInbox.signatures : [],
+        (sig, idx) => String(sig?.id || `SIG-${String(idx + 1).padStart(3, "0")}`),
+        (sig, idx) => ({
+          id: String(sig?.id || `SIG-${String(idx + 1).padStart(3, "0")}`),
+          name: String(sig?.name || `Signature ${idx + 1}`),
+          text: String(sig?.text || sig?.html || ""),
+          imageName: String(sig?.imageName || "")
+        })
+      ),
+      messages: mergeStateCollectionsByKey(
+        fallback.inbox.messages,
+        Array.isArray(parsedInbox.messages) ? parsedInbox.messages : [],
+        (msg, idx) => String(msg?.id || `MAIL-${String(idx + 1000).padStart(4, "0")}`),
+        (msg, idx) => ({
+          id: String(msg?.id || `MAIL-${String(idx + 1000).padStart(4, "0")}`),
+          folder: String(msg?.folder || "inbox"),
+          mailbox: String(msg?.mailbox || "shared"),
+          from: String(msg?.from || ""),
+          to: String(msg?.to || ""),
+          cc: String(msg?.cc || ""),
+          bcc: String(msg?.bcc || ""),
+          subject: String(msg?.subject || ""),
+          bodyHtml: String(msg?.bodyHtml || ""),
+          priority: String(msg?.priority || "Normal"),
+          scheduledAt: String(msg?.scheduledAt || ""),
+          createdAt: String(msg?.createdAt || ""),
+          attachments: Array.isArray(msg?.attachments) ? msg.attachments.map((item) => String(item)) : []
+        })
+      )
     };
     const deletedAccounts = Array.isArray(parsed.deletedAccounts)
       ? parsed.deletedAccounts.map((row) => ({
@@ -9164,14 +9265,57 @@ function loadSunriseControlState() {
           deletedAt: String(row?.deletedAt || "")
         }))
       : fallback.deletedAccounts;
+    const rimInvites = Array.isArray(parsed.rimInvites)
+      ? mergeStateCollectionsByKey(
+          fallback.rimInvites,
+          parsed.rimInvites,
+          (row, idx) => String(row?.id || row?.email || `rim-${idx}`).trim().toLowerCase(),
+          (row) => ({
+            id: String(row?.id || ""),
+            name: String(row?.name || ""),
+            email: String(row?.email || ""),
+            country: String(row?.country || ""),
+            team: String(row?.team || ""),
+            status: String(row?.status || "Draft")
+          })
+        )
+      : fallback.rimInvites;
+    const accessLevels = mergeStateCollectionsByKey(
+      fallback.accessLevels,
+      Array.isArray(parsed.accessLevels) ? parsed.accessLevels : [],
+      (row, idx) => String(row?.code || `ACL-${idx}`).trim().toUpperCase(),
+      (row) => ({
+        code: String(row?.code || "").trim().toUpperCase(),
+        title: String(row?.title || ""),
+        access: String(row?.access || "")
+      })
+    );
+    const shortcutCodes = mergeStateCollectionsByKey(
+      fallback.shortcutCodes,
+      Array.isArray(parsed.shortcutCodes) ? parsed.shortcutCodes : [],
+      (row, idx) => String(row?.code || `CODE-${idx}`).trim().toUpperCase(),
+      (row) => ({
+        code: String(row?.code || "").trim().toUpperCase(),
+        title: String(row?.title || ""),
+        route: String(row?.route || ""),
+        access: String(row?.access || "")
+      })
+    );
     return {
       ...fallback,
       ...parsed,
+      dtsDocs,
+      eamExpenses,
+      ifsIncome,
+      smca,
       ecsEmployees,
       rtaAssignments,
+      rimInvites,
       socServices,
       lcsSessions,
       deletedAccounts,
+      accessLevels,
+      shortcutCodes,
       inbox
     };
   } catch (_) {
