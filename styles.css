@@ -2537,6 +2537,10 @@ input[type="file"]::-webkit-file-upload-button{
   max-width:min(1680px, calc(100vw - 20px));
 }
 
+.routePage[data-page="sunrise-monarch"] .sunriseDetailGrid{
+  grid-template-columns: 1fr;
+}
+
 .monarchViewport{
   min-height: calc(100vh - 150px);
   border-radius:30px;
@@ -2801,6 +2805,8 @@ input[type="file"]::-webkit-file-upload-button{
 .monarchShell{
   display:grid;
   gap:14px;
+  grid-column: 1 / -1;
+  width:100%;
 }
 
 .monarchHero{
@@ -2994,13 +3000,34 @@ input[type="file"]::-webkit-file-upload-button{
 }
 
 .monarchRecordWindow{
-  width:min(980px, calc(100vw - 28px));
+  width:min(1320px, calc(100vw - 26px));
 }
 
-.monarchRecordPayload{
-  min-height:420px;
-  font-family: "SFMono-Regular", Menlo, Consolas, monospace;
-  line-height:1.45;
+.monarchRecordFields{
+  display:grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap:12px;
+}
+
+.monarchRecordField{
+  display:grid;
+  gap:7px;
+}
+
+.monarchRecordField.full{
+  grid-column: 1 / -1;
+}
+
+.monarchRecordField label{
+  font-size:11px;
+  letter-spacing:.14em;
+  text-transform:uppercase;
+  color: rgba(190,214,248,.72);
+}
+
+.monarchRecordField .mailTextarea{
+  min-height:140px;
+  resize:vertical;
 }
 
 .monarchCredentialWindow{
@@ -4556,8 +4583,8 @@ footer{
   .monarchControlBar .sunriseMiniBtn{
     width:100%;
   }
-  .monarchRecordPayload{
-    min-height:300px;
+  .monarchRecordFields{
+    grid-template-columns:1fr;
   }
   .sunriseSignatureWindow,
   .monarchRecordWindow,

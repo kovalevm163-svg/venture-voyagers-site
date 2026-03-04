@@ -2829,8 +2829,8 @@ const sunriseShortcutDescriptions = {
   amp: "Account Management Page",
   alp: "Access Levels Page",
   mcc: "Manage & Create Codes",
-  ma1: "Monarch Archangel",
-  maa1: "Monarch Archangel",
+  ma1: "MONARCH ARCHANGEL",
+  maa1: "MONARCH ARCHANGEL",
   ws: "Website shutdown (freeze public access to 404)",
   wr: "Website restore"
 };
@@ -3534,7 +3534,7 @@ function sunriseAccessMeta(account) {
     return {
       code: "CR",
       title: "Creator",
-      access: "Creator command authority + Monarch Archangel + full Sunrise executive archive oversight"
+      access: "Creator command authority + MONARCH ARCHANGEL + full Sunrise executive archive oversight"
     };
   }
   const code = (isOwnerAccount(account) ? "OW" : String(account.sunriseAccessLevel || "SA")).trim().toUpperCase();
@@ -7342,7 +7342,8 @@ const monarchArchangelRuntime = {
   filterCategory: "all",
   filterQuery: "",
   detailsRecordId: "",
-  info: ""
+  info: "",
+  hasUnsavedChanges: false
 };
 let monarchArchangelPersistTimer = 0;
 let monarchArchangelSyncQueued = false;
@@ -7433,6 +7434,7 @@ function resetMonarchArchangelAccess() {
   monarchArchangelRuntime.ownerOperatorCode = "";
   monarchArchangelRuntime.detailsRecordId = "";
   monarchArchangelRuntime.info = "";
+  monarchArchangelRuntime.hasUnsavedChanges = false;
 }
 
 function monarchArchiveRecordId(category = "", sourceType = "", sourceKey = "") {
@@ -9088,7 +9090,7 @@ const sunriseStaffRouteLabels = {
   "sunrise-amp": "Account Management Page",
   "sunrise-alp": "Access Levels Page",
   "sunrise-mcc": "Manage & Create Codes",
-  "sunrise-monarch": "Monarch Archangel"
+  "sunrise-monarch": "MONARCH ARCHANGEL"
 };
 
 function sunriseStaffRouteLabel(route = "") {
@@ -10813,8 +10815,257 @@ function filteredMonarchArchiveRecords() {
   });
 }
 
-function monarchRecordDetailPayload(record = null) {
-  return JSON.stringify(monarchDeepClone(record?.payload || {}), null, 2);
+function monarchFriendlyFieldLabel(key = "") {
+  const source = String(key || "").trim();
+  if (!source) return "Field";
+  const withSpaces = source
+    .replace(/([a-z0-9])([A-Z])/g, "$1 $2")
+    .replace(/[_-]+/g, " ")
+    .replace(/\s+/g, " ")
+    .trim();
+  return withSpaces
+    .split(" ")
+    .map((part) => part.charAt(0).toUpperCase() + part.slice(1))
+    .join(" ");
+}
+
+function encodeMonarchPointerSegment(segment = "") {
+  return String(segment || "").replace(/~/g, "~0").replace(/\//g, "~1");
+}
+
+function decodeMonarchPointerSegment(segment = "") {
+  return String(segment || "").replace(/~1/g, "/").replace(/~0/g, "~");
+}
+
+function monarchPointerFromSegments(segments = []) {
+  const safe = Array.isArray(segments) ? segments : [];
+  if (!safe.length) return "/";
+  return `/${safe.map((segment) => encodeMonarchPointerSegment(segment)).join("/")}`;
+}
+
+function monarchPointerSegments(pointer = "") {
+  const value = String(pointer || "").trim();
+  if (!value || value === "/") return [];
+  return value
+    .replace(/^\//, "")
+    .split("/")
+    .map((segment) => decodeMonarchPointerSegment(segment));
+}
+
+function collectMonarchEditableFields(value = null, segments = [], list = []) {
+  const pointer = monarchPointerFromSegments(segments);
+  const pathLabel = segments.length
+    ? segments.map((segment) => monarchFriendlyFieldLabel(segment)).join(" / ")
+    : "Record Value";
+
+  if (Array.isArray(value)) {
+    if (!value.length) {
+      if (!segments.length) return list;
+      list.push({
+        pointer,
+        label: pathLabel,
+        value: "",
+        valueType: "text",
+        isEmptyCollection: true
+      });
+      return list;
+    }
+    value.forEach((item, idx) => {
+      collectMonarchEditableFields(item, [...segments, String(idx)], list);
+    });
+    return list;
+  }
+
+  if (value && typeof value === "object") {
+    const entries = Object.entries(value);
+    if (!entries.length) {
+      if (!segments.length) return list;
+      list.push({
+        pointer,
+        label: pathLabel,
+        value: "",
+        valueType: "text",
+        isEmptyCollection: true
+      });
+      return list;
+    }
+    entries.forEach(([key, item]) => {
+      collectMonarchEditableFields(item, [...segments, key], list);
+    });
+    return list;
+  }
+
+  let valueType = "text";
+  if (typeof value === "number" && Number.isFinite(value)) valueType = "number";
+  else if (typeof value === "boolean") valueType = "boolean";
+
+  list.push({
+    pointer,
+    label: pathLabel,
+    value: value == null ? "" : String(value),
+    valueType
+  });
+  return list;
+}
+
+function renderMonarchRecordFields(record = null) {
+  const payload = monarchDeepClone(record?.payload || {});
+  const fields = collectMonarchEditableFields(payload);
+  if (!fields.length) {
+    return `<article class="monarchRecordField full"><p class="profileNote">No editable values are available for this record.</p></article>`;
+  }
+  return fields.map((field, idx) => {
+    const pointer = encodeHtmlEntities(String(field.pointer || "/"));
+    const label = encodeHtmlEntities(String(field.label || "Field"));
+    const value = encodeHtmlEntities(String(field.value || ""));
+    if (field.valueType === "boolean") {
+      return `<article class="monarchRecordField">
+        <label for="monarch-record-field-${idx}">${label}</label>
+        <select class="select" id="monarch-record-field-${idx}" data-monarch-field-pointer="${pointer}" data-monarch-field-type="boolean">
+          <option value="true" ${field.value === "true" ? "selected" : ""}>Yes</option>
+          <option value="false" ${field.value === "false" ? "selected" : ""}>No</option>
+        </select>
+      </article>`;
+    }
+    if (field.valueType === "number") {
+      return `<article class="monarchRecordField">
+        <label for="monarch-record-field-${idx}">${label}</label>
+        <input class="input" id="monarch-record-field-${idx}" type="number" step="any" value="${value}" data-monarch-field-pointer="${pointer}" data-monarch-field-type="number" autocomplete="off">
+      </article>`;
+    }
+    const longText = String(field.value || "").length > 120;
+    const isFull = longText || field.isEmptyCollection;
+    return `<article class="monarchRecordField${isFull ? " full" : ""}">
+      <label for="monarch-record-field-${idx}">${label}</label>
+      ${longText
+        ? `<textarea class="input mailTextarea" id="monarch-record-field-${idx}" data-monarch-field-pointer="${pointer}" data-monarch-field-type="text" spellcheck="false">${value}</textarea>`
+        : `<input class="input" id="monarch-record-field-${idx}" type="text" value="${value}" data-monarch-field-pointer="${pointer}" data-monarch-field-type="text" autocomplete="off">`}
+    </article>`;
+  }).join("");
+}
+
+function setMonarchPayloadValueAtPointer(rootPayload = {}, pointer = "/", nextValue = "") {
+  const segments = monarchPointerSegments(pointer);
+  if (!segments.length) return nextValue;
+  const isIndex = (value) => /^\d+$/.test(String(value || ""));
+  let cursor = rootPayload;
+  for (let i = 0; i < segments.length - 1; i += 1) {
+    const segment = segments[i];
+    const nextSegment = segments[i + 1];
+    if (Array.isArray(cursor)) {
+      const idx = Number(segment);
+      if (!Number.isInteger(idx) || idx < 0) return rootPayload;
+      if (!cursor[idx] || typeof cursor[idx] !== "object") {
+        cursor[idx] = isIndex(nextSegment) ? [] : {};
+      }
+      cursor = cursor[idx];
+      continue;
+    }
+    if (!cursor || typeof cursor !== "object") return rootPayload;
+    if (!Object.prototype.hasOwnProperty.call(cursor, segment) || !cursor[segment] || typeof cursor[segment] !== "object") {
+      cursor[segment] = isIndex(nextSegment) ? [] : {};
+    }
+    cursor = cursor[segment];
+  }
+  const lastSegment = segments[segments.length - 1];
+  if (Array.isArray(cursor)) {
+    const idx = Number(lastSegment);
+    if (!Number.isInteger(idx) || idx < 0) return rootPayload;
+    cursor[idx] = nextValue;
+    return rootPayload;
+  }
+  if (!cursor || typeof cursor !== "object") return rootPayload;
+  cursor[lastSegment] = nextValue;
+  return rootPayload;
+}
+
+function readMonarchRecordPayloadFromForm(record = null) {
+  const fieldsRoot = document.getElementById("monarch-record-fields");
+  if (!(fieldsRoot instanceof HTMLElement)) {
+    return { ok: false, message: "Record fields are unavailable.", payload: null };
+  }
+  const payload = monarchDeepClone(record?.payload || {});
+  const controls = Array.from(fieldsRoot.querySelectorAll("[data-monarch-field-pointer]"));
+  for (const control of controls) {
+    if (!(control instanceof HTMLInputElement || control instanceof HTMLTextAreaElement || control instanceof HTMLSelectElement)) continue;
+    const pointer = String(control.getAttribute("data-monarch-field-pointer") || "/").trim();
+    const fieldType = String(control.getAttribute("data-monarch-field-type") || "text").trim().toLowerCase();
+    const rawValue = String(control.value || "");
+    let parsedValue = rawValue;
+    if (fieldType === "boolean") {
+      parsedValue = rawValue === "true";
+    } else if (fieldType === "number") {
+      if (!rawValue.trim()) {
+        parsedValue = 0;
+      } else {
+        const numeric = Number(rawValue);
+        if (!Number.isFinite(numeric)) {
+          return { ok: false, message: "Numeric fields must contain valid numbers.", payload: null };
+        }
+        parsedValue = numeric;
+      }
+    }
+    setMonarchPayloadValueAtPointer(payload, pointer, parsedValue);
+  }
+  return { ok: true, message: "Record fields captured.", payload };
+}
+
+function canRestoreMonarchArchiveRecord(record = null) {
+  if (!record?.deletedInSource) return false;
+  const sourceType = String(record?.sourceType || "").trim();
+  return sourceType === "account"
+    || sourceType === "rta"
+    || sourceType === "rim"
+    || sourceType === "ecs"
+    || sourceType === "eam"
+    || sourceType === "ifs"
+    || sourceType === "smca"
+    || sourceType === "lcs"
+    || sourceType === "mail"
+    || sourceType === "access-level"
+    || sourceType === "shortcut-code"
+    || sourceType.startsWith("soc-");
+}
+
+function canEraseMonarchArchiveRecord(record = null) {
+  if (!record || record.deletedInSource) return false;
+  const sourceType = String(record?.sourceType || "").trim();
+  return sourceType === "account"
+    || sourceType === "rta"
+    || sourceType === "rim"
+    || sourceType === "ecs"
+    || sourceType === "eam"
+    || sourceType === "ifs"
+    || sourceType === "smca"
+    || sourceType === "lcs"
+    || sourceType === "mail"
+    || sourceType === "access-level"
+    || sourceType === "shortcut-code"
+    || sourceType.startsWith("soc-");
+}
+
+function monarchRecordSourceActionConfig(record = null) {
+  if (!record) return { hidden: true, label: "", mode: "" };
+  if (record.deletedInSource) {
+    if (!canRestoreMonarchArchiveRecord(record)) return { hidden: true, label: "", mode: "" };
+    return { hidden: false, label: "Restore to Sunrise", mode: "restore" };
+  }
+  if (!canEraseMonarchArchiveRecord(record)) return { hidden: true, label: "", mode: "" };
+  return { hidden: false, label: "Erase from Sunrise", mode: "erase" };
+}
+
+function updateMonarchRecordSourceAction(record = null) {
+  const actionBtn = document.getElementById("monarch-record-restore");
+  if (!(actionBtn instanceof HTMLButtonElement)) return;
+  const action = monarchRecordSourceActionConfig(record);
+  actionBtn.hidden = action.hidden;
+  if (!action.hidden) {
+    actionBtn.textContent = action.label;
+    actionBtn.dataset.monarchSourceMode = action.mode;
+  } else {
+    actionBtn.textContent = "Restore to Sunrise";
+    delete actionBtn.dataset.monarchSourceMode;
+  }
 }
 
 function openMonarchRecordOverlay(recordId = "") {
@@ -10825,12 +11076,13 @@ function openMonarchRecordOverlay(recordId = "") {
   const titleEl = document.getElementById("monarch-record-title");
   const summaryEl = document.getElementById("monarch-record-summary");
   const metaEl = document.getElementById("monarch-record-meta");
-  const payloadEl = document.getElementById("monarch-record-payload");
+  const fieldsEl = document.getElementById("monarch-record-fields");
   const infoEl = document.getElementById("monarch-record-info");
   if (titleEl) titleEl.textContent = String(record.title || "Archive Record").trim();
   if (summaryEl) summaryEl.textContent = String(record.summary || "Archive snapshot").trim();
   if (metaEl) metaEl.textContent = `${String(record.category || "").trim()} • ${String(record.sourceType || "").trim()} • ${String(record.updatedAt || "").trim()}`;
-  if (payloadEl instanceof HTMLTextAreaElement) payloadEl.value = monarchRecordDetailPayload(record);
+  if (fieldsEl instanceof HTMLElement) fieldsEl.innerHTML = renderMonarchRecordFields(record);
+  updateMonarchRecordSourceAction(record);
   if (infoEl) infoEl.textContent = "";
   overlay.hidden = false;
 }
@@ -10870,7 +11122,7 @@ function openMonarchCredentialOverlay() {
       <input class="input" id="monarch-credential-notos" type="text" value="${encodeHtmlEntities(String(aleks.notosId || "").trim())}" autocomplete="off">
     </label>
   </div>`;
-  if (info) info.textContent = "Mikhail-only vault access. Changes update Aleks Monarch Archangel credentials only.";
+  if (info) info.textContent = "Mikhail-only vault access. Changes update Aleks MONARCH ARCHANGEL credentials only.";
   overlay.hidden = false;
 }
 
@@ -10895,8 +11147,8 @@ function saveMonarchOwnerCredentials(operatorCode = "", updates = {}) {
     notosId: String(updates.notosId || base.notosId || "").trim()
   };
   monarchArchangelState.updatedAt = formatUtcTimestamp(new Date());
-  persistMonarchArchangelState();
-  return { ok: true, message: "Aleks Monarch Archangel credentials updated." };
+  markMonarchUnsaved("MONARCH ARCHANGEL owner credential changes staged.");
+  return { ok: true, message: "Aleks MONARCH ARCHANGEL credentials staged. Click Save Changes to commit." };
 }
 
 function upsertRecordInCollection(list, payload, resolveKey) {
@@ -10906,6 +11158,17 @@ function upsertRecordInCollection(list, payload, resolveKey) {
   const existingIdx = list.findIndex((row) => String(resolveKey(row) || "").trim().toLowerCase() === key);
   if (existingIdx >= 0) list[existingIdx] = monarchDeepClone(payload);
   else list.unshift(monarchDeepClone(payload));
+}
+
+function removeRecordsFromCollection(list, predicate) {
+  if (!Array.isArray(list)) return 0;
+  let removed = 0;
+  for (let idx = list.length - 1; idx >= 0; idx -= 1) {
+    if (!predicate(list[idx], idx)) continue;
+    list.splice(idx, 1);
+    removed += 1;
+  }
+  return removed;
 }
 
 function restoreMonarchArchiveRecord(recordId = "") {
@@ -10993,20 +11256,100 @@ function restoreMonarchArchiveRecord(recordId = "") {
   return { ok: false, message: "This archive type is view-only." };
 }
 
-function saveMonarchArchiveRecord(recordId = "", nextPayloadText = "") {
+function eraseMonarchArchiveRecordFromSource(recordId = "") {
   const record = findMonarchArchiveRecord(recordId);
   if (!record) return { ok: false, message: "Archive record not found." };
-  try {
-    const parsed = JSON.parse(String(nextPayloadText || "").trim() || "{}");
-    record.payload = monarchDeepClone(parsed);
-    record.summary = monarchArchiveSummaryFromPayload(record.sourceType, parsed);
-    record.manualOverride = true;
-    record.updatedAt = formatUtcTimestamp(new Date());
-    persistMonarchArchangelState();
-    return { ok: true, message: "Archive record updated." };
-  } catch (_) {
-    return { ok: false, message: "Payload must be valid JSON." };
+  if (record.deletedInSource) return { ok: false, message: "This record is already erased from Sunrise." };
+  if (!canEraseMonarchArchiveRecord(record)) return { ok: false, message: "Erase action is unavailable for this source." };
+  const payload = monarchDeepClone(record.payload);
+  const sourceType = String(record.sourceType || "").trim();
+
+  if (sourceType === "account") {
+    const key = resolveAccountKey(payload?.email || record.sourceKey || "");
+    if (!key || !accounts[key]) return { ok: false, message: "Account is already erased from Sunrise." };
+    moveAccountsToDeletedBucket(key);
+    persistAccountsData();
+    saveSunriseControlState({ immediate: true, markDirty: false });
+    syncMonarchArchangelArchive({ immediate: true });
+    return { ok: true, message: "Account erased from Sunrise and secured in MONARCH ARCHANGEL vault." };
   }
+
+  if (!sunriseControlState) return { ok: false, message: "Sunrise storage is unavailable." };
+  let removed = 0;
+
+  if (sourceType === "rta") {
+    const key = String(payload?.clientKey || record.sourceKey || "").trim().toLowerCase();
+    removed = removeRecordsFromCollection(sunriseControlState.rtaAssignments, (row) => String(row?.clientKey || "").trim().toLowerCase() === key);
+  } else if (sourceType === "rim") {
+    const key = String(payload?.id || payload?.email || record.sourceKey || "").trim().toLowerCase();
+    removed = removeRecordsFromCollection(sunriseControlState.rimInvites, (row) => {
+      const rowKey = String(row?.id || row?.email || "").trim().toLowerCase();
+      return rowKey === key;
+    });
+  } else if (sourceType === "ecs") {
+    const key = String(payload?.id || payload?.email || record.sourceKey || "").trim().toLowerCase();
+    removed = removeRecordsFromCollection(sunriseControlState.ecsEmployees, (row) => {
+      const rowKey = String(row?.id || row?.email || "").trim().toLowerCase();
+      return rowKey === key;
+    });
+  } else if (sourceType === "eam") {
+    const key = String(payload?.id || record.sourceKey || "").trim();
+    removed = removeRecordsFromCollection(sunriseControlState.eamExpenses, (row) => String(row?.id || "").trim() === key);
+  } else if (sourceType === "ifs") {
+    const key = String(payload?.id || record.sourceKey || "").trim();
+    removed = removeRecordsFromCollection(sunriseControlState.ifsIncome, (row) => String(row?.id || "").trim() === key);
+  } else if (sourceType === "smca") {
+    const key = String(payload?.id || record.sourceKey || "").trim();
+    removed = removeRecordsFromCollection(sunriseControlState.smca, (row) => String(row?.id || "").trim() === key);
+  } else if (sourceType === "lcs") {
+    const key = String(payload?.id || record.sourceKey || "").trim();
+    removed = removeRecordsFromCollection(sunriseControlState.lcsSessions, (row) => String(row?.id || "").trim() === key);
+  } else if (sourceType === "mail") {
+    const key = String(payload?.id || record.sourceKey || "").trim();
+    const inbox = sunriseControlState.inbox || {};
+    if (!Array.isArray(inbox.messages)) inbox.messages = [];
+    removed += removeRecordsFromCollection(inbox.messages, (row) => String(row?.id || "").trim() === key);
+    sunriseControlState.inbox = inbox;
+    if (Array.isArray(sunriseOwnerInboxState.messages)) {
+      removed += removeRecordsFromCollection(sunriseOwnerInboxState.messages, (row) => String(row?.id || "").trim() === key);
+    }
+    if (String(sunriseControlState?.inbox?.selectedMessageId || "").trim() === key) {
+      sunriseControlState.inbox.selectedMessageId = "";
+    }
+  } else if (sourceType === "access-level") {
+    const key = String(payload?.code || record.sourceKey || "").trim().toUpperCase();
+    removed = removeRecordsFromCollection(sunriseControlState.accessLevels, (row) => String(row?.code || "").trim().toUpperCase() === key);
+  } else if (sourceType === "shortcut-code") {
+    const key = String(payload?.code || record.sourceKey || "").trim().toUpperCase();
+    removed = removeRecordsFromCollection(sunriseControlState.shortcutCodes, (row) => String(row?.code || "").trim().toUpperCase() === key);
+  } else if (sourceType.startsWith("soc-")) {
+    const bucket = sourceType.replace("soc-", "");
+    const targetList = Array.isArray(sunriseControlState?.socServices?.[bucket]) ? sunriseControlState.socServices[bucket] : null;
+    if (!targetList) return { ok: false, message: "SOC collection is unavailable." };
+    const key = String(payload?.id || record.sourceKey || "").trim().toUpperCase();
+    removed = removeRecordsFromCollection(targetList, (row) => String(row?.id || "").trim().toUpperCase() === key);
+  }
+
+  if (!removed) return { ok: false, message: "No live Sunrise entry found for this record." };
+  saveSunriseControlState({ immediate: true, markDirty: false });
+  syncMonarchArchangelArchive({ immediate: true });
+  return { ok: true, message: "Record erased from Sunrise and retained in MONARCH ARCHANGEL vault." };
+}
+
+function saveMonarchArchiveRecord(recordId = "", nextPayload = null) {
+  const record = findMonarchArchiveRecord(recordId);
+  if (!record) return { ok: false, message: "Archive record not found." };
+  if (!nextPayload || typeof nextPayload !== "object") {
+    return { ok: false, message: "Record values are invalid." };
+  }
+  const parsed = monarchDeepClone(nextPayload);
+  record.payload = parsed;
+  record.summary = monarchArchiveSummaryFromPayload(record.sourceType, parsed);
+  record.manualOverride = true;
+  record.updatedAt = formatUtcTimestamp(new Date());
+  monarchArchangelState.updatedAt = record.updatedAt;
+  markMonarchUnsaved("MONARCH ARCHANGEL record changes staged.");
+  return { ok: true, message: "Record changes staged. Click Save Changes to commit." };
 }
 
 function deleteMonarchArchiveRecord(recordId = "") {
@@ -11026,6 +11369,10 @@ function renderMonarchArchiveCards(records = []) {
   return records.map((record) => {
     const deletedClass = record?.deletedInSource ? " isDeleted" : "";
     const deletedLabel = record?.deletedInSource ? `<span class="monarchArchiveFlag">Deleted in Sunrise</span>` : `<span class="monarchArchiveFlag isLive">Live</span>`;
+    const sourceAction = monarchRecordSourceActionConfig(record);
+    const sourceActionMarkup = sourceAction.hidden
+      ? ""
+      : `<button class="sunriseMiniBtn" type="button" data-monarch-source-action="${encodeHtmlEntities(record.id)}" data-monarch-source-mode="${encodeHtmlEntities(sourceAction.mode)}">${sourceAction.label}</button>`;
     return `<article class="monarchArchiveCard${deletedClass}">
       <div class="monarchArchiveCardTop">
         <div>
@@ -11042,11 +11389,35 @@ function renderMonarchArchiveCards(records = []) {
       </div>
       <div class="viewActions monarchArchiveActions">
         <button class="sunriseMiniBtn" type="button" data-monarch-details="${encodeHtmlEntities(record.id)}">Details</button>
-        <button class="sunriseMiniBtn" type="button" data-monarch-restore="${encodeHtmlEntities(record.id)}">Restore</button>
+        ${sourceActionMarkup}
         <button class="sunriseMiniBtn" type="button" data-monarch-delete="${encodeHtmlEntities(record.id)}">Delete</button>
       </div>
     </article>`;
   }).join("");
+}
+
+function updateMonarchSaveButtonsState() {
+  const buttons = document.querySelectorAll("#monarch-save-btn, #monarch-save-top-btn");
+  buttons.forEach((btn) => {
+    if (!(btn instanceof HTMLButtonElement)) return;
+    btn.disabled = !monarchArchangelRuntime.hasUnsavedChanges;
+    btn.textContent = monarchArchangelRuntime.hasUnsavedChanges ? "Save Changes" : "Saved";
+  });
+}
+
+function markMonarchUnsaved(message = "") {
+  monarchArchangelRuntime.hasUnsavedChanges = true;
+  if (message) monarchArchangelRuntime.info = String(message || "").trim();
+  updateMonarchSaveButtonsState();
+}
+
+function commitMonarchArchangelChanges() {
+  commitSunriseChanges();
+  syncMonarchArchangelArchive({ immediate: true });
+  persistMonarchArchangelState();
+  monarchArchangelRuntime.hasUnsavedChanges = false;
+  monarchArchangelRuntime.info = "MONARCH ARCHANGEL changes saved.";
+  updateMonarchSaveButtonsState();
 }
 
 function renderMonarchArchangelPage() {
@@ -11055,19 +11426,28 @@ function renderMonarchArchangelPage() {
   if (!grid) return;
   const operator = getCurrentSunriseOperator() || activeAccount || null;
   const ownerProfile = currentMonarchOwnerProfile(operator);
-  const requiredNotosId = String(ownerProfile?.notosId || "").trim();
   if (!ownerProfile) {
-    if (saveTopBtn) saveTopBtn.hidden = true;
-    grid.innerHTML = `<article class="sunriseControlCard sunriseDetailWide"><h3>Monarch Archangel</h3><p class="profileNote">Owner access only.</p></article>`;
+    if (saveTopBtn) {
+      saveTopBtn.hidden = true;
+      saveTopBtn.disabled = true;
+      saveTopBtn.removeAttribute("data-monarch-save-changes");
+    }
+    grid.innerHTML = `<article class="sunriseControlCard sunriseDetailWide"><h3>MONARCH ARCHANGEL</h3><p class="profileNote">Owner access only.</p></article>`;
     return;
   }
 
-  syncMonarchArchangelArchive({ immediate: true });
+  if (!monarchArchangelRuntime.hasUnsavedChanges) {
+    syncMonarchArchangelArchive({ immediate: true });
+  }
   const counts = monarchArchiveCounts();
   if (!monarchArchangelRuntime.unlocked || monarchArchangelRuntime.ownerOperatorCode !== ownerProfile.operatorCode) {
-    if (saveTopBtn) saveTopBtn.hidden = true;
+    if (saveTopBtn) {
+      saveTopBtn.hidden = true;
+      saveTopBtn.disabled = true;
+      saveTopBtn.removeAttribute("data-monarch-save-changes");
+    }
     grid.innerHTML = `<article class="sunriseControlCard sunriseDetailWide monarchLoginCard">
-      <h3>Monarch Archangel Access</h3>
+      <h3>MONARCH ARCHANGEL ACCESS</h3>
       <p class="profileNote">Guardian archive access requires the owner code, MA password, and active NOTOS ID.</p>
       <form class="authGrid" id="monarch-auth-form" novalidate>
         <div class="field">
@@ -11082,13 +11462,16 @@ function renderMonarchArchangelPage() {
           <label for="monarch-owner-notos">NOTOS ID</label>
           <input class="input" id="monarch-owner-notos" type="text" autocomplete="off">
         </div>
-        <div class="viewActions"><button class="btn primary" type="submit">Unlock Monarch Archangel</button></div>
+        <div class="viewActions"><button class="btn primary" type="submit">Unlock MONARCH ARCHANGEL</button></div>
       </form>
       <p class="authInfo" id="monarch-auth-info">${encodeHtmlEntities(String(monarchArchangelRuntime.info || "").trim())}</p>
     </article>`;
     return;
   }
-  if (saveTopBtn) saveTopBtn.hidden = false;
+  if (saveTopBtn) {
+    saveTopBtn.hidden = false;
+    saveTopBtn.setAttribute("data-monarch-save-changes", "1");
+  }
 
   const records = filteredMonarchArchiveRecords();
   const categoryButtons = [
@@ -11107,13 +11490,13 @@ function renderMonarchArchangelPage() {
           <div>
             <p class="ampSectionEyebrow">Executive Vault</p>
             <h3>Aleks MA Credentials</h3>
-            <p class="profileNote">Separate Aleks credential window available only inside Mikhail's Monarch Archangel session.</p>
+            <p class="profileNote">Separate Aleks credential window available only inside Mikhail's MONARCH ARCHANGEL session.</p>
           </div>
           <button class="btn ghost" type="button" id="monarch-open-aleks-vault">Open Aleks Vault</button>
         </div>
       </article>`
     : "";
-  grid.innerHTML = `<section class="monarchShell monarchShellUnlocked">
+  grid.innerHTML = `<section class="monarchShell monarchShellUnlocked sunriseDetailWide">
     <article class="monarchHero">
       <div>
         <p class="monarchKicker">Owner-only archive</p>
@@ -11121,7 +11504,7 @@ function renderMonarchArchangelPage() {
         <p class="profileNote">Guardian archive for Sunrise and VVS records, credentials, services, payments, mail, and login intelligence.</p>
       </div>
       <div class="monarchHeroActions">
-        <button class="btn ghost" type="button" id="monarch-save-btn">Save Changes</button>
+        <button class="btn ghost" type="button" id="monarch-save-btn" data-monarch-save-changes="1">Save Changes</button>
         <button class="btn ghost" type="button" id="monarch-lock-btn">Lock</button>
       </div>
     </article>
@@ -11147,6 +11530,7 @@ function renderMonarchArchangelPage() {
     </article>
     <section class="monarchArchiveGrid">${renderMonarchArchiveCards(records)}</section>
   </section>`;
+  updateMonarchSaveButtonsState();
 }
 
 function parseSunriseScheduleInput(rawValue = "") {
@@ -11592,7 +11976,7 @@ function sunriseAccessMetaByCode(code = "") {
     return {
       code: "CR",
       title: "Creator",
-      access: "Creator command authority + Monarch Archangel + full Sunrise executive archive oversight"
+      access: "Creator command authority + MONARCH ARCHANGEL + full Sunrise executive archive oversight"
     };
   }
   const row = Array.isArray(sunriseControlState?.accessLevels)
@@ -12248,11 +12632,11 @@ function renderALPPage(filter = "") {
       .map(({ row, originalIdx }) => renderAccessRow(row, originalIdx))
       .join("");
     const creatorRow = band.label === "Executive" && currentSunriseCreatorViewer(viewer)
-      && matchesSearch(["CR", "Creator", "Monarch Archangel"], filter)
+      && matchesSearch(["CR", "Creator", "MONARCH ARCHANGEL"], filter)
       ? renderAccessRow({
         code: "CR",
         title: "Creator",
-        access: "Creator command authority + Monarch Archangel + full Sunrise executive archive oversight"
+        access: "Creator command authority + MONARCH ARCHANGEL + full Sunrise executive archive oversight"
       }, "virtual-creator")
       : "";
     return `<article class="sunriseControlCard sunriseDetailWide"><h3>${band.label} Hierarchy</h3><table class="sunriseControlTable"><thead><tr><th>Code</th><th>Level</th><th>Access Detail</th><th>Action</th></tr></thead><tbody>${creatorRow}${bandRows || (!creatorRow ? "<tr><td colspan='4'>No levels in this hierarchy band.</td></tr>" : "")}</tbody></table></article>`;
@@ -12747,7 +13131,7 @@ function bindSunriseControlInteractions() {
       const operator = getCurrentSunriseOperator() || activeAccount || null;
       const info = document.getElementById("monarch-credential-info");
       if (!isMikhailOwnerAccount(operator)) {
-        if (info) info.textContent = "Only Mikhail can update Aleks Monarch Archangel credentials.";
+        if (info) info.textContent = "Only Mikhail can update Aleks MONARCH ARCHANGEL credentials.";
         return;
       }
       const codeInput = document.getElementById("monarch-credential-code");
@@ -12808,14 +13192,19 @@ function bindSunriseControlInteractions() {
   }
   if (monarchRecordSave && monarchRecordSave.dataset.boundMonarchRecordSave !== "1") {
     monarchRecordSave.addEventListener("click", () => {
-      const payloadEl = document.getElementById("monarch-record-payload");
+      const record = findMonarchArchiveRecord(monarchArchangelRuntime.detailsRecordId);
+      const payloadResult = readMonarchRecordPayloadFromForm(record);
+      if (!payloadResult.ok) {
+        if (monarchRecordInfo) monarchRecordInfo.textContent = payloadResult.message;
+        return;
+      }
       const result = saveMonarchArchiveRecord(
         monarchArchangelRuntime.detailsRecordId,
-        payloadEl instanceof HTMLTextAreaElement ? payloadEl.value : ""
+        payloadResult.payload
       );
       if (monarchRecordInfo) monarchRecordInfo.textContent = result.message;
       if (result.ok) {
-        syncMonarchArchangelArchive({ immediate: true });
+        openMonarchRecordOverlay(monarchArchangelRuntime.detailsRecordId);
         renderMonarchArchangelPage();
       }
     });
@@ -12823,10 +13212,14 @@ function bindSunriseControlInteractions() {
   }
   if (monarchRecordRestore && monarchRecordRestore.dataset.boundMonarchRecordRestore !== "1") {
     monarchRecordRestore.addEventListener("click", () => {
-      const result = restoreMonarchArchiveRecord(monarchArchangelRuntime.detailsRecordId);
+      const mode = String(monarchRecordRestore.dataset.monarchSourceMode || "").trim().toLowerCase();
+      const result = mode === "erase"
+        ? eraseMonarchArchiveRecordFromSource(monarchArchangelRuntime.detailsRecordId)
+        : restoreMonarchArchiveRecord(monarchArchangelRuntime.detailsRecordId);
       if (monarchRecordInfo) monarchRecordInfo.textContent = result.message;
       if (result.ok) {
         syncMonarchArchangelArchive({ immediate: true });
+        openMonarchRecordOverlay(monarchArchangelRuntime.detailsRecordId);
         renderMonarchArchangelPage();
       }
     });
@@ -13048,9 +13441,7 @@ function bindSunriseControlInteractions() {
 
     const monarchSaveBtn = clickTarget.closest("#monarch-save-btn, #monarch-save-top-btn");
     if (monarchSaveBtn) {
-      syncMonarchArchangelArchive({ immediate: true });
-      persistMonarchArchangelState();
-      monarchArchangelRuntime.info = "Monarch Archangel changes saved.";
+      commitMonarchArchangelChanges();
       renderMonarchArchangelPage();
       return;
     }
@@ -13082,9 +13473,13 @@ function bindSunriseControlInteractions() {
       return;
     }
 
-    const monarchRestoreBtn = clickTarget.closest("[data-monarch-restore]");
-    if (monarchRestoreBtn) {
-      const result = restoreMonarchArchiveRecord(String(monarchRestoreBtn.getAttribute("data-monarch-restore") || "").trim());
+    const monarchSourceActionBtn = clickTarget.closest("[data-monarch-source-action]");
+    if (monarchSourceActionBtn) {
+      const recordId = String(monarchSourceActionBtn.getAttribute("data-monarch-source-action") || "").trim();
+      const mode = String(monarchSourceActionBtn.getAttribute("data-monarch-source-mode") || "").trim().toLowerCase();
+      const result = mode === "erase"
+        ? eraseMonarchArchiveRecordFromSource(recordId)
+        : restoreMonarchArchiveRecord(recordId);
       monarchArchangelRuntime.info = result.message;
       syncMonarchArchangelArchive({ immediate: true });
       renderMonarchArchangelPage();
