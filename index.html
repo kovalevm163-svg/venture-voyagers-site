@@ -8,7 +8,7 @@
   <meta http-equiv="Expires" content="0" />
   <title>Venture Voyager Services - Concierge</title>
   <meta name="description" content="Venture Voyager Services (VVS) - discreet luxury concierge and private access." />
-  <link rel="stylesheet" href="styles.css?v=20260304-60" />
+  <link rel="stylesheet" href="styles.css?v=20260304-61" />
 </head>
 <body>
   <div class="wrap">
@@ -1250,6 +1250,131 @@
       </div>
     </div>
 
+    <div class="contactOverlay" id="amp-customer-details-overlay" hidden>
+      <div class="contactWindow sunriseMailWindow accountSettingsWindow">
+        <div class="kicker"><span class="dot" aria-hidden="true"></span> Sunrise AMP Client Details</div>
+        <h3 class="mailTitle">Client Account Details</h3>
+        <p class="authInfo" id="amp-customer-details-summary"></p>
+        <div class="accountSettingsGrid">
+          <article class="accountSettingsPanel">
+            <div class="accountSettingsPanelTop">
+              <div>
+                <p class="profileLabel">Client Credentials</p>
+                <p class="profileNote">Primary account information and editable credentials.</p>
+              </div>
+            </div>
+            <form id="amp-customer-details-form" class="authGrid" novalidate>
+              <div class="field full">
+                <label for="amp-customer-code">Code</label>
+                <input class="input" id="amp-customer-code" type="text" readonly />
+              </div>
+              <div class="field full">
+                <label for="amp-customer-email">Email</label>
+                <input class="input" id="amp-customer-email" type="email" required />
+              </div>
+              <div class="field">
+                <label for="amp-customer-phone">Phone</label>
+                <input class="input" id="amp-customer-phone" type="text" />
+              </div>
+              <div class="field">
+                <label for="amp-customer-country">Country</label>
+                <select class="select" id="amp-customer-country">
+                  <option value="">Select country</option>
+                </select>
+              </div>
+              <div class="field">
+                <label for="amp-customer-contact">Preferred Contact</label>
+                <select class="select" id="amp-customer-contact">
+                  <option value="">Not set</option>
+                  <option value="email">Email</option>
+                  <option value="phone">Phone</option>
+                </select>
+              </div>
+              <div class="field">
+                <label for="amp-customer-tier">Membership</label>
+                <select class="select" id="amp-customer-tier">
+                  <option>Non-Member</option>
+                  <option>Voyager Cuprum</option>
+                  <option>Voyager Argentum</option>
+                  <option>Voyager Aurum</option>
+                  <option>Voyager Platinum</option>
+                  <option>Voyager Diamante</option>
+                  <option>Voyager Noir</option>
+                  <option>Voyager Red</option>
+                </select>
+              </div>
+              <div class="field">
+                <label for="amp-customer-title">Title</label>
+                <input class="input" id="amp-customer-title" type="text" />
+              </div>
+              <div class="field">
+                <label for="amp-customer-first">First Name</label>
+                <input class="input" id="amp-customer-first" type="text" required />
+              </div>
+              <div class="field">
+                <label for="amp-customer-last">Last Name</label>
+                <input class="input" id="amp-customer-last" type="text" required />
+              </div>
+              <div class="field">
+                <label for="amp-customer-password">Password</label>
+                <input class="input" id="amp-customer-password" type="text" />
+              </div>
+              <div class="field">
+                <label for="amp-customer-secret">Secret Phrase</label>
+                <input class="input" id="amp-customer-secret" type="text" />
+              </div>
+              <div class="field">
+                <label for="amp-customer-status">Status</label>
+                <input class="input" id="amp-customer-status" type="text" />
+              </div>
+              <div class="field">
+                <label for="amp-customer-created">Created</label>
+                <input class="input" id="amp-customer-created" type="text" />
+              </div>
+              <div class="field">
+                <label for="amp-customer-verified">Verified</label>
+                <input class="input" id="amp-customer-verified" type="text" />
+              </div>
+              <div class="viewActions accountSettingsActions">
+                <button class="btn primary" type="submit">Save Changes</button>
+                <button class="btn ghost" type="button" id="amp-customer-details-discard">Discard Changes</button>
+              </div>
+            </form>
+            <p class="authInfo" id="amp-customer-details-info"></p>
+          </article>
+          <article class="accountSettingsPanel">
+            <div class="accountSettingsPanelTop">
+              <div>
+                <p class="profileLabel">Account Trace</p>
+                <p class="profileNote">Shared signup and login trace captured across public browsers.</p>
+              </div>
+            </div>
+            <div class="ampActivityList" id="amp-customer-activity"></div>
+          </article>
+        </div>
+        <div class="viewActions" style="justify-content:center; margin-top:10px;">
+          <button class="btn ghost" type="button" id="amp-customer-details-close">Close</button>
+        </div>
+      </div>
+    </div>
+
+    <div class="contactOverlay" id="membership-upgrade-overlay" hidden>
+      <div class="contactWindow sunriseMailWindow upgradeWindow">
+        <div class="kicker"><span class="dot" aria-hidden="true"></span> Complimentary Tier Upgrade</div>
+        <h3 class="mailTitle">Welcome to Voyager Red</h3>
+        <p class="authInfo" id="membership-upgrade-name">Voyager Member</p>
+        <div class="membershipUpgradeTrack">
+          <div class="membershipUpgradeTier from" id="membership-upgrade-from">Non-Member</div>
+          <div class="membershipUpgradeArrow" aria-hidden="true"></div>
+          <div class="membershipUpgradeTier to" id="membership-upgrade-to">Voyager Red</div>
+        </div>
+        <p class="profileNote">Your account has been elevated to Voyager Red. This device session has been linked back into VVS Sunrise so the full client credentials can now sync into AMP.</p>
+        <div class="viewActions" style="justify-content:center; margin-top:10px;">
+          <button class="btn primary" type="button" id="membership-upgrade-close">Continue</button>
+        </div>
+      </div>
+    </div>
+
     <div class="contactOverlay" id="sunrise-email-overlay" hidden>
       <div class="contactWindow sunriseMailWindow">
         <div class="kicker"><span class="dot" aria-hidden="true"></span> VVS Mail Dashboard</div>
@@ -1436,6 +1561,6 @@
     </footer>
   </div>
 
-  <script src="script.js?v=20260304-113"></script>
+  <script src="script.js?v=20260304-114"></script>
 </body>
 </html>

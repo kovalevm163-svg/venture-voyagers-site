@@ -1375,10 +1375,13 @@ function normalizeCustomerCredentialFields(account = null) {
   account.countryCode = nextCountryCode;
   account.country = countryDisplayName(account.country || nextCountryCode || "");
   account.preferredContactMethod = contactMethod;
-  account.accountStatus = String(account.accountStatus || (verifiedAt ? "Active" : "Pending Verification")).trim();
+  const hasClientHistory = Number(account.servicesCompleted || 0) > 0
+    || (String(account.upcomingService?.title || "").trim() && String(account.upcomingService?.title || "").trim() !== defaultClientUpcomingServiceCard().title)
+    || (String(account.pastService?.title || "").trim() && String(account.pastService?.title || "").trim() !== defaultClientPastServiceCard().title);
+  account.accountStatus = String(account.accountStatus || (verifiedAt || hasClientHistory ? "Active" : "Pending Verification")).trim();
   account.createdAt = createdAt || accountTimestampLabel();
   account.updatedAt = String(account.updatedAt || createdAt || accountTimestampLabel()).trim();
-  account.verifiedAt = verifiedAt;
+  account.verifiedAt = verifiedAt || (account.accountStatus === "Active" ? account.createdAt : "");
   account.signupSource = String(account.signupSource || "VVS Signup").trim();
   return account;
 }
@@ -5939,6 +5942,7 @@ function humanizeRegistryEventType(value = "") {
   if (key === "signup_verified") return "Signup Verified";
   if (key === "vvs_login") return "VVS Login";
   if (key === "sunrise_login") return "Sunrise Login";
+  if (key === "membership_upgrade") return "Membership Upgrade";
   if (key === "account_updated") return "Account Updated";
   return String(value || "Activity")
     .replace(/[_-]+/g, " ")
@@ -6091,6 +6095,86 @@ function queueSharedRegistryBackfill() {
       queueSharedRegistryAccountSync(key);
     });
   }, 900);
+}
+
+function currentUpgradeInvitePayload() {
+  const params = new URLSearchParams(window.location.search || "");
+  return {
+    email: normalizeEmailAddress(params.get("upgrade_email") || ""),
+    token: String(params.get("upgrade_token") || "").trim(),
+    source: String(params.get("upgrade_source") || "Chairman").trim()
+  };
+}
+
+function clearUpgradeInvitePayload() {
+  const url = new URL(window.location.href);
+  url.searchParams.delete("upgrade_email");
+  url.searchParams.delete("upgrade_token");
+  url.searchParams.delete("upgrade_source");
+  window.history.replaceState({}, document.title, `${url.pathname}${url.search}${url.hash}`);
+}
+
+function showMembershipUpgradeOverlay(account = null, previousTier = "", nextTier = "") {
+  if (!membershipUpgradeOverlay) return;
+  if (membershipUpgradeName) {
+    membershipUpgradeName.textContent = `${String(account?.prefix || "").trim()} ${String(account?.firstName || "").trim()} ${String(account?.lastName || "").trim()}`.replace(/\s+/g, " ").trim() || "Voyager Member";
+  }
+  if (membershipUpgradeFrom) membershipUpgradeFrom.textContent = previousTier || "Non-Member";
+  if (membershipUpgradeTo) membershipUpgradeTo.textContent = nextTier || "Voyager Red";
+  membershipUpgradeOverlay.hidden = false;
+}
+
+async function applyUpgradeInviteFromUrl() {
+  const invite = currentUpgradeInvitePayload();
+  if (!invite.email || !invite.token) return false;
+  if (!sharedAccountRegistryState.loaded) {
+    await refreshSharedAccountRegistry({ mergeIntoAccounts: true, persistLocal: true });
+  }
+  const sharedAccount = sharedAccountRegistryState.accounts?.[invite.email] || null;
+  const pendingUpgrade = sharedAccount?.pendingUpgrade && typeof sharedAccount.pendingUpgrade === "object"
+    ? sharedAccount.pendingUpgrade
+    : null;
+  if (!pendingUpgrade || String(pendingUpgrade.token || "").trim() !== invite.token) return false;
+  const localAccount = accounts[invite.email] || findAccountByEmail(invite.email);
+  if (!localAccount) {
+    const loginEmailField = document.getElementById("login-email");
+    if (loginEmailField instanceof HTMLInputElement) loginEmailField.value = invite.email;
+    if (loginInfo) loginInfo.textContent = "Open this invitation from the device used during registration to complete your tier upgrade.";
+    showRoute("account");
+    return false;
+  }
+
+  const previousTier = String(localAccount.membership || pendingUpgrade.previousTier || "Non-Member").trim() || "Non-Member";
+  const nextTier = String(pendingUpgrade.tier || "Voyager Red").trim() || "Voyager Red";
+  localAccount.membership = nextTier;
+  localAccount.accountStatus = "Active";
+  localAccount.verifiedAt = String(localAccount.verifiedAt || sharedAccount?.verifiedAt || accountTimestampLabel()).trim();
+  localAccount.updatedAt = accountTimestampLabel();
+  localAccount.pendingUpgrade = {
+    ...pendingUpgrade,
+    claimedAt: localAccount.updatedAt,
+    status: "Claimed"
+  };
+  syncChangedAccountState(invite.email);
+  activeAccount = accounts[invite.email] || localAccount;
+  persistActiveSession(activeAccount);
+  renderProfile(activeAccount);
+  updateAuthCta();
+  showRoute("profile");
+  await postSharedRegistryAction({
+    action: "upsert-account",
+    account: sharedRegistryAccountPayload(activeAccount, invite.email),
+    event: {
+      email: invite.email,
+      eventType: "membership_upgrade",
+      system: "vvs",
+      route: "profile",
+      status: `${previousTier} to ${nextTier}`
+    }
+  });
+  showMembershipUpgradeOverlay(activeAccount, previousTier, nextTier);
+  clearUpgradeInvitePayload();
+  return true;
 }
 
 function buildContactIntegrationPayload(data = {}, assignedConcierge = "", clientTier = "Non-Member") {
@@ -7024,6 +7108,18 @@ const ampAccountDetailsForm = document.getElementById("amp-account-details-form"
 const ampAccountDetailsDiscard = document.getElementById("amp-account-details-discard");
 const ampAccountDetailsInfo = document.getElementById("amp-account-details-info");
 const ampAccountDetailsSummary = document.getElementById("amp-account-details-summary");
+const ampCustomerDetailsOverlay = document.getElementById("amp-customer-details-overlay");
+const ampCustomerDetailsClose = document.getElementById("amp-customer-details-close");
+const ampCustomerDetailsForm = document.getElementById("amp-customer-details-form");
+const ampCustomerDetailsDiscard = document.getElementById("amp-customer-details-discard");
+const ampCustomerDetailsInfo = document.getElementById("amp-customer-details-info");
+const ampCustomerDetailsSummary = document.getElementById("amp-customer-details-summary");
+const ampCustomerActivity = document.getElementById("amp-customer-activity");
+const membershipUpgradeOverlay = document.getElementById("membership-upgrade-overlay");
+const membershipUpgradeClose = document.getElementById("membership-upgrade-close");
+const membershipUpgradeFrom = document.getElementById("membership-upgrade-from");
+const membershipUpgradeTo = document.getElementById("membership-upgrade-to");
+const membershipUpgradeName = document.getElementById("membership-upgrade-name");
 
 const authState = {
   loginCode: "",
@@ -7050,6 +7146,7 @@ const accountPasswordResetState = {
 
 let accountSettingsTargetKey = "";
 let ampAccountDetailsTargetKey = "";
+let ampCustomerDetailsTargetKey = "";
 
 const sunriseState = {
   unlocked: false,
@@ -8964,6 +9061,63 @@ function closeAmpAccountDetails() {
   if (ampAccountDetailsOverlay) ampAccountDetailsOverlay.hidden = true;
 }
 
+function currentAmpCustomerDetailsTarget() {
+  const key = resolveAccountKey(ampCustomerDetailsTargetKey || "");
+  return key ? accounts[key] || null : null;
+}
+
+function populateAmpCustomerDetailsForm(account = null) {
+  const target = account || currentAmpCustomerDetailsTarget();
+  if (!target || !ampCustomerDetailsForm) return;
+  const key = resolveAccountKey(target.email || "");
+  if (!key) return;
+  ampCustomerDetailsTargetKey = key;
+  const setValue = (id, value) => {
+    const field = document.getElementById(id);
+    if (field) field.value = String(value || "");
+  };
+  const countrySelect = document.getElementById("amp-customer-country");
+  const contactSelect = document.getElementById("amp-customer-contact");
+  if (countrySelect instanceof HTMLSelectElement) {
+    populateCountrySelect(countrySelect, "Select country");
+    countrySelect.value = resolveCountryCode(target.country || "") || "";
+  }
+  if (contactSelect instanceof HTMLSelectElement) {
+    contactSelect.value = String(target.preferredContactMethod || target.lastContactMethod || "").trim().toLowerCase();
+  }
+  setValue("amp-customer-code", key);
+  setValue("amp-customer-email", target.email || key);
+  setValue("amp-customer-phone", target.phone || "");
+  setValue("amp-customer-title", target.prefix || "");
+  setValue("amp-customer-first", target.firstName || "");
+  setValue("amp-customer-last", target.lastName || "");
+  setValue("amp-customer-password", target.password || "");
+  setValue("amp-customer-secret", target.secretPhrase || "");
+  setValue("amp-customer-status", target.accountStatus || "Active");
+  setValue("amp-customer-created", target.createdAt || "");
+  setValue("amp-customer-verified", target.verifiedAt || "");
+  setValue("amp-customer-tier", target.membership || "Non-Member");
+  if (ampCustomerDetailsSummary) {
+    const fullName = `${String(target.firstName || "").trim()} ${String(target.lastName || "").trim()}`.trim() || target.email || key;
+    ampCustomerDetailsSummary.textContent = `${fullName} - ${String(target.email || key).trim().toLowerCase()} - client profile.`;
+  }
+  if (ampCustomerActivity) ampCustomerActivity.innerHTML = renderCustomerActivityRows(target.email || key);
+  if (ampCustomerDetailsInfo) ampCustomerDetailsInfo.textContent = "";
+}
+
+function openAmpCustomerDetails(rawKey = "") {
+  const key = resolveAccountKey(rawKey || "");
+  const account = key ? accounts[key] : null;
+  if (!key || !account || !ampCustomerDetailsOverlay) return;
+  ampCustomerDetailsTargetKey = key;
+  populateAmpCustomerDetailsForm(account);
+  ampCustomerDetailsOverlay.hidden = false;
+}
+
+function closeAmpCustomerDetails() {
+  if (ampCustomerDetailsOverlay) ampCustomerDetailsOverlay.hidden = true;
+}
+
 authTabs.forEach((tab) => {
   tab.addEventListener("click", () => activateAuthTab(tab.getAttribute("data-auth-tab")));
 });
@@ -8999,6 +9153,23 @@ if (ampAccountDetailsOverlay && ampAccountDetailsOverlay.dataset.boundDismiss !=
     if (event.target === ampAccountDetailsOverlay) closeAmpAccountDetails();
   });
   ampAccountDetailsOverlay.dataset.boundDismiss = "1";
+}
+
+if (ampCustomerDetailsClose) {
+  ampCustomerDetailsClose.addEventListener("click", () => closeAmpCustomerDetails());
+}
+
+if (ampCustomerDetailsOverlay && ampCustomerDetailsOverlay.dataset.boundDismiss !== "1") {
+  ampCustomerDetailsOverlay.addEventListener("click", (event) => {
+    if (event.target === ampCustomerDetailsOverlay) closeAmpCustomerDetails();
+  });
+  ampCustomerDetailsOverlay.dataset.boundDismiss = "1";
+}
+
+if (membershipUpgradeClose) {
+  membershipUpgradeClose.addEventListener("click", () => {
+    if (membershipUpgradeOverlay) membershipUpgradeOverlay.hidden = true;
+  });
 }
 
 accountSettingsPasswordModeBtns.forEach((btn) => {
@@ -9074,6 +9245,15 @@ if (ampAccountDetailsDiscard) {
   });
 }
 
+if (ampCustomerDetailsDiscard) {
+  ampCustomerDetailsDiscard.addEventListener("click", () => {
+    const account = currentAmpCustomerDetailsTarget();
+    if (!account) return;
+    populateAmpCustomerDetailsForm(account);
+    if (ampCustomerDetailsInfo) ampCustomerDetailsInfo.textContent = "Changes discarded.";
+  });
+}
+
 if (ampAccountDetailsForm) {
   ampAccountDetailsForm.addEventListener("submit", (event) => {
     event.preventDefault();
@@ -9127,6 +9307,57 @@ if (ampAccountDetailsForm) {
       system: "sunrise",
       route: "sunrise-amp",
       status: "Staff Record Saved",
+      account: accounts[resolveAccountKey(renamedKey)] || account
+    });
+  });
+}
+
+if (ampCustomerDetailsForm) {
+  ampCustomerDetailsForm.addEventListener("submit", (event) => {
+    event.preventDefault();
+    if (!ampCustomerDetailsForm.reportValidity()) return;
+    const currentKey = resolveAccountKey(ampCustomerDetailsTargetKey || "");
+    const account = currentKey ? accounts[currentKey] : null;
+    if (!currentKey || !account) {
+      if (ampCustomerDetailsInfo) ampCustomerDetailsInfo.textContent = "Unable to load this client account.";
+      return;
+    }
+    const nextEmail = normalizeEmailAddress(document.getElementById("amp-customer-email")?.value || "");
+    if (!nextEmail) {
+      if (ampCustomerDetailsInfo) ampCustomerDetailsInfo.textContent = "Enter a valid VVS email.";
+      return;
+    }
+    if (nextEmail !== currentKey && accounts[nextEmail] && accounts[nextEmail] !== account) {
+      if (ampCustomerDetailsInfo) ampCustomerDetailsInfo.textContent = "This VVS email is already linked to another account.";
+      return;
+    }
+    account.phone = String(document.getElementById("amp-customer-phone")?.value || "").trim();
+    const nextCountryCode = String(document.getElementById("amp-customer-country")?.value || "").trim().toUpperCase();
+    account.countryCode = nextCountryCode;
+    account.country = nextCountryCode ? countryDisplayName(nextCountryCode) : "";
+    account.preferredContactMethod = String(document.getElementById("amp-customer-contact")?.value || "").trim().toLowerCase();
+    account.lastContactMethod = account.preferredContactMethod;
+    account.prefix = String(document.getElementById("amp-customer-title")?.value || "").trim();
+    account.firstName = String(document.getElementById("amp-customer-first")?.value || "").trim();
+    account.lastName = String(document.getElementById("amp-customer-last")?.value || "").trim();
+    account.password = String(document.getElementById("amp-customer-password")?.value || "");
+    account.secretPhrase = String(document.getElementById("amp-customer-secret")?.value || "").trim();
+    account.accountStatus = String(document.getElementById("amp-customer-status")?.value || "").trim() || "Active";
+    account.createdAt = String(document.getElementById("amp-customer-created")?.value || "").trim() || account.createdAt || accountTimestampLabel();
+    account.verifiedAt = String(document.getElementById("amp-customer-verified")?.value || "").trim() || account.verifiedAt || account.createdAt;
+    account.membership = String(document.getElementById("amp-customer-tier")?.value || "").trim() || "Non-Member";
+    const renamedKey = renameBaseAccountKey(currentKey, nextEmail);
+    syncChangedAccountState(renamedKey);
+    saveSunriseControlState();
+    populateAmpCustomerDetailsForm(accounts[resolveAccountKey(renamedKey)] || null);
+    renderAMPPage(String(document.getElementById("amp-search")?.value || "").trim());
+    if (ampCustomerDetailsInfo) ampCustomerDetailsInfo.textContent = "Client account updated.";
+    logSharedRegistryActivity({
+      email: String(nextEmail || renamedKey).trim().toLowerCase(),
+      eventType: "account_updated",
+      system: "sunrise",
+      route: "sunrise-amp",
+      status: "Client Record Saved",
       account: accounts[resolveAccountKey(renamedKey)] || account
     });
   });
@@ -10709,6 +10940,58 @@ function renderAmpStaffCards(entries = []) {
   }).join("")}</div>`;
 }
 
+function renderCustomerActivityRows(email = "") {
+  const normalizedEmail = normalizeEmailAddress(email);
+  const rows = recentSharedRegistryActivities(40).filter((row) => normalizeEmailAddress(row?.email || "") === normalizedEmail);
+  if (!rows.length) return `<p class="profileNote">No shared trace has been recorded for this account yet.</p>`;
+  return rows.map((row) => `<article class="ampActivityRow">
+    <div class="ampActivityIdentity">
+      <b>${humanizeRegistryEventType(row.eventType)}</b>
+      <span>${String(row.occurredAt || "").trim() || "Pending timestamp"}</span>
+    </div>
+    <div class="ampActivityMeta">
+      <span>${String(row.system || "vvs").toUpperCase()}</span>
+      <span>${sharedRegistryActivityLocation(row)}</span>
+      <span>${sharedRegistryActivityBrowser(row)}</span>
+      <span>${String(row.status || "Recorded").trim()}</span>
+    </div>
+  </article>`).join("");
+}
+
+function renderAmpCustomerCards(entries = []) {
+  if (!Array.isArray(entries) || !entries.length) {
+    return `<article class="sunriseControlCard sunriseDetailWide"><h3>Customers List</h3><p class="profileNote">No customer accounts found.</p></article>`;
+  }
+  const cards = entries.map(([key, account]) => {
+    const fullName = `${String(account?.firstName || "").trim()} ${String(account?.lastName || "").trim()}`.trim() || "Client";
+    const membership = String(account?.membership || "Non-Member").trim() || "Non-Member";
+    const preferredContact = String(account?.preferredContactMethod || account?.lastContactMethod || "Not set").trim() || "Not set";
+    const displayCountry = formatOptionalCountryDisplay(account?.country || "");
+    return `<article class="ampStaffCard ampCustomerCard">
+      <div class="ampStaffCardTop">
+        <div>
+          <p class="ampSectionEyebrow">Customer</p>
+          <h4>${fullName}</h4>
+          <p class="ampOwnerRole">${String(account?.email || key || "").trim().toLowerCase()}</p>
+        </div>
+        <div class="ampStaffCardActions">
+          <span class="ampHierarchyCode">${membership}</span>
+          <button class="sunriseMiniBtn" type="button" data-amp-customer-details="${key}">Details</button>
+        </div>
+      </div>
+      <div class="ampOwnerMetaRow">
+        <span class="ampOwnerMetaChip"><b>Phone</b> ${String(account?.phone || "Not stored").trim() || "Not stored"}</span>
+        <span class="ampOwnerMetaChip"><b>Country</b> ${displayCountry || "Not stored"}</span>
+        <span class="ampOwnerMetaChip"><b>Contact</b> ${preferredContact}</span>
+      </div>
+    </article>`;
+  }).join("");
+  return `<article class="sunriseControlCard sunriseDetailWide">
+    <h3>Customers List</h3>
+    <div class="ampStaffCards">${cards}</div>
+  </article>`;
+}
+
 function renderAMPPage(filter = "") {
   const grid = document.getElementById("sunrise-amp-grid");
   if (!grid) return;
@@ -10808,7 +11091,7 @@ function renderAMPPage(filter = "") {
 
   const customerEntries = accountEntries.filter(([, account]) => !isStaffAccountForAdmin(account));
   const staffEntries = canonicalizeAmpStaffEntries(accountEntries.filter(([, account]) => isStaffAccountForAdmin(account)));
-  const customersHtml = `${renderAmpActivityFeed()}<article class="sunriseControlCard sunriseDetailWide"><h3>Customers List</h3><table class="sunriseControlTable"><thead><tr><th>Code</th><th>Email</th><th>Phone</th><th>Country</th><th>Preferred Contact</th><th>Title</th><th>Name</th><th>Password</th><th>Secret Phrase</th><th>Status</th><th>Created</th><th>Verified</th><th>Tier/Status</th><th>Action</th></tr></thead><tbody>${renderCustomerRows(customerEntries) || "<tr><td colspan='14'>No customer accounts found.</td></tr>"}</tbody></table></article>`;
+  const customersHtml = renderAmpCustomerCards(customerEntries);
 
   const groupedStaff = new Map();
   ampStaffGroupOrder.forEach((division) => groupedStaff.set(division, []));
@@ -12824,6 +13107,12 @@ function bindSunriseControlInteractions() {
       return;
     }
 
+    const ampCustomerDetails = clickTarget.closest("[data-amp-customer-details]");
+    if (ampCustomerDetails) {
+      openAmpCustomerDetails(String(ampCustomerDetails.getAttribute("data-amp-customer-details") || ""));
+      return;
+    }
+
     const ampRestore = clickTarget.closest("[data-amp-restore]");
     if (ampRestore && sunriseControlState) {
       ensureAmpDeletedAccountsStore();
@@ -13694,6 +13983,7 @@ try {
 }
 refreshSharedAccountRegistry({ mergeIntoAccounts: true, persistLocal: true }).finally(() => {
   queueSharedRegistryBackfill();
+  applyUpgradeInviteFromUrl();
 });
 if (document.body.dataset.sunrisePersistFlushBound !== "1") {
   document.body.dataset.sunrisePersistFlushBound = "1";
