@@ -8,7 +8,7 @@
   <meta http-equiv="Expires" content="0" />
   <title>Venture Voyager Services - Concierge</title>
   <meta name="description" content="Venture Voyager Services (VVS) - discreet luxury concierge and private access." />
-  <link rel="stylesheet" href="styles.css?v=20260303-59" />
+  <link rel="stylesheet" href="styles.css?v=20260304-60" />
 </head>
 <body>
   <div class="wrap">
@@ -1168,6 +1168,88 @@
       </div>
     </div>
 
+    <div class="contactOverlay" id="amp-account-details-overlay" hidden>
+      <div class="contactWindow sunriseMailWindow accountSettingsWindow">
+        <div class="kicker"><span class="dot" aria-hidden="true"></span> Sunrise AMP Staff Details</div>
+        <h3 class="mailTitle">Staff Account Details</h3>
+        <p class="authInfo" id="amp-account-details-summary"></p>
+        <div class="accountSettingsGrid">
+          <article class="accountSettingsPanel">
+            <div class="accountSettingsPanelTop">
+              <div>
+                <p class="profileLabel">Linked Staff Profile</p>
+                <p class="profileNote">Compact edit view for VVS + Sunrise staff credentials.</p>
+              </div>
+            </div>
+            <form id="amp-account-details-form" class="authGrid" novalidate>
+              <div class="field">
+                <label for="amp-account-title">Title</label>
+                <input class="input" id="amp-account-title" type="text" />
+              </div>
+              <div class="field">
+                <label for="amp-account-role">Position</label>
+                <input class="input" id="amp-account-role" type="text" />
+              </div>
+              <div class="field">
+                <label for="amp-account-first">First Name</label>
+                <input class="input" id="amp-account-first" type="text" required />
+              </div>
+              <div class="field">
+                <label for="amp-account-last">Last Name</label>
+                <input class="input" id="amp-account-last" type="text" required />
+              </div>
+              <div class="field">
+                <label for="amp-account-email">VVS Email</label>
+                <input class="input" id="amp-account-email" type="email" required />
+              </div>
+              <div class="field">
+                <label for="amp-account-sunrise-email">Sunrise Email</label>
+                <input class="input" id="amp-account-sunrise-email" type="email" />
+              </div>
+              <div class="field">
+                <label for="amp-account-phone">Phone</label>
+                <input class="input" id="amp-account-phone" type="text" />
+              </div>
+              <div class="field">
+                <label for="amp-account-country">Country</label>
+                <select class="select" id="amp-account-country">
+                  <option value="">Select country</option>
+                </select>
+              </div>
+              <div class="field">
+                <label for="amp-account-division">Division</label>
+                <input class="input" id="amp-account-division" type="text" />
+              </div>
+              <div class="field">
+                <label for="amp-account-access">Sunrise Access</label>
+                <input class="input" id="amp-account-access" type="text" />
+              </div>
+              <div class="field">
+                <label for="amp-account-notos">NOTOS ID</label>
+                <input class="input" id="amp-account-notos" type="text" />
+              </div>
+              <div class="field">
+                <label for="amp-account-password">Password</label>
+                <input class="input" id="amp-account-password" type="text" />
+              </div>
+              <div class="field full">
+                <label for="amp-account-secret">Secret Phrase</label>
+                <input class="input" id="amp-account-secret" type="text" />
+              </div>
+              <div class="viewActions accountSettingsActions">
+                <button class="btn primary" type="submit">Save Changes</button>
+                <button class="btn ghost" type="button" id="amp-account-details-discard">Discard Changes</button>
+              </div>
+            </form>
+            <p class="authInfo" id="amp-account-details-info"></p>
+          </article>
+        </div>
+        <div class="viewActions" style="justify-content:center; margin-top:10px;">
+          <button class="btn ghost" type="button" id="amp-account-details-close">Close</button>
+        </div>
+      </div>
+    </div>
+
     <div class="contactOverlay" id="sunrise-email-overlay" hidden>
       <div class="contactWindow sunriseMailWindow">
         <div class="kicker"><span class="dot" aria-hidden="true"></span> VVS Mail Dashboard</div>
@@ -1354,6 +1436,6 @@
     </footer>
   </div>
 
-    <script src="script.js?v=20260304-112"></script>
+  <script src="script.js?v=20260304-113"></script>
 </body>
 </html>

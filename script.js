@@ -5865,6 +5865,234 @@ async function requestJsonWithTimeout(url, {
   }
 }
 
+function currentBrowserSessionLabel() {
+  const ua = String(window.navigator?.userAgent || "").toLowerCase();
+  if (ua.includes("arc")) return "Arc";
+  if (ua.includes("safari") && !ua.includes("chrome")) return "Safari";
+  if (ua.includes("edg")) return "Edge";
+  if (ua.includes("firefox")) return "Firefox";
+  if (ua.includes("chrome")) return "Chrome";
+  return "Browser";
+}
+
+function cloneSharedRegistryAccount(account = null) {
+  const cloned = cloneAccountsPayload(account) || {};
+  delete cloned.sunriseCredential;
+  return cloned;
+}
+
+function sharedRegistryAccountPayload(account = null, rawKey = "") {
+  if (!account || typeof account !== "object" || account.sunriseCredential) return null;
+  const key = normalizeEmailAddress(account.email || rawKey || "");
+  if (!key) return null;
+  const cloned = cloneSharedRegistryAccount(account);
+  cloned.email = key;
+  return cloned;
+}
+
+function mergeSharedRegistryAccountIntoLocal(account = null, rawKey = "") {
+  if (!account || typeof account !== "object") return false;
+  const key = normalizeEmailAddress(account.email || rawKey || "");
+  if (!key) return false;
+  const existing = cloneAccountsPayload(accounts[key]) || {};
+  const nextAccount = normalizeAccountServiceCards({
+    ...mergeStoredValuePreservingSeed(existing, cloneSharedRegistryAccount(account)),
+    email: key
+  });
+  accounts[key] = nextAccount;
+  return true;
+}
+
+function setSharedRegistrySnapshot(registry = null, { mergeIntoAccounts = true, persistLocal = false } = {}) {
+  const snapshot = registry && typeof registry === "object" ? registry : {};
+  sharedAccountRegistryState.accounts = snapshot.accounts && typeof snapshot.accounts === "object"
+    ? snapshot.accounts
+    : {};
+  sharedAccountRegistryState.activities = Array.isArray(snapshot.activities)
+    ? snapshot.activities
+    : [];
+  sharedAccountRegistryState.lastSyncedAt = String(snapshot.updatedAt || "").trim();
+  if (mergeIntoAccounts) {
+    Object.entries(sharedAccountRegistryState.accounts).forEach(([key, account]) => {
+      mergeSharedRegistryAccountIntoLocal(account, key);
+    });
+    restoreProtectedOwnerCredentials();
+    pruneDuplicateSunriseCredentials();
+    normalizeAllAccountRecords();
+    if (persistLocal) {
+      try {
+        localStorage.setItem(ACCOUNTS_DATA_KEY, JSON.stringify(accounts));
+      } catch (_) {}
+    }
+  }
+}
+
+function recentSharedRegistryActivities(limit = 20) {
+  return (Array.isArray(sharedAccountRegistryState.activities) ? sharedAccountRegistryState.activities : [])
+    .filter((row) => row && typeof row === "object")
+    .slice(0, Math.max(1, Number(limit || 20)));
+}
+
+function humanizeRegistryEventType(value = "") {
+  const key = String(value || "").trim().toLowerCase();
+  if (key === "signup_started") return "Signup Started";
+  if (key === "signup_verified") return "Signup Verified";
+  if (key === "vvs_login") return "VVS Login";
+  if (key === "sunrise_login") return "Sunrise Login";
+  if (key === "account_updated") return "Account Updated";
+  return String(value || "Activity")
+    .replace(/[_-]+/g, " ")
+    .replace(/\b\w/g, (char) => char.toUpperCase());
+}
+
+function sharedRegistryActivityLocation(row = {}) {
+  const parts = [
+    String(row.city || "").trim(),
+    String(row.region || "").trim(),
+    String(row.country || "").trim()
+  ].filter(Boolean);
+  return parts.join(", ") || "Location pending";
+}
+
+function sharedRegistryActivityBrowser(row = {}) {
+  const agent = String(row.userAgent || "").toLowerCase();
+  if (agent.includes("arc")) return "Arc";
+  if (agent.includes("safari") && !agent.includes("chrome")) return "Safari";
+  if (agent.includes("edg")) return "Edge";
+  if (agent.includes("firefox")) return "Firefox";
+  if (agent.includes("chrome")) return "Chrome";
+  return "Browser";
+}
+
+async function refreshSharedAccountRegistry({
+  mergeIntoAccounts = true,
+  persistLocal = true,
+  force = false
+} = {}) {
+  if (sharedRegistryRefreshPromise && !force) return sharedRegistryRefreshPromise;
+  sharedAccountRegistryState.loading = true;
+  sharedRegistryRefreshPromise = requestJsonWithTimeout("/api/account-registry", {
+    method: "GET",
+    timeoutMs: 15000
+  }).then((result) => {
+    sharedAccountRegistryState.loading = false;
+    sharedRegistryRefreshPromise = null;
+    if (!result.ok || !result.body?.ok || !result.body?.registry) {
+      const likelyUnavailable = isLocalPreviewHost() && (result.status === 0 || result.status === 404 || result.status === 405);
+      sharedAccountRegistryState.loaded = true;
+      sharedAccountRegistryState.available = false;
+      sharedAccountRegistryState.error = likelyUnavailable
+        ? ""
+        : String(result.body?.message || "Shared account registry unavailable.").trim();
+      return false;
+    }
+    sharedAccountRegistryState.loaded = true;
+    sharedAccountRegistryState.available = true;
+    sharedAccountRegistryState.error = "";
+    setSharedRegistrySnapshot(result.body.registry, { mergeIntoAccounts, persistLocal });
+    if (sunriseControlState) {
+      syncEcsWithStaffAccounts();
+      ensureRtaAssignmentsStore();
+      ensureSocServicesStore();
+      syncRedTeamAssignmentsToClientAccounts();
+      syncSocServicesToClientAccounts();
+      scheduleSunriseAdminRenders();
+    }
+    return true;
+  }).catch(() => {
+    sharedRegistryRefreshPromise = null;
+    sharedAccountRegistryState.loading = false;
+    sharedAccountRegistryState.loaded = true;
+    sharedAccountRegistryState.available = false;
+    return false;
+  });
+  return sharedRegistryRefreshPromise;
+}
+
+async function postSharedRegistryAction(payload = {}) {
+  const result = await requestJsonWithTimeout("/api/account-registry", {
+    method: "POST",
+    payload,
+    timeoutMs: 20000
+  });
+  if (!result.ok || !result.body?.ok) return false;
+  sharedAccountRegistryState.loaded = true;
+  sharedAccountRegistryState.available = true;
+  sharedAccountRegistryState.error = "";
+  if (result.body.registry) {
+    setSharedRegistrySnapshot(result.body.registry, { mergeIntoAccounts: true, persistLocal: true });
+    if (sunriseControlState) {
+      syncEcsWithStaffAccounts();
+      ensureRtaAssignmentsStore();
+      ensureSocServicesStore();
+      syncRedTeamAssignmentsToClientAccounts();
+      syncSocServicesToClientAccounts();
+      scheduleSunriseAdminRenders();
+    }
+  }
+  return true;
+}
+
+async function logSharedRegistryActivity({
+  email = "",
+  eventType = "",
+  system = "vvs",
+  route = "",
+  status = "",
+  account = null
+} = {}) {
+  const normalizedEmail = normalizeEmailAddress(email || account?.email || "");
+  if (!normalizedEmail || !eventType) return false;
+  const record = sharedRegistryAccountPayload(account || accounts[normalizedEmail], normalizedEmail);
+  return postSharedRegistryAction({
+    action: "log-activity",
+    email: normalizedEmail,
+    eventType,
+    system,
+    route,
+    status,
+    account: record
+  });
+}
+
+async function flushSharedRegistryAccountSync() {
+  if (sharedRegistrySyncTimer) {
+    window.clearTimeout(sharedRegistrySyncTimer);
+    sharedRegistrySyncTimer = 0;
+  }
+  const keys = Array.from(sharedRegistryPendingKeys);
+  sharedRegistryPendingKeys.clear();
+  const batch = keys
+    .map((key) => sharedRegistryAccountPayload(accounts[key], key))
+    .filter(Boolean);
+  if (!batch.length) return false;
+  return postSharedRegistryAction({
+    action: "bulk-upsert",
+    accounts: batch
+  });
+}
+
+function queueSharedRegistryAccountSync(rawKey = "") {
+  const key = normalizeEmailAddress(rawKey || "");
+  if (!key || !accounts[key] || accounts[key].sunriseCredential) return;
+  sharedRegistryPendingKeys.add(key);
+  if (sharedRegistrySyncTimer) return;
+  sharedRegistrySyncTimer = window.setTimeout(() => {
+    flushSharedRegistryAccountSync();
+  }, 450);
+}
+
+function queueSharedRegistryBackfill() {
+  if (sharedRegistryBackfillQueued) return;
+  sharedRegistryBackfillQueued = true;
+  window.setTimeout(() => {
+    Object.entries(accounts).forEach(([key, account]) => {
+      if (account?.sunriseCredential) return;
+      queueSharedRegistryAccountSync(key);
+    });
+  }, 900);
+}
+
 function buildContactIntegrationPayload(data = {}, assignedConcierge = "", clientTier = "Non-Member") {
   return {
     firstName: data.firstName,
@@ -6790,6 +7018,12 @@ const accountSettingsPasswordModeBtns = Array.from(document.querySelectorAll("[d
 const accountSettingsPasswordForm = document.getElementById("account-pw-change-form");
 const accountSettingsRecoveryStep1 = document.getElementById("account-pw-recovery-step1");
 const accountSettingsRecoveryStep2 = document.getElementById("account-pw-recovery-step2");
+const ampAccountDetailsOverlay = document.getElementById("amp-account-details-overlay");
+const ampAccountDetailsClose = document.getElementById("amp-account-details-close");
+const ampAccountDetailsForm = document.getElementById("amp-account-details-form");
+const ampAccountDetailsDiscard = document.getElementById("amp-account-details-discard");
+const ampAccountDetailsInfo = document.getElementById("amp-account-details-info");
+const ampAccountDetailsSummary = document.getElementById("amp-account-details-summary");
 
 const authState = {
   loginCode: "",
@@ -6815,6 +7049,7 @@ const accountPasswordResetState = {
 };
 
 let accountSettingsTargetKey = "";
+let ampAccountDetailsTargetKey = "";
 
 const sunriseState = {
   unlocked: false,
@@ -6842,6 +7077,21 @@ const sunriseOwnerInboxState = {
   error: "",
   nextPageToken: ""
 };
+
+const sharedAccountRegistryState = {
+  loading: false,
+  loaded: false,
+  available: false,
+  lastSyncedAt: "",
+  accounts: {},
+  activities: [],
+  error: ""
+};
+
+let sharedRegistryRefreshPromise = null;
+let sharedRegistrySyncTimer = 0;
+let sharedRegistryBackfillQueued = false;
+const sharedRegistryPendingKeys = new Set();
 
 let sunriseOwnerInboxRefreshHandle = 0;
 
@@ -6973,6 +7223,9 @@ function syncChangedAccountState(updatedKey = "") {
 
   updateAuthCta();
   scheduleSunriseAdminRenders();
+  if (refreshedKey && accounts[refreshedKey] && !accounts[refreshedKey].sunriseCredential) {
+    queueSharedRegistryAccountSync(refreshedKey);
+  }
 }
 
 function resolveAccountSettingsTarget(account = null) {
@@ -7842,6 +8095,15 @@ function finalizeSunriseUnlock(account) {
   if (sunriseNotosInfo) sunriseNotosInfo.textContent = "";
   updateSunriseAccessView();
   renderSunrise(activeAccount || targetAccount);
+  queueSharedRegistryAccountSync(String(operatorAccount?.email || targetAccount?.email || "").trim().toLowerCase());
+  logSharedRegistryActivity({
+    email: String(operatorAccount?.email || targetAccount?.email || "").trim().toLowerCase(),
+    eventType: "sunrise_login",
+    system: "sunrise",
+    route: currentVisibleRoute(),
+    status: "Access Granted",
+    account: operatorAccount || targetAccount
+  });
 }
 
 function ensureSunriseSessionRecord() {
@@ -8641,6 +8903,67 @@ function closeAccountSettingsOverlay() {
   if (accountSettingsOverlay) accountSettingsOverlay.hidden = true;
 }
 
+function currentAmpAccountDetailsTarget() {
+  const key = resolveAccountKey(ampAccountDetailsTargetKey || "");
+  return key ? accounts[key] || null : null;
+}
+
+function populateAmpAccountDetailsForm(account = null) {
+  const target = account || currentAmpAccountDetailsTarget();
+  if (!target || !ampAccountDetailsForm) return;
+  const key = resolveAccountKey(target.email || "");
+  if (!key) return;
+  ampAccountDetailsTargetKey = key;
+  const canEdit = isOwnerAccount(getCurrentSunriseOperator() || activeAccount || null);
+  const setValue = (id, value) => {
+    const field = document.getElementById(id);
+    if (field) field.value = String(value || "");
+  };
+  const countrySelect = document.getElementById("amp-account-country");
+  if (countrySelect instanceof HTMLSelectElement) {
+    populateCountrySelect(countrySelect, "Select country");
+    countrySelect.value = resolveCountryCode(target.country || "") || "";
+    countrySelect.disabled = !canEdit;
+  }
+  const sunriseLogin = findSunriseCredentialEmailForBaseKey(key, target);
+  const accessMeta = sunriseAccessMeta(target);
+  setValue("amp-account-title", target.prefix || "");
+  setValue("amp-account-first", target.firstName || "");
+  setValue("amp-account-last", target.lastName || "");
+  setValue("amp-account-role", target.roleTitle || "");
+  setValue("amp-account-division", ampStaffGroupName(target));
+  setValue("amp-account-email", target.email || key);
+  setValue("amp-account-sunrise-email", sunriseLogin || "");
+  setValue("amp-account-phone", target.phone || "");
+  setValue("amp-account-password", target.password || "");
+  setValue("amp-account-secret", target.secretPhrase || "");
+  setValue("amp-account-access", accessMeta.code || staffAccessCode(target));
+  setValue("amp-account-notos", target.notosId || "");
+  if (ampAccountDetailsSummary) {
+    const fullName = `${String(target.firstName || "").trim()} ${String(target.lastName || "").trim()}`.trim() || target.email || key;
+    ampAccountDetailsSummary.textContent = `${fullName} - ${String(target.roleTitle || "Staff").trim()} - ${String(target.email || key).trim().toLowerCase()}.`;
+  }
+  if (ampAccountDetailsInfo) ampAccountDetailsInfo.textContent = "";
+  Array.from(ampAccountDetailsForm.querySelectorAll("input, select")).forEach((field) => {
+    if (!(field instanceof HTMLInputElement) && !(field instanceof HTMLSelectElement)) return;
+    field.disabled = !canEdit;
+    field.readOnly = !canEdit && field instanceof HTMLInputElement;
+  });
+}
+
+function openAmpAccountDetails(rawKey = "") {
+  const key = resolveAccountKey(rawKey || "");
+  const account = key ? accounts[key] : null;
+  if (!key || !account || !ampAccountDetailsOverlay) return;
+  ampAccountDetailsTargetKey = key;
+  populateAmpAccountDetailsForm(account);
+  ampAccountDetailsOverlay.hidden = false;
+}
+
+function closeAmpAccountDetails() {
+  if (ampAccountDetailsOverlay) ampAccountDetailsOverlay.hidden = true;
+}
+
 authTabs.forEach((tab) => {
   tab.addEventListener("click", () => activateAuthTab(tab.getAttribute("data-auth-tab")));
 });
@@ -8665,6 +8988,17 @@ if (accountSettingsOverlay && accountSettingsOverlay.dataset.boundDismiss !== "1
     if (event.target === accountSettingsOverlay) closeAccountSettingsOverlay();
   });
   accountSettingsOverlay.dataset.boundDismiss = "1";
+}
+
+if (ampAccountDetailsClose) {
+  ampAccountDetailsClose.addEventListener("click", () => closeAmpAccountDetails());
+}
+
+if (ampAccountDetailsOverlay && ampAccountDetailsOverlay.dataset.boundDismiss !== "1") {
+  ampAccountDetailsOverlay.addEventListener("click", (event) => {
+    if (event.target === ampAccountDetailsOverlay) closeAmpAccountDetails();
+  });
+  ampAccountDetailsOverlay.dataset.boundDismiss = "1";
 }
 
 accountSettingsPasswordModeBtns.forEach((btn) => {
@@ -8711,6 +9045,14 @@ if (accountSettingsForm) {
     syncChangedAccountState(updatedKey);
     populateAccountSettingsForm(accounts[resolveAccountKey(updatedKey)] || resolveAccountSettingsTarget(), { resetPasswordTools: false });
     if (accountSettingsInfo) accountSettingsInfo.textContent = "Account details updated successfully.";
+    logSharedRegistryActivity({
+      email: String(nextEmail || updatedKey).trim().toLowerCase(),
+      eventType: "account_updated",
+      system: "vvs",
+      route: "profile",
+      status: "Account Saved",
+      account: accounts[resolveAccountKey(updatedKey)] || account
+    });
   });
 }
 
@@ -8720,6 +9062,73 @@ if (accountSettingsDiscard) {
     if (!targetAccount) return;
     populateAccountSettingsForm(targetAccount);
     if (accountSettingsInfo) accountSettingsInfo.textContent = "Changes discarded.";
+  });
+}
+
+if (ampAccountDetailsDiscard) {
+  ampAccountDetailsDiscard.addEventListener("click", () => {
+    const account = currentAmpAccountDetailsTarget();
+    if (!account) return;
+    populateAmpAccountDetailsForm(account);
+    if (ampAccountDetailsInfo) ampAccountDetailsInfo.textContent = "Changes discarded.";
+  });
+}
+
+if (ampAccountDetailsForm) {
+  ampAccountDetailsForm.addEventListener("submit", (event) => {
+    event.preventDefault();
+    if (!ampAccountDetailsForm.reportValidity()) return;
+    if (!isOwnerAccount(getCurrentSunriseOperator() || activeAccount || null)) {
+      if (ampAccountDetailsInfo) ampAccountDetailsInfo.textContent = "Only owners can edit staff account details here.";
+      return;
+    }
+    const currentKey = resolveAccountKey(ampAccountDetailsTargetKey || "");
+    const account = currentKey ? accounts[currentKey] : null;
+    if (!currentKey || !account) {
+      if (ampAccountDetailsInfo) ampAccountDetailsInfo.textContent = "Unable to load this staff account.";
+      return;
+    }
+    const nextEmail = normalizeEmailAddress(document.getElementById("amp-account-email")?.value || "");
+    const nextSunriseEmail = normalizeEmailAddress(document.getElementById("amp-account-sunrise-email")?.value || "");
+    if (!nextEmail) {
+      if (ampAccountDetailsInfo) ampAccountDetailsInfo.textContent = "Enter a valid VVS email.";
+      return;
+    }
+    if (nextEmail !== currentKey && accounts[nextEmail] && accounts[nextEmail] !== account) {
+      if (ampAccountDetailsInfo) ampAccountDetailsInfo.textContent = "This VVS email is already linked to another account.";
+      return;
+    }
+    account.prefix = String(document.getElementById("amp-account-title")?.value || "").trim();
+    account.firstName = String(document.getElementById("amp-account-first")?.value || "").trim();
+    account.lastName = String(document.getElementById("amp-account-last")?.value || "").trim();
+    account.roleTitle = String(document.getElementById("amp-account-role")?.value || "").trim();
+    account.staffDivision = normalizeStaffDivision(
+      String(document.getElementById("amp-account-division")?.value || "").trim(),
+      account.roleTitle
+    );
+    account.phone = String(document.getElementById("amp-account-phone")?.value || "").trim();
+    const nextCountryCode = String(document.getElementById("amp-account-country")?.value || "").trim().toUpperCase();
+    account.country = nextCountryCode ? countryDisplayName(nextCountryCode) : "";
+    account.countryCode = nextCountryCode;
+    account.notosId = String(document.getElementById("amp-account-notos")?.value || "").trim().toUpperCase();
+    account.sunriseAccessLevel = String(document.getElementById("amp-account-access")?.value || "").trim().toUpperCase();
+    syncCredentialFieldAcrossLinkedAccounts(currentKey, "password", String(document.getElementById("amp-account-password")?.value || ""));
+    syncCredentialFieldAcrossLinkedAccounts(currentKey, "secretPhrase", String(document.getElementById("amp-account-secret")?.value || "").trim());
+    const renamedKey = renameBaseAccountKey(currentKey, nextEmail);
+    if (nextSunriseEmail) renameLinkedSunriseCredentialKey(renamedKey, nextSunriseEmail);
+    syncChangedAccountState(renamedKey);
+    saveSunriseControlState();
+    populateAmpAccountDetailsForm(accounts[resolveAccountKey(renamedKey)] || null);
+    renderAMPPage(String(document.getElementById("amp-search")?.value || "").trim());
+    if (ampAccountDetailsInfo) ampAccountDetailsInfo.textContent = "Staff account updated.";
+    logSharedRegistryActivity({
+      email: String(nextEmail || renamedKey).trim().toLowerCase(),
+      eventType: "account_updated",
+      system: "sunrise",
+      route: "sunrise-amp",
+      status: "Staff Record Saved",
+      account: accounts[resolveAccountKey(renamedKey)] || account
+    });
   });
 }
 
@@ -8825,6 +9234,15 @@ if (loginStep1) {
         loginStep2.reset();
       }
       if (loginInfo) loginInfo.textContent = "Owner verification confirmed. Redirecting to your account.";
+      queueSharedRegistryAccountSync(String(account.email || "").trim().toLowerCase());
+      logSharedRegistryActivity({
+        email: String(account.email || "").trim().toLowerCase(),
+        eventType: "vvs_login",
+        system: "vvs",
+        route: "profile",
+        status: "Access Granted",
+        account
+      });
       showRoute("profile");
       return;
     }
@@ -8877,6 +9295,15 @@ if (loginStep2) {
     updateAuthCta();
     if (loginInfo) loginInfo.textContent = "Verification successful. Redirecting to your account.";
     loginStep2.reset();
+    queueSharedRegistryAccountSync(String(account.email || "").trim().toLowerCase());
+    logSharedRegistryActivity({
+      email: String(account.email || "").trim().toLowerCase(),
+      eventType: "vvs_login",
+      system: "vvs",
+      route: "profile",
+      status: "Access Granted",
+      account
+    });
     showRoute("profile");
   });
 }
@@ -8921,8 +9348,18 @@ if (signupStep1) {
       phone: phone ? phone.value.trim() : ""
     });
     persistAccountsData();
+    const signupAccount = accounts[authState.signupEmail.toLowerCase()];
+    queueSharedRegistryAccountSync(authState.signupEmail);
+    logSharedRegistryActivity({
+      email: authState.signupEmail,
+      eventType: "signup_started",
+      system: "vvs",
+      route: "signup",
+      status: "Pending Verification",
+      account: signupAccount
+    });
     authState.signupCode = issueTestEmailCode(authState.signupEmail);
-    const pendingAccount = accounts[authState.signupEmail.toLowerCase()];
+    const pendingAccount = signupAccount;
     const delivery = await sendVerificationCodeEmail({
       email: authState.signupEmail,
       code: authState.signupCode,
@@ -8968,6 +9405,15 @@ if (signupStep2) {
       activeAccount.preferredContactMethod = String(activeAccount.preferredContactMethod || "email").trim().toLowerCase();
       normalizeAccountServiceCards(activeAccount);
       persistAccountsData();
+      queueSharedRegistryAccountSync(String(activeAccount.email || "").trim().toLowerCase());
+      logSharedRegistryActivity({
+        email: String(activeAccount.email || "").trim().toLowerCase(),
+        eventType: "signup_verified",
+        system: "vvs",
+        route: "profile",
+        status: "Active",
+        account: activeAccount
+      });
     }
     renderProfile(activeAccount);
     updateAuthCta();
@@ -10181,6 +10627,88 @@ function renderAmpOfficeHierarchy(entries = []) {
   </div>`;
 }
 
+function renderAmpActivityFeed() {
+  const rows = recentSharedRegistryActivities(18);
+  const status = sharedAccountRegistryState.available
+    ? (sharedAccountRegistryState.lastSyncedAt ? `Live sync ${sharedAccountRegistryState.lastSyncedAt}` : "Live sync active")
+    : "Shared sync pending";
+  const body = rows.length
+    ? rows.map((row) => {
+      const email = String(row.email || "").trim().toLowerCase();
+      const account = accounts[resolveAccountKey(email)] || findAccountByEmail(email);
+      const fullName = account
+        ? `${String(account.firstName || "").trim()} ${String(account.lastName || "").trim()}`.trim()
+        : "";
+      const location = sharedRegistryActivityLocation(row);
+      const browser = sharedRegistryActivityBrowser(row);
+      return `<article class="ampActivityRow">
+        <div class="ampActivityIdentity">
+          <b>${fullName || email || "Unknown Account"}</b>
+          <span>${email || "No email recorded"}</span>
+        </div>
+        <div class="ampActivityMeta">
+          <span class="ampActivityType">${humanizeRegistryEventType(row.eventType)}</span>
+          <span>${String(row.system || "vvs").toUpperCase()}</span>
+          <span>${location}</span>
+          <span>${browser}</span>
+          <span>${String(row.occurredAt || "").trim() || "Pending timestamp"}</span>
+        </div>
+      </article>`;
+    }).join("")
+    : `<p class="profileNote">No shared signup or login activity has been synced yet.</p>`;
+  return `<article class="sunriseControlCard sunriseDetailWide ampActivityFeed">
+    <div class="ampStaffOverviewTop">
+      <div>
+        <h3>Global Account Activity</h3>
+        <p class="opsText">Shared AMP trace for signups and logins from all public browsers and locations.</p>
+      </div>
+      <span class="ampStaffCount">${status}</span>
+    </div>
+    <div class="ampActivityList">${body}</div>
+  </article>`;
+}
+
+function renderAmpStaffCards(entries = []) {
+  const viewerIsOwner = isOwnerAccount(getCurrentSunriseOperator() || activeAccount || null);
+  if (!Array.isArray(entries) || !entries.length) {
+    return `<p class="profileNote">No staff accounts found.</p>`;
+  }
+  return `<div class="ampStaffCards">${entries.map(([key, account]) => {
+    const fullName = `${String(account?.firstName || "").trim()} ${String(account?.lastName || "").trim()}`.trim() || "Staff Member";
+    const position = String(account?.roleTitle || "Staff").trim();
+    const division = ampStaffGroupName(account);
+    const accessMeta = sunriseAccessMeta(account);
+    const sunriseLogin = findSunriseCredentialEmailForBaseKey(key, account);
+    const displayCountry = formatOptionalCountryDisplay(account?.country || "");
+    const detailsBtn = viewerIsOwner
+      ? `<button class="sunriseMiniBtn" type="button" data-amp-staff-details="${key}">Details</button>`
+      : "";
+    return `<article class="ampStaffCard">
+      <div class="ampStaffCardTop">
+        <div>
+          <p class="ampSectionEyebrow">${division}</p>
+          <h4>${fullName}</h4>
+          <p class="ampOwnerRole">${position}</p>
+        </div>
+        <div class="ampStaffCardActions">
+          <span class="ampHierarchyCode">${String(accessMeta.code || staffAccessCode(account) || "STA").trim().toUpperCase()}</span>
+          ${detailsBtn}
+        </div>
+      </div>
+      <div class="ampOwnerMetaRow">
+        <span class="ampOwnerMetaChip"><b>VVS</b> ${String(account?.email || key || "").trim().toLowerCase()}</span>
+        <span class="ampOwnerMetaChip"><b>Sunrise</b> ${String(sunriseLogin || "Not linked").trim().toLowerCase()}</span>
+        <span class="ampOwnerMetaChip"><b>Country</b> ${displayCountry || "Not stored"}</span>
+      </div>
+      <div class="ampStaffCardSummary">
+        <div><span>Phone</span><b>${String(account?.phone || "Not stored").trim() || "Not stored"}</b></div>
+        <div><span>Access</span><b>${accessMeta.title || accessMeta.code || "Staff"}</b></div>
+        <div><span>NOTOS</span><b>${String(account?.notosId || "Not set").trim().toUpperCase() || "Not set"}</b></div>
+      </div>
+    </article>`;
+  }).join("")}</div>`;
+}
+
 function renderAMPPage(filter = "") {
   const grid = document.getElementById("sunrise-amp-grid");
   if (!grid) return;
@@ -10280,7 +10808,7 @@ function renderAMPPage(filter = "") {
 
   const customerEntries = accountEntries.filter(([, account]) => !isStaffAccountForAdmin(account));
   const staffEntries = canonicalizeAmpStaffEntries(accountEntries.filter(([, account]) => isStaffAccountForAdmin(account)));
-  const customersHtml = `<article class="sunriseControlCard sunriseDetailWide"><h3>Customers List</h3><table class="sunriseControlTable"><thead><tr><th>Code</th><th>Email</th><th>Phone</th><th>Country</th><th>Preferred Contact</th><th>Title</th><th>Name</th><th>Password</th><th>Secret Phrase</th><th>Status</th><th>Created</th><th>Verified</th><th>Tier/Status</th><th>Action</th></tr></thead><tbody>${renderCustomerRows(customerEntries) || "<tr><td colspan='14'>No customer accounts found.</td></tr>"}</tbody></table></article>`;
+  const customersHtml = `${renderAmpActivityFeed()}<article class="sunriseControlCard sunriseDetailWide"><h3>Customers List</h3><table class="sunriseControlTable"><thead><tr><th>Code</th><th>Email</th><th>Phone</th><th>Country</th><th>Preferred Contact</th><th>Title</th><th>Name</th><th>Password</th><th>Secret Phrase</th><th>Status</th><th>Created</th><th>Verified</th><th>Tier/Status</th><th>Action</th></tr></thead><tbody>${renderCustomerRows(customerEntries) || "<tr><td colspan='14'>No customer accounts found.</td></tr>"}</tbody></table></article>`;
 
   const groupedStaff = new Map();
   ampStaffGroupOrder.forEach((division) => groupedStaff.set(division, []));
@@ -10301,9 +10829,6 @@ function renderAMPPage(filter = "") {
       if (!groupedStaff.has(division)) groupedStaff.set(division, []);
       groupedStaff.get(division).push(entry);
     });
-  const staffHeader = viewerIsOwner
-    ? "<tr><th>Code</th><th>Honorific</th><th>Name</th><th>Position</th><th>Division</th><th>VVS Login</th><th>Sunrise Login</th><th>Phone</th><th>Country</th><th>Password</th><th>Secret Phrase</th><th>Sunrise Access</th><th>NOTOS ID</th><th>Action</th></tr>"
-    : "<tr><th>Code</th><th>Honorific</th><th>Name</th><th>Position</th><th>Division</th><th>Sunrise Access</th><th>NOTOS ID</th><th>Action</th></tr>";
   const staffOverviewStats = ampStaffGroupOrder
     .map((division) => ({ division, count: groupedStaff.get(division)?.length || 0 }))
     .filter((item) => item.count > 0)
@@ -10322,9 +10847,7 @@ function renderAMPPage(filter = "") {
       ${division === "Owners"
         ? renderAmpOwnerCards(entries)
         : `${division === "Office" ? renderAmpOfficeHierarchy(entries) : `<p class="opsText">${ampStaffGroupDescription(division)}</p>`}
-      <div class="ampStaffTableWrap">
-        <table class="sunriseControlTable"><thead>${staffHeader}</thead><tbody>${renderStaffRows(entries)}</tbody></table>
-      </div>`}
+      ${renderAmpStaffCards(entries)}`}
     </article>`)
     .join("");
   const staffHtml = staffGroupsHtml
@@ -12295,6 +12818,12 @@ function bindSunriseControlInteractions() {
       return;
     }
 
+    const ampStaffDetails = clickTarget.closest("[data-amp-staff-details]");
+    if (ampStaffDetails) {
+      openAmpAccountDetails(String(ampStaffDetails.getAttribute("data-amp-staff-details") || ""));
+      return;
+    }
+
     const ampRestore = clickTarget.closest("[data-amp-restore]");
     if (ampRestore && sunriseControlState) {
       ensureAmpDeletedAccountsStore();
@@ -13163,6 +13692,9 @@ try {
   sunriseHasUnsavedChanges = false;
   try { bindSunriseControlInteractions(); } catch (_) {}
 }
+refreshSharedAccountRegistry({ mergeIntoAccounts: true, persistLocal: true }).finally(() => {
+  queueSharedRegistryBackfill();
+});
 if (document.body.dataset.sunrisePersistFlushBound !== "1") {
   document.body.dataset.sunrisePersistFlushBound = "1";
   document.addEventListener("visibilitychange", () => {

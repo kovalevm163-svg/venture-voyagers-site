@@ -344,6 +344,25 @@ async function listFolderMessages(env, folder = "inbox", catalog = { byName: new
   };
 }
 
+async function searchMessages(env, query = "", catalog = { byName: new Map() }, folder = "inbox", maxResults = MAX_RESULTS) {
+  const user = gmailUserId(env);
+  const params = buildFolderListParams(folder, catalog, "", maxResults);
+  const normalizedQuery = cleanText(query || "");
+  if (normalizedQuery) params.set("q", normalizedQuery);
+  const listResponse = await gmailRequest(env, `/users/${user}/messages?${params.toString()}`, { method: "GET" });
+  if (!listResponse.ok) return listResponse;
+  const rawMessages = Array.isArray(listResponse.body?.messages) ? listResponse.body.messages : [];
+  const detailResponses = await Promise.all(rawMessages.map((entry) => fetchMessage(env, entry.id, catalog, "metadata")));
+  const messages = detailResponses.filter((entry) => entry.ok).map((entry) => entry.message);
+  return {
+    ok: true,
+    skipped: false,
+    provider: "gmail",
+    messages,
+    resultSizeEstimate: Number(listResponse.body?.resultSizeEstimate || messages.length)
+  };
+}
+
 async function fetchBootstrap(env, folder = "inbox", selectedMessageId = "") {
   const [labelsResponse, aliasesResponse, vacationResponse] = await Promise.all([
     fetchLabels(env),
@@ -629,12 +648,20 @@ export async function onRequestGet(context) {
     const mode = String(url.searchParams.get("mode") || "bootstrap").trim().toLowerCase();
     const folder = String(url.searchParams.get("folder") || "inbox").trim();
     const id = String(url.searchParams.get("id") || "").trim();
+    const q = String(url.searchParams.get("q") || "").trim();
 
     if (mode === "message") {
       if (!id) return json({ ok: false, message: "Message id is required." }, 400);
       const labelsResponse = await fetchLabels(context.env);
       if (!labelsResponse.ok) return json(labelsResponse, 502);
       const response = await fetchMessage(context.env, id, labelsResponse.catalog, "full");
+      return json(response, response.ok ? 200 : 502);
+    }
+
+    if (mode === "search") {
+      const labelsResponse = await fetchLabels(context.env);
+      if (!labelsResponse.ok) return json(labelsResponse, 502);
+      const response = await searchMessages(context.env, q, labelsResponse.catalog, folder || "inbox");
       return json(response, response.ok ? 200 : 502);
     }
 
