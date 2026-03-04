@@ -1225,6 +1225,88 @@ function normalizeAccountsObject(raw) {
   return Object.keys(normalized).length ? normalized : null;
 }
 
+function accountTimestampLabel(value = null) {
+  if (value) {
+    const parsed = new Date(value);
+    if (!Number.isNaN(parsed.getTime())) return formatUtcTimestamp(parsed);
+  }
+  return formatUtcTimestamp(new Date());
+}
+
+function isCustomerAccount(account = null) {
+  if (!account || typeof account !== "object") return false;
+  if (account.sunriseCredential) return false;
+  const membership = String(account.membership || "").trim().toLowerCase();
+  return membership !== "staff" && membership !== "owner";
+}
+
+function normalizeCustomerCredentialFields(account = null) {
+  if (!isCustomerAccount(account)) return account;
+  const createdAt = String(account.createdAt || "").trim();
+  const verifiedAt = String(account.verifiedAt || account.emailVerifiedAt || "").trim();
+  const contactMethod = String(
+    account.preferredContactMethod
+    || account.lastContactMethod
+    || (account.email ? "email" : (account.phone ? "phone" : ""))
+  ).trim().toLowerCase();
+  const nextCountryCode = String(account.countryCode || resolveCountryCode(account.country) || "").trim().toUpperCase();
+  account.countryCode = nextCountryCode;
+  account.country = countryDisplayName(account.country || nextCountryCode || "");
+  account.preferredContactMethod = contactMethod;
+  account.accountStatus = String(account.accountStatus || (verifiedAt ? "Active" : "Pending Verification")).trim();
+  account.createdAt = createdAt || accountTimestampLabel();
+  account.updatedAt = String(account.updatedAt || createdAt || accountTimestampLabel()).trim();
+  account.verifiedAt = verifiedAt;
+  account.signupSource = String(account.signupSource || "VVS Signup").trim();
+  return account;
+}
+
+function buildCustomerAccountRecord({
+  email = "",
+  password = "",
+  secretPhrase = "",
+  prefix = "Mr.",
+  firstName = "Client",
+  lastName = "Member",
+  countryCode = "",
+  phone = ""
+} = {}) {
+  return normalizeCustomerCredentialFields(normalizeAccountServiceCards({
+    email: String(email || "").trim(),
+    password: String(password || ""),
+    secretPhrase: String(secretPhrase || "").trim(),
+    prefix: String(prefix || "").trim() || "Mr.",
+    firstName: String(firstName || "").trim() || "Client",
+    lastName: String(lastName || "").trim() || "Member",
+    country: countryDisplayName(countryCode || "Unknown"),
+    countryCode: String(countryCode || "").trim().toUpperCase(),
+    membership: "Non-Member",
+    accountStatus: "Pending Verification",
+    servicesCompleted: 0,
+    phone: String(phone || "").trim(),
+    preferredContactMethod: String(email || "").trim() ? "email" : (String(phone || "").trim() ? "phone" : ""),
+    createdAt: accountTimestampLabel(),
+    updatedAt: accountTimestampLabel(),
+    verifiedAt: "",
+    signupSource: "VVS Signup",
+    pastService: {
+      title: "No completed service yet",
+      details: "No previous service records available.",
+      endedAt: "N/A"
+    },
+    upcomingService: {
+      title: "No upcoming service yet",
+      details: "Book your first VVS service to start your schedule.",
+      startsAt: "N/A"
+    },
+    tips: [
+      "Share exact timing and location details early to improve execution speed.",
+      "Keep one backup contact method active while traveling.",
+      "Use verified transport and avoid posting live itinerary information."
+    ]
+  }));
+}
+
 function cleanLegacyServiceDescription(text = "", fallback = "") {
   const cleaned = String(text || "")
     .replace(/\bAssigned concierge:[^.]*\.?/gi, " ")
@@ -1312,6 +1394,7 @@ function normalizeClientPastServiceCard(card = {}) {
 
 function normalizeAccountServiceCards(account) {
   if (!account || typeof account !== "object") return account;
+  normalizeCustomerCredentialFields(account);
   account.upcomingService = normalizeClientUpcomingServiceCard(account.upcomingService);
   account.pastService = normalizeClientPastServiceCard(account.pastService);
   return account;
@@ -4708,6 +4791,14 @@ function formatOptionalCountryDisplay(country = "") {
   return raw ? countryDisplayName(raw) : "";
 }
 
+function encodeHtmlEntities(value = "") {
+  return String(value || "")
+    .replace(/&/g, "&amp;")
+    .replace(/"/g, "&quot;")
+    .replace(/</g, "&lt;")
+    .replace(/>/g, "&gt;");
+}
+
 const staffDivisionOrder = ["Headquarters", "Office", "Field", "Special Requests"];
 const ampStaffGroupOrder = ["Owners", ...staffDivisionOrder];
 const ampOwnerPreferredKeys = {
@@ -5707,32 +5798,102 @@ function htmlToSignatureText(value = "") {
     .trim();
 }
 
-function ownerInboxSignatureProfiles() {
+const OWNER_GMAIL_SIGNATURE_DEFAULTS = [
+  {
+    id: "owner-signature-aleks",
+    ownerCode: "AO1",
+    name: "Aleks Totev",
+    signatureHtml: `<p style="color:rgb(0,0,0)"><b>Aleks Totev</b><br>CEO &amp; Founder<br><strong>Venture Voyager Services LLC</strong></p><p style="color:rgb(0,0,0)">Luxury Concierge Services Worldwide Platform</p><p><a href="http://www.venture-voyagers.com" target="_blank"><b><font color="#000000">www.venture-voyagers.com</font></b></a></p><p style="color:rgb(0,0,0)"><a disabled="">email: <b>concierge@venture-voyagers.com</b></a><br>Office: <b>+971 529529110</b><br>DAMAC Towers by Paramount</p><p style="color:rgb(0,0,0)">Business Bay, Dubai, United Arab Emirates</p><p style="color:rgb(0,0,0)"><b><img data-aii="CiExb1hvRkpHZkJkWnh0ZlNvblRfWi0tRENhTzVocEZNU04" width="200" height="133" src="https://ci3.googleusercontent.com/mail-sig/AIorK4z_40vs8gfBn0-0fP0xqwZsSImXhDh3jj_PMrfIQRoMJinxdy6AVBT9L9zxmkAXIgMcsm13-zaE6Sh-" data-os="https://lh3.googleusercontent.com/d/1oXoFJGfBdZxtfSonT_Z--DCaO5hpFMSN"></b><b><img data-aii="CiExZEJuTmUxeVJNa2dialRxQzVzb3lGb2tfaXZ3ZmVxS20" width="200" height="133" src="https://ci3.googleusercontent.com/mail-sig/AIorK4yEqTdrJwD5nh4CKOt9jSTLOdBBPY7YEQT_UrelsnSz1AadJW46x9c0N3wiE00X8xR_5T_clz2NR7d7" data-os="https://lh3.googleusercontent.com/d/1dBnNe1yRMkgbjTqC5soyFok_ivwfeqKm"></b><em><br></em></p><p style="color:rgb(0,0,0)"><em>Disclaimer: This is a direct corporate mailing system, forwarding, sharing any information from this email violates Privacy Policy of VVS and can be lead to legal consequences.</em></p>`
+  },
+  {
+    id: "owner-signature-mikhail",
+    ownerCode: "MO1",
+    name: "Mikhail Kovalev",
+    signatureHtml: `<p style="color:rgb(0,0,0)"><b>Mikhail Kovalev</b><br>COO &amp; Co-Founder<br><strong>Venture Voyager Services LLC</strong></p><p style="color:rgb(0,0,0)">Luxury Concierge Services Worldwide Platform</p><p style="color:rgb(0,0,0)"><a href="http://www.venture-voyagers.com" target="_blank"><b><font color="#000000">www.venture-voyagers.com</font></b></a><br></p><p style="color:rgb(0,0,0)"><a disabled="">email:<span>&nbsp;</span><b>concierge@venture-voyagers.com</b></a><br>Office:<span>&nbsp;</span><b>+1 512 534 7616</b><br>2nd East street, Central District Tower</p><p style="color:rgb(0,0,0)">New York, United States<br></p><p style="color:rgb(0,0,0)"><b><img data-aii="CiExb1hvRkpHZkJkWnh0ZlNvblRfWi0tRENhTzVocEZNU04" width="200" height="133" src="https://ci3.googleusercontent.com/mail-sig/AIorK4z_40vs8gfBn0-0fP0xqwZsSImXhDh3jj_PMrfIQRoMJinxdy6AVBT9L9zxmkAXIgMcsm13-zaE6Sh-" data-os="https://lh3.googleusercontent.com/d/1oXoFJGfBdZxtfSonT_Z--DCaO5hpFMSN"></b><b><img data-aii="CiExZEJuTmUxeVJNa2dialRxQzVzb3lGb2tfaXZ3ZmVxS20" width="200" height="133" src="https://ci3.googleusercontent.com/mail-sig/AIorK4yEqTdrJwD5nh4CKOt9jSTLOdBBPY7YEQT_UrelsnSz1AadJW46x9c0N3wiE00X8xR_5T_clz2NR7d7" data-os="https://lh3.googleusercontent.com/d/1dBnNe1yRMkgbjTqC5soyFok_ivwfeqKm"></b><em><br></em></p><p style="color:rgb(0,0,0)"><em>Disclaimer: This is a direct corporate mailing system, forwarding, sharing any information from this email violates Privacy Policy of VVS and can be lead to legal consequences.</em></p>`
+  }
+];
+
+function ownerInboxSenderProfiles() {
   const aliases = Array.isArray(sunriseOwnerInboxState.aliases) ? sunriseOwnerInboxState.aliases : [];
   return aliases.map((alias, index) => {
     const email = String(alias?.email || "").trim();
     const displayName = String(alias?.displayName || "").trim();
     const signatureHtml = String(alias?.signatureHtml || "").trim();
-    const signatureText = htmlToSignatureText(signatureHtml);
     return {
-      id: email || `gmail-signature-${index + 1}`,
+      id: email || `gmail-alias-${index + 1}`,
       email,
       displayName,
       replyTo: String(alias?.replyTo || "").trim(),
       isPrimary: !!alias?.isPrimary,
       isDefault: !!alias?.isDefault,
-      signatureHtml,
-      signatureText
+      signatureHtml
     };
   }).filter((entry) => entry.email);
+}
+
+function ownerInboxDefaultSenderProfile() {
+  const profiles = ownerInboxSenderProfiles();
+  return profiles.find((profile) => profile.isDefault)
+    || profiles.find((profile) => profile.isPrimary)
+    || profiles[0]
+    || null;
+}
+
+function defaultOwnerSignaturePresetId() {
+  const viewer = sunriseState?.account || activeAccount || null;
+  if (isMikhailOwnerAccount(viewer)) return "owner-signature-mikhail";
+  return "owner-signature-aleks";
+}
+
+function ownerInboxSignatureProfiles() {
+  const inbox = sunriseControlState?.inbox || {};
+  const stored = Array.isArray(inbox.ownerSignaturePresets) ? inbox.ownerSignaturePresets : [];
+  const defaultMap = new Map(OWNER_GMAIL_SIGNATURE_DEFAULTS.map((preset) => [preset.id, { ...preset }]));
+  stored.forEach((entry) => {
+    const rawId = String(entry?.id || "").trim();
+    const rawName = String(entry?.name || "").trim().toLowerCase();
+    const matchedDefault = defaultMap.get(rawId)
+      || OWNER_GMAIL_SIGNATURE_DEFAULTS.find((preset) => preset.name.trim().toLowerCase() === rawName);
+    if (!matchedDefault) return;
+    defaultMap.set(matchedDefault.id, {
+      ...matchedDefault,
+      name: String(entry?.name || matchedDefault.name || "").trim() || matchedDefault.name,
+      signatureHtml: String(entry?.signatureHtml || entry?.html || matchedDefault.signatureHtml || "").trim() || matchedDefault.signatureHtml
+    });
+  });
+  const selectedDefaultId = String(inbox.ownerDefaultSignatureId || defaultOwnerSignaturePresetId()).trim();
+  return OWNER_GMAIL_SIGNATURE_DEFAULTS.map((preset) => {
+    const merged = defaultMap.get(preset.id) || { ...preset };
+    const signatureHtml = String(merged.signatureHtml || "").trim();
+    return {
+      id: preset.id,
+      ownerCode: String(merged.ownerCode || preset.ownerCode || "").trim(),
+      name: String(merged.name || preset.name || "").trim() || preset.name,
+      signatureHtml,
+      signatureText: htmlToSignatureText(signatureHtml),
+      isDefault: preset.id === selectedDefaultId
+    };
+  });
 }
 
 function ownerInboxDefaultSignatureProfile() {
   const profiles = ownerInboxSignatureProfiles();
   return profiles.find((profile) => profile.isDefault)
-    || profiles.find((profile) => profile.isPrimary)
     || profiles[0]
     || null;
+}
+
+function saveOwnerSignatureProfiles(nextProfiles = [], nextDefaultId = "") {
+  if (!sunriseControlState) return;
+  const inbox = sunriseControlState.inbox || {};
+  inbox.ownerSignaturePresets = nextProfiles.map((profile) => ({
+    id: String(profile?.id || "").trim(),
+    ownerCode: String(profile?.ownerCode || "").trim(),
+    name: String(profile?.name || "").trim(),
+    signatureHtml: String(profile?.signatureHtml || "").trim()
+  })).filter((profile) => profile.id);
+  inbox.ownerDefaultSignatureId = String(nextDefaultId || inbox.ownerDefaultSignatureId || defaultOwnerSignaturePresetId()).trim();
+  sunriseControlState.inbox = inbox;
 }
 
 function ownerInboxSenderAddress(profile = null) {
@@ -5763,32 +5924,41 @@ function syncOwnerComposeIdentityControls({ forceDefault = false } = {}) {
     signatureSelect.value = "";
     return;
   }
-  const profiles = ownerInboxSignatureProfiles();
-  const defaultProfile = ownerInboxDefaultSignatureProfile();
-  fromSelect.innerHTML = profiles.length
-    ? profiles.map((profile) => {
+  const senderProfiles = ownerInboxSenderProfiles();
+  const signatureProfiles = ownerInboxSignatureProfiles();
+  const defaultSender = ownerInboxDefaultSenderProfile();
+  const runtimeDefaultSignature = signatureProfiles.find((profile) => profile.id === defaultOwnerSignaturePresetId()) || null;
+  const defaultSignature = forceDefault ? (runtimeDefaultSignature || ownerInboxDefaultSignatureProfile()) : ownerInboxDefaultSignatureProfile();
+  fromSelect.innerHTML = senderProfiles.length
+    ? senderProfiles.map((profile) => {
       const label = profile.displayName ? `${profile.displayName} • ${profile.email}` : profile.email;
       return `<option value="${profile.email}">${label}</option>`;
     }).join("")
     : `<option value="concierge@venture-voyagers.com">concierge@venture-voyagers.com</option>`;
-  signatureSelect.innerHTML = `<option value="">No signature</option>${profiles.map((profile) => {
-    const label = profile.displayName ? `${profile.displayName} • ${profile.email}` : profile.email;
-    return `<option value="${profile.email}">${label}</option>`;
+  signatureSelect.innerHTML = `<option value="">No signature</option>${signatureProfiles.map((profile) => {
+    return `<option value="${profile.id}">${profile.name}</option>`;
   }).join("")}`;
   if (forceDefault || !fromSelect.value) {
-    fromSelect.value = String(defaultProfile?.email || "concierge@venture-voyagers.com");
+    fromSelect.value = String(defaultSender?.email || "concierge@venture-voyagers.com");
   }
-  const matchingProfile = profiles.find((profile) => profile.email === fromSelect.value) || defaultProfile;
-  if (forceDefault || !signatureSelect.value || !profiles.some((profile) => profile.email === signatureSelect.value)) {
-    signatureSelect.value = String(matchingProfile?.email || "");
+  if (forceDefault || !signatureSelect.value || !signatureProfiles.some((profile) => profile.id === signatureSelect.value)) {
+    signatureSelect.value = String(defaultSignature?.id || "");
   }
 }
 
-function selectedOwnerComposeProfile(selectId = "sunrise-mail-from") {
-  const select = document.getElementById(selectId);
+function selectedOwnerComposeSenderProfile() {
+  const select = document.getElementById("sunrise-mail-from");
+  const selected = String(select instanceof HTMLSelectElement ? select.value : "").trim();
+  const profiles = ownerInboxSenderProfiles();
+  return profiles.find((profile) => profile.email === selected)
+    || ownerInboxDefaultSenderProfile();
+}
+
+function selectedOwnerComposeSignatureProfile() {
+  const select = document.getElementById("sunrise-mail-signature");
   const selected = String(select instanceof HTMLSelectElement ? select.value : "").trim();
   const profiles = ownerInboxSignatureProfiles();
-  return profiles.find((profile) => profile.email === selected)
+  return profiles.find((profile) => profile.id === selected)
     || ownerInboxDefaultSignatureProfile();
 }
 
@@ -6233,6 +6403,7 @@ function syncSubmittedRequestIntoActiveAccount({
   if (data.lastName) account.lastName = data.lastName;
   if (data.phone) account.phone = data.phone;
   account.lastContactMethod = String(data.selectedMethod?.value || "").trim();
+  account.preferredContactMethod = account.lastContactMethod;
   account.upcomingService = {
     title: formattedServiceType || "Service Request",
     details: String(data.requestDetails || "").trim() || "Your request has been received and is being reviewed.",
@@ -6242,7 +6413,9 @@ function syncSubmittedRequestIntoActiveAccount({
   };
   if (data.countryIssued) {
     account.country = countryDisplayName(data.countryIssued);
+    account.countryCode = String(data.countryIssued || "").trim().toUpperCase();
   }
+  account.updatedAt = accountTimestampLabel();
 
   accounts[accountKey] = account;
   activeAccount = account;
@@ -6550,6 +6723,12 @@ function syncCredentialFieldAcrossLinkedAccounts(rawKey = "", fieldName = "", va
 function syncChangedAccountState(updatedKey = "") {
   ensureSunriseCredentials();
   pruneDuplicateSunriseCredentials();
+  const refreshedKey = resolveAccountKey(updatedKey);
+  if (refreshedKey && accounts[refreshedKey] && isCustomerAccount(accounts[refreshedKey])) {
+    accounts[refreshedKey].updatedAt = accountTimestampLabel();
+    normalizeAccountServiceCards(accounts[refreshedKey]);
+  }
+  Object.values(accounts).forEach((account) => normalizeAccountServiceCards(account));
   persistAccountsData();
 
   if (activeAccount) {
@@ -8508,33 +8687,16 @@ if (signupStep1) {
       return;
     }
 
-    accounts[authState.signupEmail.toLowerCase()] = {
+    accounts[authState.signupEmail.toLowerCase()] = buildCustomerAccountRecord({
       email: authState.signupEmail,
       password: password ? password.value : "",
       secretPhrase: phrase ? phrase.value.trim() : "",
       prefix: title && title.value.trim() ? title.value.trim() : "Mr.",
       firstName: first ? first.value.trim() : "Client",
       lastName: last ? last.value.trim() : "Member",
-      country: countryDisplayName(country ? country.value.trim() : "Unknown"),
-      membership: "Non-Member",
-      servicesCompleted: 0,
-      phone: phone ? phone.value.trim() : "",
-      pastService: {
-        title: "No completed service yet",
-        details: "No previous service records available.",
-        endedAt: "N/A"
-      },
-      upcomingService: {
-        title: "No upcoming service yet",
-        details: "Book your first VVS service to start your schedule.",
-        startsAt: "N/A"
-      },
-      tips: [
-        "Share exact timing and location details early to improve execution speed.",
-        "Keep one backup contact method active while traveling.",
-        "Use verified transport and avoid posting live itinerary information."
-      ]
-    };
+      countryCode: country ? country.value.trim() : "",
+      phone: phone ? phone.value.trim() : ""
+    });
     persistAccountsData();
     authState.signupCode = issueTestEmailCode(authState.signupEmail);
     const pendingAccount = accounts[authState.signupEmail.toLowerCase()];
@@ -8577,6 +8739,12 @@ if (signupStep2) {
       if ((activeAccount.servicesCompleted || 0) < 5) activeAccount.membership = "Non-Member";
       else if (!activeAccount.membership || activeAccount.membership.toLowerCase().includes("non-member")) activeAccount.membership = "Voyager Cuprum";
       if ((activeAccount.servicesCompleted || 0) < 0) activeAccount.servicesCompleted = 0;
+      activeAccount.accountStatus = "Active";
+      activeAccount.verifiedAt = accountTimestampLabel();
+      activeAccount.updatedAt = activeAccount.verifiedAt;
+      activeAccount.preferredContactMethod = String(activeAccount.preferredContactMethod || "email").trim().toLowerCase();
+      normalizeAccountServiceCards(activeAccount);
+      persistAccountsData();
     }
     renderProfile(activeAccount);
     updateAuthCta();
@@ -9684,6 +9852,10 @@ function renderAMPPage(filter = "") {
       const readOnly = lockedForAleks ? "readonly" : "";
       const disabled = lockedForAleks ? "disabled" : "";
       const displayCountry = formatOptionalCountryDisplay(account.country);
+      const preferredContact = String(account.preferredContactMethod || account.lastContactMethod || "").trim().toLowerCase();
+      const createdAt = String(account.createdAt || "").trim() || "-";
+      const verifiedAt = String(account.verifiedAt || "").trim() || "-";
+      const statusDisplay = String(account.accountStatus || "Active").trim();
       const deleteCell = lockedForAleks
         ? `<span class="profileNote">Restricted</span>`
         : `<button class="sunriseMiniBtn" type="button" data-amp-del="${key}">Delete</button>`;
@@ -9692,10 +9864,14 @@ function renderAMPPage(filter = "") {
       <td><input class="input" data-amp-email="${key}" value="${account.email || ""}" ${readOnly}></td>
       <td><input class="input" data-amp-phone="${key}" value="${account.phone || ""}" ${readOnly}></td>
       <td><input class="input" data-amp-country="${key}" value="${displayCountry}" ${readOnly}></td>
+      <td><select class="select" data-amp-contact="${key}" ${disabled}><option value="" ${!preferredContact ? "selected" : ""}>Not set</option><option value="email" ${preferredContact === "email" ? "selected" : ""}>Email</option><option value="phone" ${preferredContact === "phone" ? "selected" : ""}>Phone</option></select></td>
       <td><input class="input" data-amp-title="${key}" value="${account.prefix || ""}" ${readOnly}></td>
       <td><input class="input" data-amp-name="${key}" value="${(account.firstName || "") + " " + (account.lastName || "")}" ${readOnly}></td>
       <td><input class="input" data-amp-password="${key}" value="${passwordDisplay}" ${(ownerRestricted || lockedForAleks) ? "readonly" : ""}></td>
       <td><input class="input" data-amp-secret="${key}" value="${secretPhraseDisplay}" ${(ownerRestricted || lockedForAleks) ? "readonly" : ""}></td>
+      <td><input class="input" value="${statusDisplay}" readonly></td>
+      <td><input class="input" value="${createdAt}" readonly></td>
+      <td><input class="input" value="${verifiedAt}" readonly></td>
       <td><select class="select" data-amp-tier="${key}" ${disabled}>${tierList.map((tier) => `<option ${tier === selectedTier ? "selected" : ""}>${tier}</option>`).join("")}</select></td>
       <td>${deleteCell}</td>
     </tr>`;
@@ -9738,7 +9914,7 @@ function renderAMPPage(filter = "") {
 
   const customerEntries = accountEntries.filter(([, account]) => !isStaffAccountForAdmin(account));
   const staffEntries = canonicalizeAmpStaffEntries(accountEntries.filter(([, account]) => isStaffAccountForAdmin(account)));
-  const customersHtml = `<article class="sunriseControlCard sunriseDetailWide"><h3>Customers List</h3><table class="sunriseControlTable"><thead><tr><th>Code</th><th>Email</th><th>Phone</th><th>Country</th><th>Title</th><th>Name</th><th>Password</th><th>Secret Phrase</th><th>Tier/Status</th><th>Action</th></tr></thead><tbody>${renderCustomerRows(customerEntries) || "<tr><td colspan='10'>No customer accounts found.</td></tr>"}</tbody></table></article>`;
+  const customersHtml = `<article class="sunriseControlCard sunriseDetailWide"><h3>Customers List</h3><table class="sunriseControlTable"><thead><tr><th>Code</th><th>Email</th><th>Phone</th><th>Country</th><th>Preferred Contact</th><th>Title</th><th>Name</th><th>Password</th><th>Secret Phrase</th><th>Status</th><th>Created</th><th>Verified</th><th>Tier/Status</th><th>Action</th></tr></thead><tbody>${renderCustomerRows(customerEntries) || "<tr><td colspan='14'>No customer accounts found.</td></tr>"}</tbody></table></article>`;
 
   const groupedStaff = new Map();
   ampStaffGroupOrder.forEach((division) => groupedStaff.set(division, []));
@@ -10222,22 +10398,21 @@ function renderSignatureManager() {
   if (!wrap) return;
   if (shouldUseOwnerGmailInbox()) {
     const profiles = ownerInboxSignatureProfiles();
+    const defaultId = String(ownerInboxDefaultSignatureProfile()?.id || "");
     wrap.innerHTML = profiles.length
       ? profiles.map((profile) => `
         <article class="sunriseInboxSignatureItem">
           <div class="sunriseInboxSignatureHead">
-            <div>
-              <b>${profile.displayName || profile.email}</b>
-              <p class="profileNote">${profile.email}${profile.replyTo ? ` • Reply-To: ${profile.replyTo}` : ""}</p>
-            </div>
-            <span class="sunriseInboxAliasChip${profile.isDefault || profile.isPrimary ? " sunriseStatusBadge" : ""}">${profile.isDefault ? "Default" : (profile.isPrimary ? "Primary" : "Gmail")}</span>
+            <input class="input" data-owner-signature-name="${profile.id}" value="${encodeHtmlEntities(profile.name)}" placeholder="Signature name">
+            <label class="choice"><input type="radio" name="owner-default-signature" data-owner-signature-default="${profile.id}" ${profile.id === defaultId ? "checked" : ""}/> Default</label>
           </div>
-          <div class="sunriseInboxMessageBody">${profile.signatureHtml || "<p class='profileNote'>No Gmail signature configured for this send identity.</p>"}</div>
+          <textarea class="input sunriseInboxSignatureArea" data-owner-signature-html="${profile.id}" placeholder="Signature HTML">${encodeHtmlEntities(profile.signatureHtml)}</textarea>
+          <div class="sunriseInboxMessageBody">${profile.signatureHtml || "<p class='profileNote'>No owner signature configured.</p>"}</div>
         </article>
       `).join("")
       : "<p class='profileNote'>No Gmail send-as signatures available yet.</p>";
     const signatureInfo = document.getElementById("inbox-signature-manager-info");
-    if (signatureInfo) signatureInfo.textContent = "Signatures are mirrored directly from Gmail send-as settings.";
+    if (signatureInfo) signatureInfo.textContent = "Aleks and Mikhail signature presets are available here and apply to Sunrise compose immediately.";
     return;
   }
   const inbox = sunriseControlState.inbox || {};
@@ -10789,8 +10964,8 @@ function bindSunriseControlInteractions() {
       const sender = sunriseState.email || (activeAccount?.email || "concierge@venture-voyagers.com");
       const senderMailbox = activeSunriseMailbox();
       const folder = scheduledAt ? "sending" : "sent";
-      const ownerFromProfile = shouldUseOwnerGmailInbox() ? selectedOwnerComposeProfile("sunrise-mail-from") : null;
-      const ownerSignatureProfile = shouldUseOwnerGmailInbox() ? selectedOwnerComposeProfile("sunrise-mail-signature") : null;
+      const ownerFromProfile = shouldUseOwnerGmailInbox() ? selectedOwnerComposeSenderProfile() : null;
+      const ownerSignatureProfile = shouldUseOwnerGmailInbox() ? selectedOwnerComposeSignatureProfile() : null;
       const baseHtml = `<p style="font-family:${font};font-size:${fontSize}px;">${body.replace(/\n/g, "<br>")}</p>`;
       const html = shouldUseOwnerGmailInbox()
         ? appendOwnerSignatureHtml(baseHtml, ownerSignatureProfile)
@@ -10882,8 +11057,8 @@ function bindSunriseControlInteractions() {
         return;
       }
       const sender = sunriseState.email || (activeAccount?.email || "concierge@venture-voyagers.com");
-      const ownerFromProfile = shouldUseOwnerGmailInbox() ? selectedOwnerComposeProfile("sunrise-mail-from") : null;
-      const ownerSignatureProfile = shouldUseOwnerGmailInbox() ? selectedOwnerComposeProfile("sunrise-mail-signature") : null;
+      const ownerFromProfile = shouldUseOwnerGmailInbox() ? selectedOwnerComposeSenderProfile() : null;
+      const ownerSignatureProfile = shouldUseOwnerGmailInbox() ? selectedOwnerComposeSignatureProfile() : null;
       const baseHtml = `<p style="font-family:${font};font-size:${fontSize}px;">${body.replace(/\n/g, "<br>")}</p>`;
       const html = shouldUseOwnerGmailInbox()
         ? appendOwnerSignatureHtml(baseHtml, ownerSignatureProfile)
@@ -11887,8 +12062,8 @@ function bindSunriseControlInteractions() {
     if (t.id === "sunrise-mail-from" && t instanceof HTMLSelectElement) {
       const signatureSelect = document.getElementById("sunrise-mail-signature");
       const profiles = ownerInboxSignatureProfiles();
-      if (signatureSelect instanceof HTMLSelectElement && profiles.some((profile) => profile.email === t.value)) {
-        signatureSelect.value = t.value;
+      if (signatureSelect instanceof HTMLSelectElement && !profiles.some((profile) => profile.id === signatureSelect.value)) {
+        signatureSelect.value = String(ownerInboxDefaultSignatureProfile()?.id || "");
       }
       return;
     }
@@ -11984,6 +12159,33 @@ function bindSunriseControlInteractions() {
     if (updateField("data-smca-role", (raw) => { sunriseControlState.smca[Number(raw)].role = t.value; })) return;
     if (updateField("data-smca-position", (raw) => { sunriseControlState.smca[Number(raw)].position = t.value; })) return;
     if (updateField("data-smca-commission", (raw) => { sunriseControlState.smca[Number(raw)].commission = Number(t.value || 0); })) return;
+
+    if (updateField("data-owner-signature-name", (raw) => {
+      const profiles = ownerInboxSignatureProfiles();
+      const idx = profiles.findIndex((profile) => profile.id === String(raw || "").trim());
+      if (idx < 0) return;
+      profiles[idx].name = String(t.value || "").trim() || profiles[idx].name;
+      saveOwnerSignatureProfiles(profiles, String(sunriseControlState?.inbox?.ownerDefaultSignatureId || defaultOwnerSignaturePresetId()).trim());
+      syncOwnerComposeIdentityControls();
+    })) return;
+    if (updateField("data-owner-signature-html", (raw) => {
+      const profiles = ownerInboxSignatureProfiles();
+      const idx = profiles.findIndex((profile) => profile.id === String(raw || "").trim());
+      if (idx < 0) return;
+      profiles[idx].signatureHtml = String(t.value || "");
+      saveOwnerSignatureProfiles(profiles, String(sunriseControlState?.inbox?.ownerDefaultSignatureId || defaultOwnerSignaturePresetId()).trim());
+      const preview = t.closest(".sunriseInboxSignatureItem")?.querySelector(".sunriseInboxMessageBody");
+      if (preview instanceof HTMLElement) {
+        preview.innerHTML = profiles[idx].signatureHtml || "<p class='profileNote'>No owner signature configured.</p>";
+      }
+      syncOwnerComposeIdentityControls();
+    })) return;
+    if (updateField("data-owner-signature-default", (raw) => {
+      const profiles = ownerInboxSignatureProfiles();
+      saveOwnerSignatureProfiles(profiles, String(raw || "").trim() || defaultOwnerSignaturePresetId());
+      syncOwnerComposeIdentityControls({ forceDefault: true });
+      renderSignatureManager();
+    })) return;
 
     if (updateField("data-inbox-signature-name", (raw) => {
       const inbox = sunriseControlState.inbox || {};
@@ -12216,6 +12418,12 @@ function bindSunriseControlInteractions() {
     if (updateAccountField("data-amp-country", (key) => {
       const nextCountry = String(t.value || "").trim();
       accounts[key].country = nextCountry ? countryDisplayName(nextCountry) : "";
+      accounts[key].countryCode = nextCountry ? String(resolveCountryCode(nextCountry) || nextCountry).trim().toUpperCase() : "";
+    })) return;
+    if (updateAccountField("data-amp-contact", (key) => {
+      const nextMethod = String(t.value || "").trim().toLowerCase();
+      accounts[key].preferredContactMethod = nextMethod;
+      accounts[key].lastContactMethod = nextMethod;
     })) return;
     if (updateAccountField("data-amp-title", (key) => {
       accounts[key].prefix = String(t.value || "").trim();
