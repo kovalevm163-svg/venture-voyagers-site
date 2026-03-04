@@ -2533,6 +2533,92 @@ input[type="file"]::-webkit-file-upload-button{
   background: linear-gradient(145deg, rgba(14,26,63,.92), rgba(22,41,91,.78));
 }
 
+.routePage[data-page="sunrise-monarch"] .view{
+  max-width:min(1680px, calc(100vw - 20px));
+}
+
+.monarchViewport{
+  min-height: calc(100vh - 150px);
+  border-radius:30px;
+  border:1px solid rgba(94,132,220,.22);
+  background:
+    radial-gradient(120% 140% at 4% 0%, rgba(62,113,255,.18), transparent 48%),
+    radial-gradient(120% 130% at 100% 100%, rgba(17,79,170,.2), transparent 52%),
+    linear-gradient(150deg, rgba(1,5,16,.98), rgba(4,11,30,.96) 36%, rgba(2,7,20,.98));
+  box-shadow: 0 30px 70px rgba(0,0,0,.54), inset 0 1px 0 rgba(168,202,255,.05);
+}
+
+.monarchViewport:before{
+  background:
+    radial-gradient(1400px 620px at 6% 4%, rgba(95,141,255,.22), transparent 56%),
+    radial-gradient(1000px 520px at 92% 86%, rgba(38,95,188,.2), transparent 54%),
+    radial-gradient(900px 480px at 50% 100%, rgba(11,52,122,.22), transparent 62%);
+}
+
+.monarchViewport .viewTop{
+  margin-bottom:14px;
+}
+
+.monarchViewport .viewTitle{
+  color: rgba(238,246,255,.98);
+  letter-spacing:-0.02em;
+}
+
+.monarchViewport .viewSub{
+  color: rgba(198,219,252,.8);
+  max-width:110ch;
+}
+
+.monarchHeaderBadge{
+  border-color: rgba(122,162,235,.28);
+  background: rgba(8,16,34,.64);
+  color: rgba(198,219,252,.86);
+}
+
+.monarchViewport .sunriseControlCard{
+  border-color: rgba(105,148,232,.22);
+  background:
+    radial-gradient(120% 140% at 100% 0%, rgba(40,96,187,.16), transparent 45%),
+    linear-gradient(160deg, rgba(3,10,26,.96), rgba(7,16,39,.9));
+  box-shadow: 0 18px 38px rgba(0,0,0,.34);
+}
+
+.monarchViewport .sunriseControlCard h3{
+  color: rgba(220,233,253,.94);
+}
+
+.monarchViewport .profileNote{
+  color: rgba(191,214,247,.8);
+}
+
+.monarchViewport .input,
+.monarchViewport .select{
+  border-color: rgba(103,143,221,.24);
+  background: rgba(4,11,28,.78);
+  color: rgba(231,240,255,.96);
+}
+
+.monarchViewport .input::placeholder{
+  color: rgba(159,190,239,.52);
+}
+
+.monarchViewport .sunriseMiniBtn,
+.monarchViewport .btn.ghost{
+  border-color: rgba(112,153,228,.3);
+  background: rgba(10,23,52,.56);
+  color: rgba(220,235,255,.92);
+}
+
+.monarchViewport .sunriseMiniBtn:hover,
+.monarchViewport .btn.ghost:hover{
+  border-color: rgba(156,197,255,.48);
+  background: rgba(14,34,74,.72);
+}
+
+.monarchShellUnlocked{
+  min-height: calc(100vh - 300px);
+}
+
 .sunriseInboxSignatureItem{
   margin-top:8px;
   border:1px solid rgba(223,167,131,.22);

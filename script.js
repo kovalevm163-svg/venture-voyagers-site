@@ -4169,8 +4169,9 @@ function updateSunriseShortcutDock(route = currentVisibleRoute()) {
   const dock = document.getElementById("sunrise-shortcut-dock");
   if (!dock) return;
   const normalizedRoute = String(route || "").trim();
+  const inMonarch = normalizedRoute === "sunrise-monarch";
   const isSunriseRoute = normalizedRoute === "sunrise" || sunriseModuleRoutes.includes(normalizedRoute);
-  const shouldShow = isSunriseRoute && !!activeAccount && hasSunriseAccess(activeAccount) && !!sunriseState.unlocked;
+  const shouldShow = isSunriseRoute && !inMonarch && !!activeAccount && hasSunriseAccess(activeAccount) && !!sunriseState.unlocked;
   dock.hidden = !shouldShow;
   dock.style.position = "fixed";
   dock.style.left = "50%";
@@ -7357,6 +7358,7 @@ function monarchDeepClone(value) {
 function emptyMonarchArchangelState() {
   return {
     records: {},
+    ownerCredentials: {},
     updatedAt: ""
   };
 }
@@ -7369,6 +7371,7 @@ function loadMonarchArchangelState() {
     return parsed && typeof parsed === "object"
       ? {
         records: parsed.records && typeof parsed.records === "object" ? parsed.records : {},
+        ownerCredentials: parsed.ownerCredentials && typeof parsed.ownerCredentials === "object" ? parsed.ownerCredentials : {},
         updatedAt: String(parsed.updatedAt || "").trim()
       }
       : emptyMonarchArchangelState();
@@ -7403,10 +7406,21 @@ function queueMonarchArchangelSync() {
   }, 180);
 }
 
+function monarchOwnerAccessProfile(operatorCode = "") {
+  const code = String(operatorCode || "").trim().toUpperCase();
+  const base = MONARCH_ARCHANGEL_OWNER_ACCESS[code] || null;
+  if (!base) return null;
+  const override = monarchArchangelState?.ownerCredentials?.[code];
+  return {
+    ...base,
+    ...(override && typeof override === "object" ? override : {})
+  };
+}
+
 function currentMonarchOwnerProfile(account = getCurrentSunriseOperator() || activeAccount || null) {
   if (!isOwnerAccount(account)) return null;
   const operatorCode = String(resolveSunriseOwnerCode(account) || "").trim().toUpperCase();
-  const profile = MONARCH_ARCHANGEL_OWNER_ACCESS[operatorCode] || null;
+  const profile = monarchOwnerAccessProfile(operatorCode);
   return profile ? { ...profile, operatorCode } : null;
 }
 
@@ -8091,7 +8105,9 @@ function updateSunriseSessionBar() {
   const route = currentVisibleRoute();
   const bodyRoute = String(document.body.getAttribute("data-route") || "").trim();
   const hashRoute = String(window.location.hash || "").replace("#", "").split("?")[0].trim();
+  const inMonarch = route === "sunrise-monarch" || bodyRoute === "sunrise-monarch" || hashRoute === "sunrise-monarch";
   const visible = sunriseState.unlocked
+    && !inMonarch
     && (route === "sunrise" || sunriseModuleRoutes.includes(route))
     && (bodyRoute === "sunrise" || sunriseModuleRoutes.includes(bodyRoute))
     && (hashRoute === "sunrise" || sunriseModuleRoutes.includes(hashRoute));
@@ -10827,22 +10843,60 @@ function closeMonarchRecordOverlay() {
 function openMonarchCredentialOverlay() {
   const overlay = document.getElementById("monarch-credential-overlay");
   const body = document.getElementById("monarch-credential-body");
+  const info = document.getElementById("monarch-credential-info");
   if (!overlay || !body) return;
-  const aleks = MONARCH_ARCHANGEL_OWNER_ACCESS.AO1;
-  const aleksAccount = accounts[String(aleks.ownerKey || "").trim().toLowerCase()] || null;
-  const aleksNotosId = String(aleksAccount?.notosId || aleks.notosId || "").trim();
+  const operator = getCurrentSunriseOperator() || activeAccount || null;
+  if (!isMikhailOwnerAccount(operator)) {
+    if (info) info.textContent = "Access restricted.";
+    return;
+  }
+  const aleks = monarchOwnerAccessProfile("AO1");
+  if (!aleks) return;
   body.innerHTML = `<div class="monarchCredentialVault">
-    <div class="monarchCredentialVaultRow"><span>Owner</span><b>${aleks.ownerName}</b></div>
-    <div class="monarchCredentialVaultRow"><span>MA Owner Code</span><b>${aleks.code}</b></div>
-    <div class="monarchCredentialVaultRow"><span>MA Password</span><b>${aleks.password}</b></div>
-    <div class="monarchCredentialVaultRow"><span>Required NOTOS ID</span><b>${aleksNotosId}</b></div>
+    <label class="monarchCredentialVaultRow">
+      <span>Owner</span>
+      <b>${aleks.ownerName}</b>
+    </label>
+    <label class="monarchCredentialVaultRow">
+      <span>MA Owner Code</span>
+      <input class="input" id="monarch-credential-code" type="text" value="${encodeHtmlEntities(String(aleks.code || "").trim())}" autocomplete="off">
+    </label>
+    <label class="monarchCredentialVaultRow">
+      <span>MA Password</span>
+      <input class="input" id="monarch-credential-password" type="text" value="${encodeHtmlEntities(String(aleks.password || "").trim())}" autocomplete="off">
+    </label>
+    <label class="monarchCredentialVaultRow">
+      <span>Required NOTOS ID</span>
+      <input class="input" id="monarch-credential-notos" type="text" value="${encodeHtmlEntities(String(aleks.notosId || "").trim())}" autocomplete="off">
+    </label>
   </div>`;
+  if (info) info.textContent = "Mikhail-only vault access. Changes update Aleks Monarch Archangel credentials only.";
   overlay.hidden = false;
 }
 
 function closeMonarchCredentialOverlay() {
   const overlay = document.getElementById("monarch-credential-overlay");
   if (overlay) overlay.hidden = true;
+}
+
+function saveMonarchOwnerCredentials(operatorCode = "", updates = {}) {
+  const code = String(operatorCode || "").trim().toUpperCase();
+  const base = MONARCH_ARCHANGEL_OWNER_ACCESS[code] || null;
+  if (!base) return { ok: false, message: "Owner vault not found." };
+  if (!monarchArchangelState.ownerCredentials || typeof monarchArchangelState.ownerCredentials !== "object") {
+    monarchArchangelState.ownerCredentials = {};
+  }
+  monarchArchangelState.ownerCredentials[code] = {
+    ...((monarchArchangelState.ownerCredentials[code] && typeof monarchArchangelState.ownerCredentials[code] === "object")
+      ? monarchArchangelState.ownerCredentials[code]
+      : {}),
+    code: String(updates.code || base.code || "").trim(),
+    password: String(updates.password || base.password || "").trim(),
+    notosId: String(updates.notosId || base.notosId || "").trim()
+  };
+  monarchArchangelState.updatedAt = formatUtcTimestamp(new Date());
+  persistMonarchArchangelState();
+  return { ok: true, message: "Aleks Monarch Archangel credentials updated." };
 }
 
 function upsertRecordInCollection(list, payload, resolveKey) {
@@ -10997,11 +11051,13 @@ function renderMonarchArchiveCards(records = []) {
 
 function renderMonarchArchangelPage() {
   const grid = document.getElementById("sunrise-monarch-grid");
+  const saveTopBtn = document.getElementById("monarch-save-top-btn");
   if (!grid) return;
   const operator = getCurrentSunriseOperator() || activeAccount || null;
   const ownerProfile = currentMonarchOwnerProfile(operator);
-  const requiredNotosId = String(operator?.notosId || ownerProfile?.notosId || "").trim();
+  const requiredNotosId = String(ownerProfile?.notosId || "").trim();
   if (!ownerProfile) {
+    if (saveTopBtn) saveTopBtn.hidden = true;
     grid.innerHTML = `<article class="sunriseControlCard sunriseDetailWide"><h3>Monarch Archangel</h3><p class="profileNote">Owner access only.</p></article>`;
     return;
   }
@@ -11009,13 +11065,14 @@ function renderMonarchArchangelPage() {
   syncMonarchArchangelArchive({ immediate: true });
   const counts = monarchArchiveCounts();
   if (!monarchArchangelRuntime.unlocked || monarchArchangelRuntime.ownerOperatorCode !== ownerProfile.operatorCode) {
+    if (saveTopBtn) saveTopBtn.hidden = true;
     grid.innerHTML = `<article class="sunriseControlCard sunriseDetailWide monarchLoginCard">
       <h3>Monarch Archangel Access</h3>
       <p class="profileNote">Guardian archive access requires the owner code, MA password, and active NOTOS ID.</p>
       <form class="authGrid" id="monarch-auth-form" novalidate>
         <div class="field">
           <label for="monarch-owner-code">Owner Code</label>
-          <input class="input" id="monarch-owner-code" type="text" autocomplete="off" placeholder="${ownerProfile.code}">
+          <input class="input" id="monarch-owner-code" type="text" autocomplete="off">
         </div>
         <div class="field">
           <label for="monarch-owner-password">MA Password</label>
@@ -11023,7 +11080,7 @@ function renderMonarchArchangelPage() {
         </div>
         <div class="field full">
           <label for="monarch-owner-notos">NOTOS ID</label>
-          <input class="input" id="monarch-owner-notos" type="text" autocomplete="off" placeholder="${requiredNotosId}">
+          <input class="input" id="monarch-owner-notos" type="text" autocomplete="off">
         </div>
         <div class="viewActions"><button class="btn primary" type="submit">Unlock Monarch Archangel</button></div>
       </form>
@@ -11031,6 +11088,7 @@ function renderMonarchArchangelPage() {
     </article>`;
     return;
   }
+  if (saveTopBtn) saveTopBtn.hidden = false;
 
   const records = filteredMonarchArchiveRecords();
   const categoryButtons = [
@@ -11055,7 +11113,7 @@ function renderMonarchArchangelPage() {
         </div>
       </article>`
     : "";
-  grid.innerHTML = `<section class="monarchShell">
+  grid.innerHTML = `<section class="monarchShell monarchShellUnlocked">
     <article class="monarchHero">
       <div>
         <p class="monarchKicker">Owner-only archive</p>
@@ -11063,6 +11121,7 @@ function renderMonarchArchangelPage() {
         <p class="profileNote">Guardian archive for Sunrise and VVS records, credentials, services, payments, mail, and login intelligence.</p>
       </div>
       <div class="monarchHeroActions">
+        <button class="btn ghost" type="button" id="monarch-save-btn">Save Changes</button>
         <button class="btn ghost" type="button" id="monarch-lock-btn">Lock</button>
       </div>
     </article>
@@ -12616,6 +12675,7 @@ function bindSunriseControlInteractions() {
   const monarchRecordInfo = document.getElementById("monarch-record-info");
   const monarchCredentialOverlay = document.getElementById("monarch-credential-overlay");
   const monarchCredentialClose = document.getElementById("monarch-credential-close");
+  const monarchCredentialSave = document.getElementById("monarch-credential-save");
   if (notosPathClose && notosPathClose.dataset.boundNotosClose !== "1") {
     notosPathClose.addEventListener("click", () => {
       if (notosPathOverlay) notosPathOverlay.hidden = true;
@@ -12681,6 +12741,26 @@ function bindSunriseControlInteractions() {
       if (event.target === monarchCredentialOverlay) closeMonarchCredentialOverlay();
     });
     monarchCredentialOverlay.dataset.boundMonarchCredentialBackdrop = "1";
+  }
+  if (monarchCredentialSave && monarchCredentialSave.dataset.boundMonarchCredentialSave !== "1") {
+    monarchCredentialSave.addEventListener("click", () => {
+      const operator = getCurrentSunriseOperator() || activeAccount || null;
+      const info = document.getElementById("monarch-credential-info");
+      if (!isMikhailOwnerAccount(operator)) {
+        if (info) info.textContent = "Only Mikhail can update Aleks Monarch Archangel credentials.";
+        return;
+      }
+      const codeInput = document.getElementById("monarch-credential-code");
+      const passwordInput = document.getElementById("monarch-credential-password");
+      const notosInput = document.getElementById("monarch-credential-notos");
+      const result = saveMonarchOwnerCredentials("AO1", {
+        code: String(codeInput?.value || "").trim(),
+        password: String(passwordInput?.value || "").trim(),
+        notosId: String(notosInput?.value || "").trim()
+      });
+      if (info) info.textContent = result.message;
+    });
+    monarchCredentialSave.dataset.boundMonarchCredentialSave = "1";
   }
   if (vacationSave && vacationSave.dataset.boundVacationSave !== "1") {
     vacationSave.addEventListener("click", async () => {
@@ -12962,6 +13042,15 @@ function bindSunriseControlInteractions() {
     const monarchLockBtn = clickTarget.closest("#monarch-lock-btn");
     if (monarchLockBtn) {
       resetMonarchArchangelAccess();
+      renderMonarchArchangelPage();
+      return;
+    }
+
+    const monarchSaveBtn = clickTarget.closest("#monarch-save-btn, #monarch-save-top-btn");
+    if (monarchSaveBtn) {
+      syncMonarchArchangelArchive({ immediate: true });
+      persistMonarchArchangelState();
+      monarchArchangelRuntime.info = "Monarch Archangel changes saved.";
       renderMonarchArchangelPage();
       return;
     }
@@ -14282,7 +14371,7 @@ function bindSunriseControlInteractions() {
       const code = String(codeInput?.value || "").trim();
       const password = String(passwordInput?.value || "").trim();
       const notosId = String(notosInput?.value || "").trim();
-      const expectedNotos = String(operator?.notosId || ownerProfile.notosId || "").trim();
+      const expectedNotos = String(ownerProfile.notosId || "").trim();
       const authorized = code === ownerProfile.code
         && password === ownerProfile.password
         && notosId === expectedNotos;
