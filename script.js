@@ -1280,18 +1280,8 @@ function restoreProtectedOwnerCredentials() {
   ].forEach((key) => {
     const seeded = SEEDED_ACCOUNTS_DATA[key];
     if (!seeded) return;
-    const current = accounts[key] && typeof accounts[key] === "object" ? accounts[key] : {};
-    accounts[key] = {
-      ...current,
-      email: key,
-      password: String(seeded.password || ""),
-      altPasswords: Array.isArray(seeded.altPasswords) ? [...seeded.altPasswords] : [],
-      secretPhrase: String(seeded.secretPhrase || ""),
-      membership: "Owner",
-      firstName: String(seeded.firstName || current.firstName || "").trim(),
-      lastName: String(seeded.lastName || current.lastName || "").trim(),
-      roleTitle: String(seeded.roleTitle || current.roleTitle || "").trim()
-    };
+    accounts[key] = cloneAccountsPayload(seeded) || { ...seeded };
+    accounts[key].email = key;
     if (isProtectedOwnerSunriseCredentialKey(key)) {
       accounts[key].sunriseCredential = true;
       accounts[key].sunriseLinkedEmail = String(
