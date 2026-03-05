@@ -162,6 +162,7 @@ function parseMessageSummary(message = {}, catalog = { byId: new Map() }, includ
     .filter((label) => String(label.type || "").toLowerCase() === "user")
     .map((label) => String(label.name || "").trim())
     .filter((name) => name && name !== SCHEDULED_LABEL_NAME);
+  const tagNames = customFoldersForMessage.filter((name) => !SYSTEM_LABEL_NAMES.has(String(name || "").trim().toLowerCase()));
   return {
     id: String(message.id || ""),
     threadId: String(message.threadId || ""),
@@ -180,7 +181,10 @@ function parseMessageSummary(message = {}, catalog = { byId: new Map() }, includ
     attachments: content.attachments || [],
     labelIds,
     labelNames,
-    customFolders: customFoldersForMessage
+    customFolders: customFoldersForMessage,
+    tags: tagNames,
+    starred: labelIds.includes("STARRED"),
+    flagged: labelIds.includes("IMPORTANT")
   };
 }
 
@@ -267,6 +271,33 @@ async function fetchMessage(env, id, catalog, format = "full") {
   return {
     ...response,
     message: parseMessageSummary(response.body, catalog, format === "full")
+  };
+}
+
+async function fetchThread(env, threadId, catalog = { byId: new Map() }) {
+  const id = String(threadId || "").trim();
+  if (!id) {
+    return { ok: false, skipped: false, provider: "gmail", message: "Thread id is required." };
+  }
+  const user = gmailUserId(env);
+  const response = await gmailRequest(env, `/users/${user}/threads/${encodeURIComponent(id)}?format=full`, {
+    method: "GET"
+  });
+  if (!response.ok) return response;
+  const rawMessages = Array.isArray(response.body?.messages) ? response.body.messages : [];
+  const messages = rawMessages
+    .map((message) => ({
+      message,
+      ts: Number(message?.internalDate || 0)
+    }))
+    .sort((a, b) => a.ts - b.ts)
+    .map((entry) => parseMessageSummary(entry.message, catalog, true));
+  return {
+    ok: true,
+    skipped: false,
+    provider: "gmail",
+    threadId: id,
+    messages
   };
 }
 
@@ -510,6 +541,63 @@ async function clearTrash(env) {
   });
 }
 
+async function setStarredFlag(env, payload = {}, enabled = true) {
+  const messageId = String(payload.id || "").trim();
+  if (!messageId) return { ok: false, skipped: false, provider: "gmail", message: "Message id is required." };
+  return modifyMessageLabels(
+    env,
+    messageId,
+    enabled
+      ? { addLabelIds: ["STARRED"], removeLabelIds: [] }
+      : { addLabelIds: [], removeLabelIds: ["STARRED"] }
+  );
+}
+
+async function setImportantFlag(env, payload = {}, enabled = true) {
+  const messageId = String(payload.id || "").trim();
+  if (!messageId) return { ok: false, skipped: false, provider: "gmail", message: "Message id is required." };
+  return modifyMessageLabels(
+    env,
+    messageId,
+    enabled
+      ? { addLabelIds: ["IMPORTANT"], removeLabelIds: [] }
+      : { addLabelIds: [], removeLabelIds: ["IMPORTANT"] }
+  );
+}
+
+async function setMessageTag(env, payload = {}, mode = "add") {
+  const messageId = String(payload.id || "").trim();
+  const tagName = String(payload.tag || payload.name || "").trim();
+  if (!messageId || !tagName) {
+    return { ok: false, skipped: false, provider: "gmail", message: "Message id and tag are required." };
+  }
+  const normalizedMode = String(mode || "add").trim().toLowerCase();
+  const remove = normalizedMode === "remove";
+  const labelsResponse = await fetchLabels(env);
+  if (!labelsResponse.ok) return labelsResponse;
+  const existing = labelsResponse.catalog?.byName?.get(tagName.toLowerCase()) || null;
+  let label = existing;
+  if (!remove && !label) {
+    const ensured = await ensureLabel(env, tagName, labelsResponse.catalog);
+    if (!ensured.ok) return ensured;
+    label = ensured.label || null;
+  }
+  if (remove && !label) {
+    return { ok: true, skipped: false, provider: "gmail", message: "Tag not present on this mailbox." };
+  }
+  const labelId = String(label?.id || "").trim();
+  if (!labelId) {
+    return { ok: false, skipped: false, provider: "gmail", message: "Tag label could not be resolved." };
+  }
+  return modifyMessageLabels(
+    env,
+    messageId,
+    remove
+      ? { addLabelIds: [], removeLabelIds: [labelId] }
+      : { addLabelIds: [labelId], removeLabelIds: [] }
+  );
+}
+
 function senderAddressForOwner(raw = "") {
   const requested = String(raw || "").trim();
   return requested || "Venture Voyager Services <concierge@venture-voyagers.com>";
@@ -658,6 +746,14 @@ export async function onRequestGet(context) {
       return json(response, response.ok ? 200 : 502);
     }
 
+    if (mode === "thread") {
+      if (!id) return json({ ok: false, message: "Thread id is required." }, 400);
+      const labelsResponse = await fetchLabels(context.env);
+      if (!labelsResponse.ok) return json(labelsResponse, 502);
+      const response = await fetchThread(context.env, id, labelsResponse.catalog);
+      return json(response, response.ok ? 200 : 502);
+    }
+
     if (mode === "search") {
       const labelsResponse = await fetchLabels(context.env);
       if (!labelsResponse.ok) return json(labelsResponse, 502);
@@ -707,6 +803,36 @@ export async function onRequestPost(context) {
 
     if (action === "clear-trash") {
       const response = await clearTrash(context.env);
+      return json(response, response.ok ? 200 : 502);
+    }
+
+    if (action === "star") {
+      const response = await setStarredFlag(context.env, payload, true);
+      return json(response, response.ok ? 200 : 502);
+    }
+
+    if (action === "unstar") {
+      const response = await setStarredFlag(context.env, payload, false);
+      return json(response, response.ok ? 200 : 502);
+    }
+
+    if (action === "flag") {
+      const response = await setImportantFlag(context.env, payload, true);
+      return json(response, response.ok ? 200 : 502);
+    }
+
+    if (action === "unflag") {
+      const response = await setImportantFlag(context.env, payload, false);
+      return json(response, response.ok ? 200 : 502);
+    }
+
+    if (action === "tag") {
+      const response = await setMessageTag(context.env, payload, "add");
+      return json(response, response.ok ? 200 : 502);
+    }
+
+    if (action === "untag") {
+      const response = await setMessageTag(context.env, payload, "remove");
       return json(response, response.ok ? 200 : 502);
     }
 
