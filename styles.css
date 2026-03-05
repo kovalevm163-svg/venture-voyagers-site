@@ -2138,6 +2138,8 @@ body.sunrise-dock-visible main{
   display:grid;
   gap:6px;
   cursor:pointer;
+  user-select:none;
+  -webkit-user-drag: element;
   transition: transform .16s ease, border-color .16s ease, box-shadow .16s ease;
 }
 

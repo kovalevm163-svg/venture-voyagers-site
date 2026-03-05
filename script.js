@@ -7725,6 +7725,8 @@ let remoteSessionRevocationTimer = 0;
 const REMOTE_SESSION_REVOCATION_INTERVAL_MS = 25000;
 
 let sunriseOwnerInboxRefreshHandle = 0;
+let sunriseInboxDraggedMessageId = "";
+let sunriseInboxSuppressFolderClickUntil = 0;
 
 const SUNRISE_OWNER_CODES = {
   "aleks.sunrise@vvs.com": "AO1",
@@ -13386,7 +13388,8 @@ function resolveLocalInboxThreadMessages(message = {}, inbox = sunriseControlSta
 
 function moveLocalInboxMessageToFolder(messageId = "", targetFolder = "", {
   infoMessage = "",
-  closeOverlay = true
+  closeOverlay = true,
+  switchFolder = false
 } = {}) {
   if (!sunriseControlState) return false;
   const id = String(messageId || "").trim();
@@ -13397,6 +13400,7 @@ function moveLocalInboxMessageToFolder(messageId = "", targetFolder = "", {
   if (!msg) return false;
   msg.folder = folder;
   inbox.selectedMessageId = "";
+  if (switchFolder) inbox.activeFolder = folder;
   inbox.lastInfo = String(infoMessage || `Email moved to ${folder}.`).trim();
   sunriseControlState.inbox = inbox;
   saveSunriseControlState();
@@ -14828,6 +14832,9 @@ function bindSunriseControlInteractions() {
 
     const inboxFolderBtn = clickTarget.closest("[data-inbox-folder]");
     if (inboxFolderBtn && sunriseControlState) {
+      if (Date.now() < sunriseInboxSuppressFolderClickUntil) {
+        return;
+      }
       const nextFolder = String(inboxFolderBtn.getAttribute("data-inbox-folder") || "inbox");
       closeSunriseInboxMessageOverlay();
       if (shouldUseOwnerGmailInbox()) {
@@ -16107,16 +16114,21 @@ function bindSunriseControlInteractions() {
       if (!(target instanceof HTMLElement)) return;
       const id = String(target.getAttribute("data-inbox-drag-id") || "").trim();
       if (!id) return;
-      event.dataTransfer?.setData("text/plain", id);
-      if (event.dataTransfer) event.dataTransfer.effectAllowed = "move";
+      sunriseInboxDraggedMessageId = id;
+      if (event.dataTransfer) {
+        event.dataTransfer.effectAllowed = "move";
+        event.dataTransfer.setData("text/plain", id);
+        event.dataTransfer.setData("text", id);
+      }
       target.classList.add("isDragging");
-    });
+    }, true);
 
     document.addEventListener("dragend", (event) => {
       const target = event.target instanceof Element ? event.target.closest("[data-inbox-drag-id]") : null;
       if (target instanceof HTMLElement) target.classList.remove("isDragging");
+      sunriseInboxDraggedMessageId = "";
       document.querySelectorAll("[data-inbox-folder-drop].isDropTarget").forEach((node) => node.classList.remove("isDropTarget"));
-    });
+    }, true);
 
     document.addEventListener("dragover", (event) => {
       const target = event.target instanceof Element ? event.target.closest("[data-inbox-folder-drop]") : null;
@@ -16124,14 +16136,15 @@ function bindSunriseControlInteractions() {
       const folder = String(target.getAttribute("data-inbox-folder-drop") || "").trim();
       if (!folder || folder.toLowerCase() === "folders") return;
       event.preventDefault();
+      if (event.dataTransfer) event.dataTransfer.dropEffect = "move";
       target.classList.add("isDropTarget");
-    });
+    }, true);
 
     document.addEventListener("dragleave", (event) => {
       const target = event.target instanceof Element ? event.target.closest("[data-inbox-folder-drop]") : null;
       if (!(target instanceof HTMLElement)) return;
       target.classList.remove("isDropTarget");
-    });
+    }, true);
 
     document.addEventListener("drop", async (event) => {
       const target = event.target instanceof Element ? event.target.closest("[data-inbox-folder-drop]") : null;
@@ -16139,27 +16152,36 @@ function bindSunriseControlInteractions() {
       const targetFolder = String(target.getAttribute("data-inbox-folder-drop") || "").trim();
       if (!targetFolder || targetFolder.toLowerCase() === "folders") return;
       event.preventDefault();
+      sunriseInboxSuppressFolderClickUntil = Date.now() + 450;
       target.classList.remove("isDropTarget");
       document.querySelectorAll("[data-inbox-folder-drop].isDropTarget").forEach((node) => node.classList.remove("isDropTarget"));
-      const messageId = String(event.dataTransfer?.getData("text/plain") || "").trim();
+      const messageId = String(
+        event.dataTransfer?.getData("text/plain")
+        || event.dataTransfer?.getData("text")
+        || sunriseInboxDraggedMessageId
+        || ""
+      ).trim();
       if (!messageId) return;
       if (shouldUseOwnerGmailInbox()) {
         const done = await performOwnerGmailInboxAction("move", {
           id: messageId,
           targetFolder
         }, {
-          refreshFolder: ownerInboxActiveFolder(),
+          refreshFolder: targetFolder,
           clearSelectedMessage: true,
           infoMessage: `Email moved to ${targetFolder}.`
         });
         if (done) closeSunriseInboxMessageOverlay();
+        sunriseInboxDraggedMessageId = "";
         return;
       }
       moveLocalInboxMessageToFolder(messageId, targetFolder, {
         infoMessage: `Email moved to ${targetFolder}.`,
-        closeOverlay: String(sunriseControlState?.inbox?.selectedMessageId || "").trim() === messageId
+        closeOverlay: String(sunriseControlState?.inbox?.selectedMessageId || "").trim() === messageId,
+        switchFolder: true
       });
-    });
+      sunriseInboxDraggedMessageId = "";
+    }, true);
   }
 
   if (document.body.dataset.filePickerBound !== "1") {
