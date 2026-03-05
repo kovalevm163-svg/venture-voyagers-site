@@ -13772,6 +13772,154 @@ function ensureOdpState() {
   return odp;
 }
 
+function hydrateOdpFallbackRecordsFromSunrise(odp = null) {
+  const state = odp || ensureOdpState();
+  if (!state) return;
+  const now = formatUtcTimestamp(new Date());
+  const allAccounts = Object.values(accounts || {}).filter((account) => isVvsCredentialAccount(account));
+  const customerAccounts = allAccounts.filter((account) => !isOwnerAccount(account) && !isStaffAccount(account));
+  const staffAccounts = allAccounts.filter((account) => isStaffAccount(account) || isOwnerAccount(account));
+  const socCurrent = Array.isArray(sunriseControlState?.socServices?.current) ? sunriseControlState.socServices.current : [];
+  const socPast = Array.isArray(sunriseControlState?.socServices?.past) ? sunriseControlState.socServices.past : [];
+  const socAll = [...socCurrent, ...socPast];
+  const rimRows = Array.isArray(sunriseControlState?.rimInvites) ? sunriseControlState.rimInvites : [];
+
+  const contacts = customerAccounts.map((account, index) => {
+    const email = String(account?.email || "").trim().toLowerCase();
+    const id = email || `vvs-contact-${index + 1}`;
+    return {
+      id,
+      module: "Contacts",
+      name: `${String(account?.firstName || "").trim()} ${String(account?.lastName || "").trim()}`.trim() || email || `Contact ${index + 1}`,
+      email,
+      phone: String(account?.phone || "").trim(),
+      company: "Venture Voyager Services",
+      stage: String(account?.membership || "Non-Member").trim(),
+      amount: 0,
+      owner: "",
+      createdAt: String(account?.createdAt || "").trim(),
+      updatedAt: String(account?.updatedAt || account?.verifiedAt || "").trim() || now,
+      raw: {
+        id,
+        First_Name: String(account?.firstName || "").trim(),
+        Last_Name: String(account?.lastName || "").trim(),
+        Email: email,
+        Phone: String(account?.phone || "").trim(),
+        Company: "Venture Voyager Services",
+        Membership: String(account?.membership || "Non-Member").trim()
+      }
+    };
+  });
+
+  const deals = socAll.map((service, index) => {
+    const id = String(service?.id || `vvs-deal-${index + 1}`).trim();
+    const amount = Number(service?.budget || 0);
+    return {
+      id,
+      module: "Deals",
+      name: String(service?.title || `Service ${index + 1}`).trim(),
+      email: String(service?.clientEmail || "").trim().toLowerCase(),
+      phone: String(service?.clientPhone || "").trim(),
+      company: String(service?.client || "VVS Client").trim(),
+      stage: String(service?.status || "Pending").trim(),
+      amount,
+      owner: String(service?.assigned || "").trim(),
+      createdAt: String(service?.assignedAt || "").trim(),
+      updatedAt: String(service?.confirmedAt || service?.assignedAt || "").trim() || now,
+      raw: {
+        id,
+        Deal_Name: String(service?.title || "").trim(),
+        Stage: String(service?.status || "").trim(),
+        Amount: amount,
+        Contact_Name: String(service?.client || "").trim(),
+        Description: String(service?.description || "").trim()
+      }
+    };
+  });
+
+  const tasks = [];
+  socAll.forEach((service, serviceIndex) => {
+    const steps = Array.isArray(service?.steps) ? service.steps : [];
+    steps.forEach((step, stepIndex) => {
+      tasks.push({
+        id: `${String(service?.id || `SRV${serviceIndex + 1}`).trim()}-S${stepIndex + 1}`,
+        module: "Tasks",
+        name: String(step?.action || `Service Step ${stepIndex + 1}`).trim(),
+        email: String(service?.clientEmail || "").trim().toLowerCase(),
+        phone: String(service?.clientPhone || "").trim(),
+        company: String(service?.title || "").trim(),
+        stage: String(step?.status || "Pending").trim(),
+        amount: 0,
+        owner: String(service?.assigned || "").trim(),
+        createdAt: String(service?.assignedAt || "").trim(),
+        updatedAt: String(service?.confirmedAt || service?.assignedAt || "").trim() || now,
+        raw: {
+          id: `${String(service?.id || `SRV${serviceIndex + 1}`).trim()}-S${stepIndex + 1}`,
+          Subject: String(step?.action || "").trim(),
+          Status: String(step?.status || "").trim(),
+          Description: String(step?.details || "").trim(),
+          Service: String(service?.id || "").trim()
+        }
+      });
+    });
+  });
+
+  const leads = rimRows.map((row, index) => {
+    const id = String(row?.id || `vvs-lead-${index + 1}`).trim();
+    return {
+      id,
+      module: "Leads",
+      name: String(row?.name || `Lead ${index + 1}`).trim(),
+      email: String(row?.email || "").trim().toLowerCase(),
+      phone: "",
+      company: "Venture Voyager Services",
+      stage: String(row?.status || "Draft").trim(),
+      amount: 0,
+      owner: "",
+      createdAt: "",
+      updatedAt: now,
+      raw: {
+        id,
+        Last_Name: String(row?.name || `Lead ${index + 1}`).trim(),
+        Email: String(row?.email || "").trim().toLowerCase(),
+        Lead_Status: String(row?.status || "Draft").trim(),
+        Country: String(row?.country || "").trim()
+      }
+    };
+  });
+
+  const accountRows = staffAccounts.map((account, index) => {
+    const email = String(account?.email || "").trim().toLowerCase();
+    const id = email || `vvs-account-${index + 1}`;
+    return {
+      id,
+      module: "Accounts",
+      name: `${String(account?.firstName || "").trim()} ${String(account?.lastName || "").trim()}`.trim() || email || `Account ${index + 1}`,
+      email,
+      phone: String(account?.phone || "").trim(),
+      company: "Venture Voyager Services",
+      stage: String(account?.sunriseAccessLevel || account?.membership || "").trim(),
+      amount: 0,
+      owner: isOwnerAccount(account) ? "Owner" : "Staff",
+      createdAt: String(account?.createdAt || "").trim(),
+      updatedAt: String(account?.updatedAt || "").trim() || now,
+      raw: {
+        id,
+        Account_Name: `${String(account?.firstName || "").trim()} ${String(account?.lastName || "").trim()}`.trim() || email,
+        Phone: String(account?.phone || "").trim(),
+        Account_Type: isOwnerAccount(account) ? "Owner" : "Staff",
+        Country: String(account?.country || "").trim()
+      }
+    };
+  });
+
+  state.records.Contacts = contacts;
+  state.records.Deals = deals;
+  state.records.Tasks = tasks;
+  state.records.Leads = leads;
+  state.records.Accounts = accountRows;
+}
+
 function odpTrackerSnapshot() {
   const socCurrent = Array.isArray(sunriseControlState?.socServices?.current) ? sunriseControlState.socServices.current.length : 0;
   const socPast = Array.isArray(sunriseControlState?.socServices?.past) ? sunriseControlState.socServices.past.length : 0;
@@ -13858,6 +14006,7 @@ async function syncOdpFromZoho({ silent = false } = {}) {
   if (!silent) odp.status = "Synchronizing ODP with Zoho CRM...";
   const response = await odpApiGet("bootstrap", { perPage: 35 });
   if (!response.ok || !response.body) {
+    hydrateOdpFallbackRecordsFromSunrise(odp);
     odp.warning = "Zoho sync failed. Check ODP API status and credentials.";
     odp.status = "ODP sync failed.";
     renderODPPage();
@@ -13865,6 +14014,7 @@ async function syncOdpFromZoho({ silent = false } = {}) {
   }
   const body = response.body || {};
   if (!body.ok && !body.skipped) {
+    hydrateOdpFallbackRecordsFromSunrise(odp);
     odp.warning = String(body.message || body.warnings?.[0] || "Zoho returned an error.").trim();
     odp.status = "ODP sync failed.";
     renderODPPage();
@@ -13878,8 +14028,11 @@ async function syncOdpFromZoho({ silent = false } = {}) {
   odp.lastSyncedAt = String(body.syncedAt || formatUtcTimestamp(new Date())).trim();
   odp.warning = Array.isArray(body.warnings) && body.warnings.length ? body.warnings.join(" | ") : "";
   odp.status = body.skipped
-    ? "Zoho CRM credentials are not configured in Cloudflare secrets yet."
+    ? "Zoho CRM credentials are not configured in Cloudflare secrets yet. ODP is showing Sunrise fallback records."
     : "ODP live mirror synchronized with Zoho CRM.";
+  if (body.skipped) {
+    hydrateOdpFallbackRecordsFromSunrise(odp);
+  }
   odpMirrorLog("Sync from Zoho", odp.activeModule, "", "Bootstrap synchronization completed.");
   saveSunriseControlState({ markDirty: false });
   renderODPPage();
@@ -14179,6 +14332,10 @@ function renderODPPage() {
   if (!grid || !sunriseControlState) return;
   const odp = ensureOdpState();
   if (!odp) return;
+  const hasAnyRecords = ODP_MODULE_ORDER.some((module) => Array.isArray(odp.records[module]) && odp.records[module].length > 0);
+  if (!hasAnyRecords) {
+    hydrateOdpFallbackRecordsFromSunrise(odp);
+  }
   const tracker = odpTrackerSnapshot();
   const records = odpFilteredRecords();
   const pollValue = String(Math.max(ODP_SYNC_MIN_MS, Number(odp.pollMs || ODP_SYNC_DEFAULT_MS)));
