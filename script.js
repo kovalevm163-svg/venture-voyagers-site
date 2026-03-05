@@ -5939,7 +5939,11 @@ function setSharedRegistrySnapshot(registry = null, { mergeIntoAccounts = true, 
   sharedAccountRegistryState.lastSyncedAt = String(snapshot.updatedAt || "").trim();
   if (mergeIntoAccounts) {
     Object.entries(sharedAccountRegistryState.accounts).forEach(([key, account]) => {
-      mergeSharedRegistryAccountIntoLocal(account, key);
+      const rows = sharedRegistryActivitiesForEmail(key);
+      const enriched = enrichSharedRegistryAccountWithActivities(account, key, rows);
+      if (!enriched) return;
+      sharedAccountRegistryState.accounts[key] = cloneSharedRegistryAccount(enriched) || { email: key };
+      mergeSharedRegistryAccountIntoLocal(enriched, key);
     });
     restoreProtectedOwnerCredentials();
     pruneDuplicateSunriseCredentials();
@@ -5989,6 +5993,159 @@ function sharedRegistryActivityBrowser(row = {}) {
   if (agent.includes("firefox")) return "Firefox";
   if (agent.includes("chrome")) return "Chrome";
   return "Browser";
+}
+
+function sharedRegistryActivitiesForEmail(rawEmail = "") {
+  const email = normalizeEmailAddress(rawEmail || "");
+  if (!email) return [];
+  return (Array.isArray(sharedAccountRegistryState.activities) ? sharedAccountRegistryState.activities : [])
+    .filter((row) => normalizeEmailAddress(row?.email || "") === email);
+}
+
+function mergeSharedRegistryActivities(rows = []) {
+  if (!Array.isArray(rows) || !rows.length) return;
+  const existing = Array.isArray(sharedAccountRegistryState.activities)
+    ? sharedAccountRegistryState.activities
+    : [];
+  const merged = [...rows, ...existing]
+    .filter((row) => row && typeof row === "object")
+    .map((row) => ({
+      ...row,
+      email: normalizeEmailAddress(row.email || ""),
+      id: String(row.id || "").trim()
+    }))
+    .filter((row) => row.email && row.id);
+  const seen = new Set();
+  sharedAccountRegistryState.activities = merged.filter((row) => {
+    const key = `${row.id}::${row.email}`;
+    if (seen.has(key)) return false;
+    seen.add(key);
+    return true;
+  }).slice(0, 500);
+}
+
+function enrichSharedRegistryAccountWithActivities(rawAccount = null, rawEmail = "", rows = []) {
+  const base = cloneSharedRegistryAccount(rawAccount) || {};
+  const email = normalizeEmailAddress(base.email || rawEmail || "");
+  if (!email) return null;
+  const account = { ...base, email };
+  const activityRows = Array.isArray(rows) ? rows : [];
+  const latestRow = activityRows[0] || null;
+  const signupVerified = activityRows.find((row) => String(row?.eventType || "").trim().toLowerCase() === "signup_verified") || null;
+  const signupStarted = activityRows.find((row) => String(row?.eventType || "").trim().toLowerCase() === "signup_started") || null;
+
+  const countryCode = resolveCountryCode(account.countryCode || account.country || "");
+  const normalizedCountry = normalizeCountryLabelKey(account.country || "");
+  const needsCountry = !countryCode || !normalizedCountry || normalizedCountry === "unknown";
+  if (needsCountry) {
+    const activityCountryCode = resolveCountryCode(latestRow?.country || "");
+    if (activityCountryCode) {
+      account.countryCode = activityCountryCode;
+      account.country = countryDisplayName(activityCountryCode);
+    } else {
+      const fallbackCountry = String(latestRow?.country || "").trim();
+      if (fallbackCountry) account.country = fallbackCountry;
+    }
+  } else if (!account.countryCode && countryCode) {
+    account.countryCode = countryCode;
+  }
+
+  if (!String(account.preferredContactMethod || "").trim()) account.preferredContactMethod = "email";
+  if (!String(account.accountStatus || "").trim()) account.accountStatus = "Active";
+
+  if (!String(account.createdAt || "").trim() && signupStarted?.occurredAt) {
+    account.createdAt = String(signupStarted.occurredAt || "").trim();
+  }
+  if (!String(account.verifiedAt || "").trim() && (signupVerified?.occurredAt || latestRow?.occurredAt)) {
+    account.verifiedAt = String(signupVerified?.occurredAt || latestRow?.occurredAt || "").trim();
+  }
+  if (!String(account.updatedAt || "").trim() && latestRow?.occurredAt) {
+    account.updatedAt = String(latestRow.occurredAt || "").trim();
+  }
+  return account;
+}
+
+async function pullSharedRegistryAccountByEmail(rawEmail = "", { persistLocal = true } = {}) {
+  const email = normalizeEmailAddress(rawEmail || "");
+  if (!email) return false;
+  const result = await requestJsonWithTimeout(`/api/account-registry?email=${encodeURIComponent(email)}`, {
+    method: "GET",
+    timeoutMs: 15000
+  });
+  if (!result.ok || !result.body?.ok) return false;
+  const account = result.body?.account && typeof result.body.account === "object"
+    ? result.body.account
+    : null;
+  const activities = Array.isArray(result.body?.activities) ? result.body.activities : [];
+  if (activities.length) mergeSharedRegistryActivities(activities);
+  if (!account) return false;
+  const enriched = enrichSharedRegistryAccountWithActivities(account, email, activities);
+  if (!enriched) return false;
+  sharedAccountRegistryState.loaded = true;
+  sharedAccountRegistryState.available = true;
+  sharedAccountRegistryState.error = "";
+  sharedAccountRegistryState.accounts[email] = cloneSharedRegistryAccount(enriched) || { email };
+  mergeSharedRegistryAccountIntoLocal(enriched, email);
+  restoreProtectedOwnerCredentials();
+  pruneDuplicateSunriseCredentials();
+  normalizeAllAccountRecords();
+  if (persistLocal) {
+    try {
+      localStorage.setItem(ACCOUNTS_DATA_KEY, JSON.stringify(accounts));
+    } catch (_) {}
+  }
+  queueMonarchArchangelSync();
+  if (sunriseControlState) {
+    syncEcsWithStaffAccounts();
+    ensureRtaAssignmentsStore();
+    ensureSocServicesStore();
+    syncRedTeamAssignmentsToClientAccounts();
+    syncSocServicesToClientAccounts();
+  }
+  return true;
+}
+
+function extractEmailFromAmpFilter(filter = "") {
+  const value = String(filter || "").trim().toLowerCase();
+  if (!value) return "";
+  const match = value.match(/[a-z0-9._%+-]+@[a-z0-9.-]+\.[a-z]{2,}/i);
+  return normalizeEmailAddress(match?.[0] || "");
+}
+
+function queueAmpRegistryHydration(filter = "") {
+  const targetEmail = extractEmailFromAmpFilter(filter);
+  if (targetEmail && targetEmail !== ampRegistryLastHydratedEmail) {
+    ampRegistryLastHydratedEmail = "";
+  }
+  if (ampRegistryHydrationTimer || ampRegistryHydrationInFlight) return;
+  ampRegistryHydrationTimer = window.setTimeout(async () => {
+    ampRegistryHydrationTimer = 0;
+    if (ampRegistryHydrationInFlight) return;
+    const now = Date.now();
+    const email = extractEmailFromAmpFilter(String(document.getElementById("amp-search")?.value || filter || "").trim());
+    const shouldRefresh = !sharedAccountRegistryState.loaded || (now - ampRegistryLastHydratedAt >= AMP_REGISTRY_HYDRATE_INTERVAL_MS);
+    const shouldTarget = !!email && email !== ampRegistryLastHydratedEmail;
+    if (!shouldRefresh && !shouldTarget) return;
+    ampRegistryHydrationInFlight = true;
+    let changed = false;
+    if (shouldRefresh) {
+      const refreshed = await refreshSharedAccountRegistry({ mergeIntoAccounts: true, persistLocal: true, force: true });
+      ampRegistryLastHydratedAt = Date.now();
+      changed = !!refreshed;
+    }
+    if (shouldTarget) {
+      const targeted = await pullSharedRegistryAccountByEmail(email, { persistLocal: true });
+      if (targeted) {
+        changed = true;
+        ampRegistryLastHydratedEmail = email;
+      }
+    }
+    ampRegistryHydrationInFlight = false;
+    if (changed && currentVisibleRoute() === "sunrise-amp") {
+      const query = String(document.getElementById("amp-search")?.value || filter || "").trim();
+      renderAMPPage(query, { skipRegistryHydration: true });
+    }
+  }, 120);
 }
 
 async function refreshSharedAccountRegistry({
@@ -6152,6 +6309,9 @@ async function applyUpgradeInviteFromUrl() {
   if (!invite.email || !invite.token) return false;
   if (!sharedAccountRegistryState.loaded) {
     await refreshSharedAccountRegistry({ mergeIntoAccounts: true, persistLocal: true });
+  }
+  if (!sharedAccountRegistryState.accounts?.[invite.email]) {
+    await pullSharedRegistryAccountByEmail(invite.email, { persistLocal: true });
   }
   const sharedAccount = sharedAccountRegistryState.accounts?.[invite.email] || null;
   const pendingUpgrade = sharedAccount?.pendingUpgrade && typeof sharedAccount.pendingUpgrade === "object"
@@ -7310,6 +7470,11 @@ let sharedRegistryRefreshPromise = null;
 let sharedRegistrySyncTimer = 0;
 let sharedRegistryBackfillQueued = false;
 const sharedRegistryPendingKeys = new Set();
+let ampRegistryHydrationTimer = 0;
+let ampRegistryHydrationInFlight = false;
+let ampRegistryLastHydratedAt = 0;
+let ampRegistryLastHydratedEmail = "";
+const AMP_REGISTRY_HYDRATE_INTERVAL_MS = 20000;
 
 let sunriseOwnerInboxRefreshHandle = 0;
 
@@ -11054,6 +11219,36 @@ function monarchRecordSourceActionConfig(record = null) {
   return { hidden: false, label: "Erase from Sunrise", mode: "erase" };
 }
 
+function isMonarchRecordRestrictedForOperator(record = null, operator = getCurrentSunriseOperator() || activeAccount || null) {
+  if (!record || !isAleksOwnerAccount(operator)) return false;
+  const sourceType = String(record.sourceType || "").trim().toLowerCase();
+  if (sourceType === "account") {
+    if (isMikhailCredentialAccount(record.sourceKey || "")) return true;
+    return isMikhailCredentialAccount(record.payload || null);
+  }
+  if (String(record.category || "").trim().toLowerCase() !== "credentials") return false;
+  const haystack = JSON.stringify({
+    title: record.title,
+    summary: record.summary,
+    sourceKey: record.sourceKey,
+    payload: record.payload
+  }).toLowerCase();
+  return haystack.includes("mikhail")
+    || haystack.includes("coo@vvs.com")
+    || haystack.includes("mikhail.kovalev@vvs.com")
+    || haystack.includes("mikhail.sunrise@vvs.com");
+}
+
+function resolveMonarchRecordForOperator(recordId = "", { setRestrictedMessage = false } = {}) {
+  const record = findMonarchArchiveRecord(recordId);
+  if (!record) return null;
+  if (!isMonarchRecordRestrictedForOperator(record)) return record;
+  if (setRestrictedMessage) {
+    monarchArchangelRuntime.info = "Access Restricted.";
+  }
+  return null;
+}
+
 function updateMonarchRecordSourceAction(record = null) {
   const actionBtn = document.getElementById("monarch-record-restore");
   if (!(actionBtn instanceof HTMLButtonElement)) return;
@@ -11070,7 +11265,7 @@ function updateMonarchRecordSourceAction(record = null) {
 
 function openMonarchRecordOverlay(recordId = "") {
   const overlay = document.getElementById("monarch-record-overlay");
-  const record = findMonarchArchiveRecord(recordId);
+  const record = resolveMonarchRecordForOperator(recordId, { setRestrictedMessage: true });
   if (!overlay || !record) return;
   monarchArchangelRuntime.detailsRecordId = String(recordId || "").trim();
   const titleEl = document.getElementById("monarch-record-title");
@@ -11366,7 +11561,28 @@ function renderMonarchArchiveCards(records = []) {
   if (!Array.isArray(records) || !records.length) {
     return `<article class="monarchArchiveEmpty"><p>No archive records match the current filter.</p></article>`;
   }
+  const operator = getCurrentSunriseOperator() || activeAccount || null;
   return records.map((record) => {
+    if (isMonarchRecordRestrictedForOperator(record, operator)) {
+      return `<article class="monarchArchiveCard isRestricted">
+      <div class="monarchArchiveCardTop">
+        <div>
+          <p class="monarchArchiveEyebrow">Credentials</p>
+          <h4>Restricted Credential Record</h4>
+        </div>
+        <span class="monarchArchiveFlag">Restricted</span>
+      </div>
+      <p class="monarchArchiveSummary">Access Restricted.</p>
+      <div class="monarchArchiveMeta">
+        <span>credentials</span>
+        <span>restricted</span>
+        <span>${encodeHtmlEntities(String(record?.updatedAt || "").trim())}</span>
+      </div>
+      <div class="viewActions monarchArchiveActions">
+        <button class="sunriseMiniBtn" type="button" data-monarch-details="${encodeHtmlEntities(record.id)}">Details</button>
+      </div>
+    </article>`;
+    }
     const deletedClass = record?.deletedInSource ? " isDeleted" : "";
     const deletedLabel = record?.deletedInSource ? `<span class="monarchArchiveFlag">Deleted in Sunrise</span>` : `<span class="monarchArchiveFlag isLive">Live</span>`;
     const sourceAction = monarchRecordSourceActionConfig(record);
@@ -11467,6 +11683,13 @@ function renderMonarchArchangelPage() {
       <p class="authInfo" id="monarch-auth-info">${encodeHtmlEntities(String(monarchArchangelRuntime.info || "").trim())}</p>
     </article>`;
     return;
+  }
+  if (monarchArchangelRuntime.detailsRecordId) {
+    const activeRecord = findMonarchArchiveRecord(monarchArchangelRuntime.detailsRecordId);
+    if (!activeRecord || isMonarchRecordRestrictedForOperator(activeRecord, operator)) {
+      monarchArchangelRuntime.detailsRecordId = "";
+      closeMonarchRecordOverlay();
+    }
   }
   if (saveTopBtn) {
     saveTopBtn.hidden = false;
@@ -12269,10 +12492,13 @@ function renderAmpCustomerCards(entries = []) {
   </article>`;
 }
 
-function renderAMPPage(filter = "") {
+function renderAMPPage(filter = "", options = {}) {
   const grid = document.getElementById("sunrise-amp-grid");
   if (!grid) return;
   ensureAmpDeletedAccountsStore();
+  if (!options?.skipRegistryHydration) {
+    queueAmpRegistryHydration(filter);
+  }
   const section = normalizeAdminSection(sunriseAdminViewState.ampSection);
   sunriseAdminViewState.ampSection = section;
   const accessCodes = Array.isArray(sunriseControlState?.accessLevels)
@@ -13192,7 +13418,11 @@ function bindSunriseControlInteractions() {
   }
   if (monarchRecordSave && monarchRecordSave.dataset.boundMonarchRecordSave !== "1") {
     monarchRecordSave.addEventListener("click", () => {
-      const record = findMonarchArchiveRecord(monarchArchangelRuntime.detailsRecordId);
+      const record = resolveMonarchRecordForOperator(monarchArchangelRuntime.detailsRecordId, { setRestrictedMessage: true });
+      if (!record) {
+        if (monarchRecordInfo) monarchRecordInfo.textContent = "Access Restricted.";
+        return;
+      }
       const payloadResult = readMonarchRecordPayloadFromForm(record);
       if (!payloadResult.ok) {
         if (monarchRecordInfo) monarchRecordInfo.textContent = payloadResult.message;
@@ -13212,6 +13442,11 @@ function bindSunriseControlInteractions() {
   }
   if (monarchRecordRestore && monarchRecordRestore.dataset.boundMonarchRecordRestore !== "1") {
     monarchRecordRestore.addEventListener("click", () => {
+      const record = resolveMonarchRecordForOperator(monarchArchangelRuntime.detailsRecordId, { setRestrictedMessage: true });
+      if (!record) {
+        if (monarchRecordInfo) monarchRecordInfo.textContent = "Access Restricted.";
+        return;
+      }
       const mode = String(monarchRecordRestore.dataset.monarchSourceMode || "").trim().toLowerCase();
       const result = mode === "erase"
         ? eraseMonarchArchiveRecordFromSource(monarchArchangelRuntime.detailsRecordId)
@@ -13227,6 +13462,11 @@ function bindSunriseControlInteractions() {
   }
   if (monarchRecordDelete && monarchRecordDelete.dataset.boundMonarchRecordDelete !== "1") {
     monarchRecordDelete.addEventListener("click", () => {
+      const record = resolveMonarchRecordForOperator(monarchArchangelRuntime.detailsRecordId, { setRestrictedMessage: true });
+      if (!record) {
+        if (monarchRecordInfo) monarchRecordInfo.textContent = "Access Restricted.";
+        return;
+      }
       const result = deleteMonarchArchiveRecord(monarchArchangelRuntime.detailsRecordId);
       if (monarchRecordInfo) monarchRecordInfo.textContent = result.message;
       if (result.ok) {
@@ -13469,13 +13709,24 @@ function bindSunriseControlInteractions() {
 
     const monarchDetailsBtn = clickTarget.closest("[data-monarch-details]");
     if (monarchDetailsBtn) {
-      openMonarchRecordOverlay(String(monarchDetailsBtn.getAttribute("data-monarch-details") || "").trim());
+      const recordId = String(monarchDetailsBtn.getAttribute("data-monarch-details") || "").trim();
+      const record = resolveMonarchRecordForOperator(recordId, { setRestrictedMessage: true });
+      if (!record) {
+        renderMonarchArchangelPage();
+        return;
+      }
+      openMonarchRecordOverlay(recordId);
       return;
     }
 
     const monarchSourceActionBtn = clickTarget.closest("[data-monarch-source-action]");
     if (monarchSourceActionBtn) {
       const recordId = String(monarchSourceActionBtn.getAttribute("data-monarch-source-action") || "").trim();
+      const record = resolveMonarchRecordForOperator(recordId, { setRestrictedMessage: true });
+      if (!record) {
+        renderMonarchArchangelPage();
+        return;
+      }
       const mode = String(monarchSourceActionBtn.getAttribute("data-monarch-source-mode") || "").trim().toLowerCase();
       const result = mode === "erase"
         ? eraseMonarchArchiveRecordFromSource(recordId)
@@ -13488,7 +13739,13 @@ function bindSunriseControlInteractions() {
 
     const monarchDeleteBtn = clickTarget.closest("[data-monarch-delete]");
     if (monarchDeleteBtn) {
-      const result = deleteMonarchArchiveRecord(String(monarchDeleteBtn.getAttribute("data-monarch-delete") || "").trim());
+      const recordId = String(monarchDeleteBtn.getAttribute("data-monarch-delete") || "").trim();
+      const record = resolveMonarchRecordForOperator(recordId, { setRestrictedMessage: true });
+      if (!record) {
+        renderMonarchArchangelPage();
+        return;
+      }
+      const result = deleteMonarchArchiveRecord(recordId);
       monarchArchangelRuntime.info = result.message;
       renderMonarchArchangelPage();
       return;
