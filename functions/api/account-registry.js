@@ -368,6 +368,16 @@ export async function onRequestPost(context) {
       return json(saved, saved.ok ? 200 : 502);
     }
 
+    if (action === "delete-account") {
+      const email = normalizeEmail(payload.email || payload.account?.email || "");
+      if (!email) return json({ ok: false, message: "Valid account email is required." }, 400);
+      delete registry.accounts[email];
+      registry.activities = (Array.isArray(registry.activities) ? registry.activities : [])
+        .filter((row) => normalizeEmail(row?.email || "") !== email);
+      const saved = await saveRegistryDraft(context.env, registry, located.draftId);
+      return json(saved, saved.ok ? 200 : 502);
+    }
+
     return json({ ok: false, message: "Unsupported account registry action." }, 400);
   } catch (error) {
     return json({
