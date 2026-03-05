@@ -9212,6 +9212,13 @@ function isOwnerAccount(account) {
   return !!(account && String(account.membership || "").trim().toLowerCase() === "owner");
 }
 
+function isStaffAccount(account) {
+  if (!account || isOwnerAccount(account)) return false;
+  const membership = String(account.membership || "").trim().toLowerCase();
+  if (membership === "staff") return true;
+  return !!String(account.sunriseAccessLevel || "").trim();
+}
+
 function isAleksOwnerAccount(account) {
   if (!isOwnerAccount(account)) return false;
   return resolveSunriseOwnerCode(account) === "AO1"
