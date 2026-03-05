@@ -5920,8 +5920,16 @@ function mergeSharedRegistryAccountIntoLocal(account = null, rawKey = "") {
   const key = normalizeEmailAddress(account.email || rawKey || "");
   if (!key) return false;
   const existing = cloneAccountsPayload(accounts[key]) || {};
+  const incoming = cloneSharedRegistryAccount(account) || {};
+  ["password", "secretPhrase", "phone"].forEach((field) => {
+    const incomingValue = String(incoming?.[field] || "");
+    const existingValue = String(existing?.[field] || "");
+    if (!incomingValue.trim() && existingValue.trim()) {
+      incoming[field] = existingValue;
+    }
+  });
   const nextAccount = normalizeAccountServiceCards({
-    ...mergeStoredValuePreservingSeed(existing, cloneSharedRegistryAccount(account)),
+    ...mergeStoredValuePreservingSeed(existing, incoming),
     email: key
   });
   accounts[key] = nextAccount;

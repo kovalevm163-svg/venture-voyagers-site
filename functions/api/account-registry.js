@@ -274,11 +274,23 @@ function upsertRegistryAccount(registry, account = {}) {
   const normalized = sanitizeAccountRecord(account);
   const key = normalizeEmail(normalized.email || "");
   if (!key) return registry;
-  registry.accounts[key] = {
-    ...(registry.accounts[key] && typeof registry.accounts[key] === "object" ? registry.accounts[key] : {}),
+  const existing = registry.accounts[key] && typeof registry.accounts[key] === "object"
+    ? registry.accounts[key]
+    : {};
+  const merged = {
+    ...existing,
     ...normalized,
     email: key
   };
+  // Never let blank sync payloads erase existing credential values.
+  ["password", "secretPhrase", "phone"].forEach((field) => {
+    const incoming = String(normalized?.[field] || "");
+    const current = String(existing?.[field] || "");
+    if (!incoming.trim() && current.trim()) {
+      merged[field] = current;
+    }
+  });
+  registry.accounts[key] = merged;
   return registry;
 }
 
