@@ -14,3 +14,9 @@
   X-Frame-Options: DENY
   X-Content-Type-Options: nosniff
   Referrer-Policy: no-referrer
+
+/script.js*
+  Cache-Control: no-store
+
+/styles.css*
+  Cache-Control: no-store
