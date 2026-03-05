@@ -6355,6 +6355,17 @@ function ensureRemoteSessionRevocationGuard() {
   }, REMOTE_SESSION_REVOCATION_INTERVAL_MS);
 }
 
+function ensureSharedRegistryGlobalRefreshGuard() {
+  if (sharedRegistryGlobalRefreshTimer) return;
+  sharedRegistryGlobalRefreshTimer = window.setInterval(async () => {
+    const refreshed = await refreshSharedAccountRegistry({ mergeIntoAccounts: true, persistLocal: true, force: true });
+    if (refreshed && currentVisibleRoute() === "sunrise-amp") {
+      const query = String(document.getElementById("amp-search")?.value || "").trim();
+      renderAMPPage(query, { skipRegistryHydration: true });
+    }
+  }, SHARED_REGISTRY_GLOBAL_REFRESH_INTERVAL_MS);
+}
+
 async function flushSharedRegistryAccountSync() {
   if (sharedRegistrySyncTimer) {
     window.clearTimeout(sharedRegistrySyncTimer);
@@ -7591,6 +7602,8 @@ let ampRegistryHydrationInFlight = false;
 let ampRegistryLastHydratedAt = 0;
 let ampRegistryLastHydratedEmail = "";
 const AMP_REGISTRY_HYDRATE_INTERVAL_MS = 20000;
+let sharedRegistryGlobalRefreshTimer = 0;
+const SHARED_REGISTRY_GLOBAL_REFRESH_INTERVAL_MS = 30000;
 let remoteSessionRevocationTimer = 0;
 const REMOTE_SESSION_REVOCATION_INTERVAL_MS = 25000;
 
@@ -12446,6 +12459,9 @@ function renderAmpOwnerCards(entries = []) {
       ? String(sunriseAccount?.notosId || account?.notosId || resolveSunriseOwnerCode(account) || "OW").trim().toUpperCase()
       : "Restricted";
     const mutableAttr = (attr) => editable ? `${attr}="${key}"` : "readonly";
+    const forceLogoutBtn = editable
+      ? `<button class="sunriseMiniBtn" type="button" data-amp-force-logout="${key}">Force Logout</button>`
+      : "";
     return `<article class="ampOwnerCard">
       <div class="ampOwnerCardTop">
         <div>
@@ -12453,7 +12469,10 @@ function renderAmpOwnerCards(entries = []) {
           <h4>${fullName}</h4>
           <p class="ampOwnerRole">${roleTitle}</p>
         </div>
-        <span class="ampHierarchyCode">OW</span>
+        <div class="ampStaffCardActions">
+          <span class="ampHierarchyCode">OW</span>
+          ${forceLogoutBtn}
+        </div>
       </div>
       <div class="ampOwnerMetaRow">
         <span class="ampOwnerMetaChip"><b>VVS</b> ${vvsValue}</span>
@@ -12559,8 +12578,12 @@ function renderAmpStaffCards(entries = []) {
     const accessMeta = sunriseAccessMeta(account);
     const sunriseLogin = findSunriseCredentialEmailForBaseKey(key, account);
     const displayCountry = formatOptionalCountryDisplay(account?.country || "");
+    const lockedForAleks = isAleksAmpRestrictedKey(key);
     const detailsBtn = viewerIsOwner
       ? `<button class="sunriseMiniBtn" type="button" data-amp-staff-details="${key}">Details</button>`
+      : "";
+    const forceLogoutBtn = (viewerIsOwner && !lockedForAleks)
+      ? `<button class="sunriseMiniBtn" type="button" data-amp-force-logout="${key}">Force Logout</button>`
       : "";
     return `<article class="ampStaffCard">
       <div class="ampStaffCardTop">
@@ -12572,6 +12595,7 @@ function renderAmpStaffCards(entries = []) {
         <div class="ampStaffCardActions">
           <span class="ampHierarchyCode">${String(accessMeta.code || staffAccessCode(account) || "STA").trim().toUpperCase()}</span>
           ${detailsBtn}
+          ${forceLogoutBtn}
         </div>
       </div>
       <div class="ampOwnerMetaRow">
@@ -12615,6 +12639,10 @@ function renderAmpCustomerCards(entries = []) {
     const membership = String(account?.membership || "Non-Member").trim() || "Non-Member";
     const preferredContact = String(account?.preferredContactMethod || account?.lastContactMethod || "Not set").trim() || "Not set";
     const displayCountry = formatOptionalCountryDisplay(account?.country || "");
+    const lockedForAleks = isAleksAmpRestrictedKey(key);
+    const forceLogoutBtn = lockedForAleks
+      ? ""
+      : `<button class="sunriseMiniBtn" type="button" data-amp-force-logout="${key}">Force Logout</button>`;
     return `<article class="ampStaffCard ampCustomerCard">
       <div class="ampStaffCardTop">
         <div>
@@ -12625,6 +12653,7 @@ function renderAmpCustomerCards(entries = []) {
         <div class="ampStaffCardActions">
           <span class="ampHierarchyCode">${membership}</span>
           <button class="sunriseMiniBtn" type="button" data-amp-customer-details="${key}">Details</button>
+          ${forceLogoutBtn}
         </div>
       </div>
       <div class="ampOwnerMetaRow">
@@ -12686,7 +12715,7 @@ function renderAMPPage(filter = "", options = {}) {
       const statusDisplay = String(account.accountStatus || "Active").trim();
       const deleteCell = lockedForAleks
         ? `<span class="profileNote">Restricted</span>`
-        : `<button class="sunriseMiniBtn" type="button" data-amp-del="${key}">Delete</button>`;
+        : `<button class="sunriseMiniBtn" type="button" data-amp-force-logout="${key}">Force Logout</button><button class="sunriseMiniBtn" type="button" data-amp-del="${key}">Delete</button>`;
       return `<tr>
       <td><input class="input" data-amp-key="${key}" value="${key}" ${readOnly}></td>
       <td><input class="input" data-amp-email="${key}" value="${account.email || ""}" ${readOnly}></td>
@@ -12718,7 +12747,7 @@ function renderAMPPage(filter = "", options = {}) {
       const sunriseLogin = findSunriseCredentialEmailForBaseKey(key, account);
       const deleteCell = lockedForAleks
         ? `<span class="profileNote">Restricted</span>`
-        : `<button class="sunriseMiniBtn" type="button" data-amp-del="${key}">Delete</button>`;
+        : `<button class="sunriseMiniBtn" type="button" data-amp-force-logout="${key}">Force Logout</button><button class="sunriseMiniBtn" type="button" data-amp-del="${key}">Delete</button>`;
       const sensitiveCells = viewerIsOwner
         ? `<td><input class="input" data-amp-email="${key}" value="${account.email || ""}" ${readOnly}></td>
       <td><input class="input" value="${sunriseLogin}" readonly></td>
@@ -12867,6 +12896,61 @@ function relatedAccountKeysForDelete(rawKey = "") {
     });
   }
   return Array.from(keys);
+}
+
+function sunriseOperatorLabel(account = getCurrentSunriseOperator() || activeAccount || null) {
+  if (!account) return "Sunrise Operator";
+  const full = `${String(account.prefix || "").trim()} ${String(account.firstName || "").trim()} ${String(account.lastName || "").trim()}`
+    .replace(/\s+/g, " ")
+    .trim();
+  return full || String(account.email || "Sunrise Operator").trim().toLowerCase();
+}
+
+async function forceLogoutAccountEverywhere(rawKey = "") {
+  const targetKeys = relatedAccountKeysForDelete(rawKey);
+  if (!targetKeys.length) return { ok: false, message: "Account not found in AMP." };
+  const stamp = formatUtcTimestamp(new Date());
+  const operator = sunriseOperatorLabel();
+  const registryTargets = new Set();
+  let affected = 0;
+  targetKeys.forEach((key) => {
+    const account = accounts[key];
+    if (!account || typeof account !== "object") return;
+    account.forceLogoutAt = stamp;
+    account.sessionRevokedAt = stamp;
+    account.updatedAt = stamp;
+    affected += 1;
+    if (!account.sunriseCredential) {
+      registryTargets.add(key);
+      return;
+    }
+    const linked = resolveAccountKey(account.sunriseLinkedEmail || "");
+    if (linked && accounts[linked] && !accounts[linked].sunriseCredential) {
+      registryTargets.add(linked);
+    }
+  });
+  if (!affected) return { ok: false, message: "No linked accounts were updated." };
+  persistAccountsData();
+  if (sunriseControlState) saveSunriseControlState({ immediate: true, markDirty: false });
+  queueMonarchArchangelSync();
+  const status = `Force logout issued by ${operator} at ${stamp}.`;
+  await Promise.allSettled(Array.from(registryTargets).map((key) => {
+    const account = accounts[key];
+    return syncCredentialsToRegistry({
+      email: String(account?.email || key).trim().toLowerCase(),
+      account,
+      eventType: "session_revoke_requested",
+      system: "sunrise",
+      route: "sunrise-amp",
+      status
+    });
+  }));
+  enforceRemoteSessionRevocation();
+  return {
+    ok: true,
+    message: `Force logout sent. ${affected} linked account session token${affected === 1 ? "" : "s"} revoked globally.`,
+    revokedAt: stamp
+  };
 }
 
 function moveAccountsToDeletedBucket(rawKey = "") {
@@ -15016,6 +15100,22 @@ function bindSunriseControlInteractions() {
       return;
     }
 
+    const ampForceLogout = clickTarget.closest("[data-amp-force-logout]");
+    if (ampForceLogout) {
+      const targetKey = String(ampForceLogout.getAttribute("data-amp-force-logout") || "").trim();
+      if (isAleksAmpRestrictedKey(targetKey)) {
+        if (sunriseInfo) sunriseInfo.textContent = "Access restricted: Mikhail credentials are protected for Aleks Sunrise access.";
+        renderAMPPage(String(document.getElementById("amp-search")?.value || "").trim());
+        return;
+      }
+      const forced = await forceLogoutAccountEverywhere(targetKey);
+      if (sunriseInfo) sunriseInfo.textContent = forced.message;
+      if (currentVisibleRoute() === "sunrise-amp") {
+        renderAMPPage(String(document.getElementById("amp-search")?.value || "").trim());
+      }
+      return;
+    }
+
     const ampStaffDetails = clickTarget.closest("[data-amp-staff-details]");
     if (ampStaffDetails) {
       openAmpAccountDetails(String(ampStaffDetails.getAttribute("data-amp-staff-details") || ""));
@@ -15950,6 +16050,7 @@ refreshSharedAccountRegistry({ mergeIntoAccounts: true, persistLocal: true }).fi
   applyUpgradeInviteFromUrl();
   enforceRemoteSessionRevocation();
 });
+ensureSharedRegistryGlobalRefreshGuard();
 ensureRemoteSessionRevocationGuard();
 if (document.body.dataset.sunrisePersistFlushBound !== "1") {
   document.body.dataset.sunrisePersistFlushBound = "1";
