@@ -7,7 +7,7 @@
   X-Permitted-Cross-Domain-Policies: none
   X-DNS-Prefetch-Control: on
   Cross-Origin-Resource-Policy: same-origin
-  Content-Security-Policy: default-src 'self'; base-uri 'self'; form-action 'self' https://venture-voyagers.com https://www.venture-voyagers.com; frame-ancestors 'self'; object-src 'none'; script-src 'self' 'unsafe-inline'; style-src 'self' 'unsafe-inline'; img-src 'self' data: https:; font-src 'self' data:; connect-src 'self' https://venture-voyagers.com https://www.venture-voyagers.com https://restcountries.com https://translate.googleapis.com https://api.resend.com https://api.hubapi.com; manifest-src 'self'; upgrade-insecure-requests; block-all-mixed-content
+  Content-Security-Policy: default-src 'self'; base-uri 'self'; form-action 'self' https://venture-voyagers.com https://www.venture-voyagers.com; frame-ancestors 'self'; object-src 'none'; script-src 'self' 'unsafe-inline'; style-src 'self' 'unsafe-inline'; img-src 'self' data: https:; font-src 'self' data:; connect-src 'self' https://venture-voyagers.com https://www.venture-voyagers.com https://restcountries.com https://translate.googleapis.com https://api.resend.com https://api.hubapi.com https://accounts.zoho.com https://www.zohoapis.com; manifest-src 'self'; upgrade-insecure-requests; block-all-mixed-content
 
 /api/*
   Cache-Control: no-store

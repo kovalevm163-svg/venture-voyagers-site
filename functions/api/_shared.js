@@ -58,6 +58,13 @@ let gmailTokenCache = {
   expiresAt: 0
 };
 
+let zohoTokenCache = {
+  cacheKey: "",
+  accessToken: "",
+  apiDomain: "",
+  expiresAt: 0
+};
+
 async function resendRequest(env, payload) {
   const apiKey = envValue(env, "RESEND_API_KEY");
   if (!apiKey) {
@@ -131,6 +138,21 @@ function hasConfiguredGmailProvider(env) {
     && envValue(env, "GMAIL_CLIENT_SECRET")
     && envValue(env, "GMAIL_REFRESH_TOKEN")
   );
+}
+
+function hasConfiguredZohoProvider(env) {
+  return !!(
+    envValue(env, "ZOHO_CLIENT_ID")
+    && envValue(env, "ZOHO_CLIENT_SECRET")
+    && envValue(env, "ZOHO_REFRESH_TOKEN")
+  );
+}
+
+function normalizeZohoDomain(value = "", fallback = "") {
+  const raw = String(value || fallback || "").trim();
+  if (!raw) return "";
+  const withProtocol = /^https?:\/\//i.test(raw) ? raw : `https://${raw}`;
+  return withProtocol.replace(/\/+$/, "");
 }
 
 function toBase64Url(value = "") {
@@ -450,6 +472,143 @@ async function sendEmailViaConfiguredProvider(env, payload = {}) {
   return sendEmailViaResend(env, payload);
 }
 
+async function getZohoAccessToken(env) {
+  if (!hasConfiguredZohoProvider(env)) {
+    return { ok: false, skipped: true, provider: "zoho", message: "ZOHO provider secrets are not configured." };
+  }
+
+  const now = Date.now();
+  const cacheKey = [
+    envValue(env, "ZOHO_CLIENT_ID"),
+    envValue(env, "ZOHO_REFRESH_TOKEN"),
+    envValue(env, "ZOHO_CRM_API_DOMAIN")
+  ].join("::");
+  if (
+    zohoTokenCache.cacheKey === cacheKey
+    && zohoTokenCache.accessToken
+    && zohoTokenCache.apiDomain
+    && zohoTokenCache.expiresAt - now > 60_000
+  ) {
+    return {
+      ok: true,
+      skipped: false,
+      provider: "zoho",
+      accessToken: zohoTokenCache.accessToken,
+      apiDomain: zohoTokenCache.apiDomain,
+      expiresIn: Math.max(0, Math.floor((zohoTokenCache.expiresAt - now) / 1000))
+    };
+  }
+
+  const accountsDomain = normalizeZohoDomain(
+    envValue(env, "ZOHO_ACCOUNTS_DOMAIN"),
+    "https://accounts.zoho.com"
+  );
+  const response = await fetch(`${accountsDomain}/oauth/v2/token`, {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/x-www-form-urlencoded;charset=UTF-8"
+    },
+    body: new URLSearchParams({
+      refresh_token: envValue(env, "ZOHO_REFRESH_TOKEN"),
+      client_id: envValue(env, "ZOHO_CLIENT_ID"),
+      client_secret: envValue(env, "ZOHO_CLIENT_SECRET"),
+      grant_type: "refresh_token"
+    })
+  });
+
+  const body = await response.json().catch(() => ({}));
+  const accessToken = String(body?.access_token || "").trim();
+  const apiDomain = normalizeZohoDomain(
+    envValue(env, "ZOHO_CRM_API_DOMAIN"),
+    body?.api_domain || "https://www.zohoapis.com"
+  );
+  if (!response.ok || !accessToken || !apiDomain) {
+    const message = body?.error_description || body?.error || "Unable to refresh Zoho access token.";
+    return {
+      ok: false,
+      skipped: false,
+      provider: "zoho",
+      status: response.status,
+      message,
+      body
+    };
+  }
+
+  zohoTokenCache = {
+    cacheKey,
+    accessToken,
+    apiDomain,
+    expiresAt: now + (Math.max(120, Number(body?.expires_in || 3600)) * 1000)
+  };
+
+  return {
+    ok: true,
+    skipped: false,
+    provider: "zoho",
+    accessToken,
+    apiDomain,
+    expiresIn: Number(body?.expires_in || 3600)
+  };
+}
+
+async function zohoRequest(env, path, init = {}) {
+  const token = await getZohoAccessToken(env);
+  if (!token.ok) return token;
+
+  const method = String(init?.method || "GET").toUpperCase();
+  const query = init?.query && typeof init.query === "object" ? init.query : null;
+  const params = query
+    ? new URLSearchParams(
+      Object.entries(query).reduce((acc, [key, value]) => {
+        if (value === null || value === undefined || value === "") return acc;
+        acc[key] = String(value);
+        return acc;
+      }, {})
+    )
+    : null;
+
+  const endpoint = `${token.apiDomain}${String(path || "")}${params && params.toString() ? `?${params.toString()}` : ""}`;
+  const sourceBody = init?.body;
+  const payload = sourceBody == null || typeof sourceBody === "string"
+    ? sourceBody
+    : JSON.stringify(sourceBody);
+
+  const response = await fetch(endpoint, {
+    method,
+    headers: {
+      Authorization: `Zoho-oauthtoken ${token.accessToken}`,
+      "Content-Type": "application/json",
+      ...(init?.headers || {})
+    },
+    body: payload
+  });
+
+  const rawText = await response.text().catch(() => "");
+  let body = {};
+  if (rawText) {
+    try {
+      body = JSON.parse(rawText);
+    } catch (_) {
+      body = { rawText };
+    }
+  }
+
+  const message = body?.message
+    || body?.details?.message
+    || body?.data?.[0]?.message
+    || body?.errors?.[0]?.message
+    || "";
+
+  return {
+    ok: response.ok,
+    skipped: false,
+    provider: "zoho",
+    status: response.status,
+    message,
+    body
+  };
+}
+
 async function hubspotRequest(env, path, init = {}) {
   const token = envValue(env, "HUBSPOT_ACCESS_TOKEN");
   if (!token) {
@@ -614,8 +773,10 @@ export {
   envValue,
   escapeHtml,
   getGoogleAccessToken,
+  getZohoAccessToken,
   gmailRequest,
   hasConfiguredGmailProvider,
+  hasConfiguredZohoProvider,
   json,
   normalizeEmail,
   readJson,
@@ -623,5 +784,6 @@ export {
   sendEmailViaGmail,
   sendEmailViaResend,
   splitEmails,
-  toParagraphHtml
+  toParagraphHtml,
+  zohoRequest
 };

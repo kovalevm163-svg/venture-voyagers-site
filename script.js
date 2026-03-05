@@ -2754,6 +2754,10 @@ let pendingPreferredConcierge = "";
 let sunriseHasUnsavedChanges = false;
 let sunriseCommittedStateHash = "";
 let sunriseSessionTicker = null;
+let odpAutoSyncTimer = 0;
+const ODP_SYNC_MIN_MS = 15000;
+const ODP_SYNC_DEFAULT_MS = 45000;
+const ODP_MODULE_ORDER = ["Contacts", "Deals", "Tasks", "Leads", "Accounts"];
 const sunriseModuleRoutes = [
   "sunrise-revenue",
   "sunrise-sales",
@@ -2782,6 +2786,7 @@ const sunriseModuleRoutes = [
   "sunrise-amp",
   "sunrise-alp",
   "sunrise-mcc",
+  "sunrise-odp",
   "sunrise-monarch"
 ];
 const sunriseShortcutRouteMap = {
@@ -2812,6 +2817,7 @@ const sunriseShortcutRouteMap = {
   amp: "sunrise-amp",
   alp: "sunrise-alp",
   mcc: "sunrise-mcc",
+  odp: "sunrise-odp",
   ma1: "sunrise-monarch",
   maa1: "sunrise-monarch"
 };
@@ -2830,6 +2836,7 @@ const sunriseShortcutDescriptions = {
   amp: "Account Management Page",
   alp: "Access Levels Page",
   mcc: "Manage & Create Codes",
+  odp: "Operational Dashboard Panel",
   ma1: "MONARCH ARCHANGEL",
   maa1: "MONARCH ARCHANGEL",
   ws: "Website shutdown (freeze public access to 404)",
@@ -2840,7 +2847,7 @@ const sunriseAccessRouteDefaults = {
   STA: ["sunrise", "sunrise-inbox", "sunrise-services", "sunrise-performance"],
   SA: ["sunrise", "sunrise-inbox", "sunrise-services", "sunrise-performance", "sunrise-sales", "sunrise-marketing", "sunrise-locations"],
   SS: ["sunrise", "sunrise-inbox", "sunrise-services", "sunrise-performance", "sunrise-sales", "sunrise-marketing", "sunrise-locations", "sunrise-soc", "sunrise-soc-details", "sunrise-employees", "sunrise-lcs"],
-  SM: ["sunrise", "sunrise-inbox", "sunrise-services", "sunrise-performance", "sunrise-sales", "sunrise-marketing", "sunrise-locations", "sunrise-soc", "sunrise-soc-details", "sunrise-employees", "sunrise-lcs", "sunrise-expenses", "sunrise-income", "sunrise-eam", "sunrise-ifs", "sunrise-smca", "sunrise-rta", "sunrise-surveys", "sunrise-events", "sunrise-maintenance", "sunrise-mcc"],
+  SM: ["sunrise", "sunrise-inbox", "sunrise-services", "sunrise-performance", "sunrise-sales", "sunrise-marketing", "sunrise-locations", "sunrise-soc", "sunrise-soc-details", "sunrise-employees", "sunrise-lcs", "sunrise-expenses", "sunrise-income", "sunrise-eam", "sunrise-ifs", "sunrise-smca", "sunrise-rta", "sunrise-surveys", "sunrise-events", "sunrise-maintenance", "sunrise-mcc", "sunrise-odp"],
   DA: sunriseModuleRoutes.slice(),
   CA: sunriseModuleRoutes.slice(),
   OW: sunriseModuleRoutes.slice()
@@ -2864,6 +2871,7 @@ const sunriseAccessKeywordRoutes = {
   revenue: ["sunrise-revenue"],
   amp: ["sunrise-amp"],
   alp: ["sunrise-alp"],
+  odp: ["sunrise-odp"],
   monarch: ["sunrise-monarch"],
   locations: ["sunrise-locations"],
   maintenance: ["sunrise-maintenance"],
@@ -3612,7 +3620,7 @@ function suggestedAccessForShortcut(code, route) {
   const r = String(route || "").toLowerCase();
   if (c === "ws" || c === "wr") return "OW";
   if (c === "ma1" || c === "maa1" || r === "sunrise-monarch") return currentSunriseCreatorViewer() ? "CR,OW" : "OW";
-  if (c === "amp" || c === "alp" || c === "mcc") return "SM,DA,CA,OW";
+  if (c === "amp" || c === "alp" || c === "mcc" || c === "odp") return "SM,DA,CA,OW";
   if (c === "lcs" || c === "notos" || r === "sunrise-lcs") return "SS,SM,DA,CA,OW";
   if (c === "rta" || r === "sunrise-rta") return "SM,DA,CA,OW";
   if (r === "sunrise-soc" || r === "sunrise-soc-details" || r === "sunrise-ecs") return "SS,SM,DA,CA,OW";
@@ -9553,6 +9561,7 @@ const sunriseStaffRouteLabels = {
   "sunrise-amp": "Account Management Page",
   "sunrise-alp": "Access Levels Page",
   "sunrise-mcc": "Manage & Create Codes",
+  "sunrise-odp": "Operational Dashboard Panel",
   "sunrise-monarch": "MONARCH ARCHANGEL"
 };
 
@@ -10858,6 +10867,33 @@ const sunriseControlDefaults = {
       }
     ]
   },
+  odp: {
+    liveMirror: true,
+    autoSync: true,
+    pollMs: 45000,
+    activeModule: "Contacts",
+    search: "",
+    selectedRecordId: "",
+    selectedRecordModule: "Contacts",
+    lastSyncedAt: "",
+    lastMirroredAt: "",
+    status: "Operational Dashboard Panel standby. Sync with Zoho to load live data.",
+    warning: "",
+    modules: [],
+    records: {
+      Contacts: [],
+      Deals: [],
+      Tasks: [],
+      Leads: [],
+      Accounts: []
+    },
+    mirrorLog: [],
+    editor: {
+      module: "Contacts",
+      id: "",
+      fields: []
+    }
+  },
   socSelectedServiceId: ""
 };
 
@@ -11131,6 +11167,56 @@ function loadSunriseControlState() {
         access: String(row?.access || "")
       })
     );
+    const parsedOdp = parsed.odp && typeof parsed.odp === "object" ? parsed.odp : {};
+    const parsedOdpRecords = parsedOdp.records && typeof parsedOdp.records === "object" ? parsedOdp.records : {};
+    const parsedOdpEditor = parsedOdp.editor && typeof parsedOdp.editor === "object" ? parsedOdp.editor : {};
+    const odp = {
+      ...fallback.odp,
+      ...parsedOdp,
+      activeModule: normalizeOdpModuleName(parsedOdp.activeModule || fallback.odp.activeModule),
+      search: String(parsedOdp.search || ""),
+      selectedRecordId: String(parsedOdp.selectedRecordId || ""),
+      selectedRecordModule: normalizeOdpModuleName(parsedOdp.selectedRecordModule || fallback.odp.selectedRecordModule),
+      lastSyncedAt: String(parsedOdp.lastSyncedAt || ""),
+      lastMirroredAt: String(parsedOdp.lastMirroredAt || ""),
+      status: String(parsedOdp.status || fallback.odp.status),
+      warning: String(parsedOdp.warning || ""),
+      modules: Array.isArray(parsedOdp.modules) ? parsedOdp.modules : fallback.odp.modules,
+      liveMirror: parsedOdp.liveMirror !== false,
+      autoSync: parsedOdp.autoSync !== false,
+      pollMs: Math.max(15000, Number(parsedOdp.pollMs || fallback.odp.pollMs || 45000)),
+      mirrorLog: Array.isArray(parsedOdp.mirrorLog)
+        ? parsedOdp.mirrorLog
+          .map((row) => ({
+            at: String(row?.at || ""),
+            action: String(row?.action || ""),
+            module: normalizeOdpModuleName(row?.module || ""),
+            recordId: String(row?.recordId || ""),
+            details: String(row?.details || "")
+          }))
+          .filter((row) => row.at || row.action || row.module || row.recordId)
+          .slice(0, 120)
+        : fallback.odp.mirrorLog,
+      records: {
+        Contacts: Array.isArray(parsedOdpRecords.Contacts) ? parsedOdpRecords.Contacts : fallback.odp.records.Contacts,
+        Deals: Array.isArray(parsedOdpRecords.Deals) ? parsedOdpRecords.Deals : fallback.odp.records.Deals,
+        Tasks: Array.isArray(parsedOdpRecords.Tasks) ? parsedOdpRecords.Tasks : fallback.odp.records.Tasks,
+        Leads: Array.isArray(parsedOdpRecords.Leads) ? parsedOdpRecords.Leads : fallback.odp.records.Leads,
+        Accounts: Array.isArray(parsedOdpRecords.Accounts) ? parsedOdpRecords.Accounts : fallback.odp.records.Accounts
+      },
+      editor: {
+        module: normalizeOdpModuleName(parsedOdpEditor.module || fallback.odp.editor.module),
+        id: String(parsedOdpEditor.id || ""),
+        fields: Array.isArray(parsedOdpEditor.fields)
+          ? parsedOdpEditor.fields
+            .map((field) => ({
+              key: String(field?.key || ""),
+              value: String(field?.value || "")
+            }))
+            .filter((field) => field.key)
+          : fallback.odp.editor.fields
+      }
+    };
     return {
       ...fallback,
       ...parsed,
@@ -11146,6 +11232,7 @@ function loadSunriseControlState() {
       deletedAccounts,
       accessLevels,
       shortcutCodes,
+      odp,
       inbox
     };
   } catch (_) {
@@ -11254,7 +11341,8 @@ function ensureSunriseSaveButtons() {
     "sunrise-lcs",
     "sunrise-amp",
     "sunrise-alp",
-    "sunrise-mcc"
+    "sunrise-mcc",
+    "sunrise-odp"
   ];
   routes.forEach((route) => {
     const page = document.querySelector(`.routePage[data-page="${route}"]`);
@@ -13644,6 +13732,527 @@ function renderSignatureManager() {
   enhanceFilePickers(wrap);
 }
 
+function normalizeOdpModuleName(value = "") {
+  const key = String(value || "").trim().toLowerCase();
+  if (key === "contacts") return "Contacts";
+  if (key === "deals" || key === "potentials") return "Deals";
+  if (key === "tasks") return "Tasks";
+  if (key === "leads") return "Leads";
+  if (key === "accounts") return "Accounts";
+  return "Contacts";
+}
+
+function ensureOdpState() {
+  if (!sunriseControlState) return null;
+  if (!sunriseControlState.odp || typeof sunriseControlState.odp !== "object") {
+    sunriseControlState.odp = JSON.parse(JSON.stringify(sunriseControlDefaults.odp || {}));
+  }
+  const odp = sunriseControlState.odp;
+  odp.activeModule = normalizeOdpModuleName(odp.activeModule);
+  odp.selectedRecordModule = normalizeOdpModuleName(odp.selectedRecordModule || odp.activeModule);
+  if (!odp.records || typeof odp.records !== "object") odp.records = {};
+  ODP_MODULE_ORDER.forEach((module) => {
+    if (!Array.isArray(odp.records[module])) odp.records[module] = [];
+  });
+  if (!Array.isArray(odp.modules)) odp.modules = [];
+  if (!Array.isArray(odp.mirrorLog)) odp.mirrorLog = [];
+  if (!odp.editor || typeof odp.editor !== "object") odp.editor = {};
+  if (!Array.isArray(odp.editor.fields)) odp.editor.fields = [];
+  odp.editor.module = normalizeOdpModuleName(odp.editor.module || odp.activeModule);
+  odp.pollMs = Math.max(ODP_SYNC_MIN_MS, Number(odp.pollMs || ODP_SYNC_DEFAULT_MS));
+  odp.liveMirror = odp.liveMirror !== false;
+  odp.autoSync = odp.autoSync !== false;
+  return odp;
+}
+
+function odpTrackerSnapshot() {
+  const socCurrent = Array.isArray(sunriseControlState?.socServices?.current) ? sunriseControlState.socServices.current.length : 0;
+  const socPast = Array.isArray(sunriseControlState?.socServices?.past) ? sunriseControlState.socServices.past.length : 0;
+  const ampCustomers = Object.values(accounts).filter((account) => isVvsCredentialAccount(account) && !isStaffAccount(account) && !isOwnerAccount(account)).length;
+  const ampStaff = Object.values(accounts).filter((account) => isVvsCredentialAccount(account) && isStaffAccount(account)).length;
+  return { socCurrent, socPast, ampCustomers, ampStaff };
+}
+
+function odpMirrorLog(action = "", module = "", recordId = "", details = "") {
+  const odp = ensureOdpState();
+  if (!odp) return;
+  const entry = {
+    at: formatUtcTimestamp(new Date()),
+    action: String(action || "").trim(),
+    module: normalizeOdpModuleName(module || odp.activeModule),
+    recordId: String(recordId || "").trim(),
+    details: String(details || "").trim()
+  };
+  odp.mirrorLog = [entry, ...(Array.isArray(odp.mirrorLog) ? odp.mirrorLog : [])].slice(0, 120);
+  odp.lastMirroredAt = entry.at;
+}
+
+function odpEditorFieldsFromRawRecord(raw = {}) {
+  const source = raw && typeof raw === "object" ? raw : {};
+  return Object.entries(source)
+    .filter(([key]) => key && key !== "$currency_symbol" && key !== "$approval")
+    .map(([key, value]) => {
+      if (value === null || value === undefined) return null;
+      if (typeof value === "object") {
+        if (typeof value.name === "string" && value.name) return { key, value: String(value.name) };
+        if (typeof value.id === "string" && value.id) return { key, value: String(value.id) };
+        return { key, value: JSON.stringify(value) };
+      }
+      return { key, value: String(value) };
+    })
+    .filter(Boolean)
+    .slice(0, 80);
+}
+
+function odpBuildRecordPayload(fields = []) {
+  const payload = {};
+  (Array.isArray(fields) ? fields : []).forEach((field) => {
+    const key = String(field?.key || "").trim();
+    const rawValue = String(field?.value || "").trim();
+    if (!key || !rawValue) return;
+    if (rawValue === "true" || rawValue === "false") {
+      payload[key] = rawValue === "true";
+      return;
+    }
+    if (/^-?\d+(?:\.\d+)?$/.test(rawValue) && !/^0\d+/.test(rawValue)) {
+      payload[key] = Number(rawValue);
+      return;
+    }
+    if ((rawValue.startsWith("{") && rawValue.endsWith("}")) || (rawValue.startsWith("[") && rawValue.endsWith("]"))) {
+      try {
+        payload[key] = JSON.parse(rawValue);
+        return;
+      } catch (_) {}
+    }
+    payload[key] = rawValue;
+  });
+  return payload;
+}
+
+async function odpApiGet(mode = "bootstrap", query = {}) {
+  const params = new URLSearchParams({ mode, ...query });
+  return requestJsonWithTimeout(`/api/zoho-ops?${params.toString()}`, {
+    method: "GET",
+    timeoutMs: 18000
+  });
+}
+
+async function odpApiPost(action = "", payload = {}) {
+  return requestJsonWithTimeout("/api/zoho-ops", {
+    method: "POST",
+    payload: { action, ...payload },
+    timeoutMs: 18000
+  });
+}
+
+async function syncOdpFromZoho({ silent = false } = {}) {
+  const odp = ensureOdpState();
+  if (!odp) return false;
+  if (!silent) odp.status = "Synchronizing ODP with Zoho CRM...";
+  const response = await odpApiGet("bootstrap", { perPage: 35 });
+  if (!response.ok || !response.body) {
+    odp.warning = "Zoho sync failed. Check ODP API status and credentials.";
+    odp.status = "ODP sync failed.";
+    renderODPPage();
+    return false;
+  }
+  const body = response.body || {};
+  if (!body.ok && !body.skipped) {
+    odp.warning = String(body.message || body.warnings?.[0] || "Zoho returned an error.").trim();
+    odp.status = "ODP sync failed.";
+    renderODPPage();
+    return false;
+  }
+  const incomingRecords = body.records && typeof body.records === "object" ? body.records : {};
+  ODP_MODULE_ORDER.forEach((module) => {
+    odp.records[module] = Array.isArray(incomingRecords[module]) ? incomingRecords[module] : [];
+  });
+  odp.modules = Array.isArray(body.modules) ? body.modules : [];
+  odp.lastSyncedAt = String(body.syncedAt || formatUtcTimestamp(new Date())).trim();
+  odp.warning = Array.isArray(body.warnings) && body.warnings.length ? body.warnings.join(" | ") : "";
+  odp.status = body.skipped
+    ? "Zoho CRM credentials are not configured in Cloudflare secrets yet."
+    : "ODP live mirror synchronized with Zoho CRM.";
+  odpMirrorLog("Sync from Zoho", odp.activeModule, "", "Bootstrap synchronization completed.");
+  saveSunriseControlState({ markDirty: false });
+  renderODPPage();
+  return true;
+}
+
+function stopOdpAutoSync() {
+  if (odpAutoSyncTimer) {
+    window.clearInterval(odpAutoSyncTimer);
+    odpAutoSyncTimer = 0;
+  }
+}
+
+function ensureOdpAutoSync() {
+  const odp = ensureOdpState();
+  if (!odp) return;
+  stopOdpAutoSync();
+  if (!odp.autoSync) return;
+  const cadence = Math.max(ODP_SYNC_MIN_MS, Number(odp.pollMs || ODP_SYNC_DEFAULT_MS));
+  odpAutoSyncTimer = window.setInterval(() => {
+    if (currentVisibleRoute() !== "sunrise-odp") return;
+    const current = ensureOdpState();
+    if (!current || !current.autoSync) return;
+    syncOdpFromZoho({ silent: true });
+  }, cadence);
+}
+
+function odpModuleRecords(module = "Contacts") {
+  const odp = ensureOdpState();
+  if (!odp) return [];
+  const key = normalizeOdpModuleName(module || odp.activeModule);
+  return Array.isArray(odp.records[key]) ? odp.records[key] : [];
+}
+
+function odpFilteredRecords() {
+  const odp = ensureOdpState();
+  if (!odp) return [];
+  const records = odpModuleRecords(odp.activeModule);
+  const query = String(odp.search || "").trim().toLowerCase();
+  if (!query) return records;
+  return records.filter((row) => {
+    const haystack = [
+      row?.name,
+      row?.email,
+      row?.phone,
+      row?.company,
+      row?.stage,
+      row?.owner,
+      row?.id
+    ].map((value) => String(value || "").toLowerCase());
+    return haystack.some((value) => value.includes(query));
+  });
+}
+
+function renderOdpModuleTabs(odp) {
+  return ODP_MODULE_ORDER.map((module) => {
+    const active = module === odp.activeModule ? " isActive" : "";
+    const count = Array.isArray(odp.records[module]) ? odp.records[module].length : 0;
+    return `<button class="sunriseMiniBtn odpTabBtn${active}" type="button" data-odp-module="${module}">${module} (${count})</button>`;
+  }).join("");
+}
+
+function renderOdpRecordsTable(records = []) {
+  if (!records.length) {
+    return "<p class='profileNote'>No records available for the current module yet.</p>";
+  }
+  const rows = records.map((row) => {
+    const id = encodeHtmlEntities(String(row?.id || "").trim());
+    const module = encodeHtmlEntities(normalizeOdpModuleName(row?.module || ""));
+    return `<tr>
+      <td>${encodeHtmlEntities(String(row?.name || "Record"))}</td>
+      <td>${encodeHtmlEntities(String(row?.email || row?.phone || row?.company || "-"))}</td>
+      <td>${encodeHtmlEntities(String(row?.stage || "-"))}</td>
+      <td>${encodeHtmlEntities(String(row?.owner || "-"))}</td>
+      <td>${encodeHtmlEntities(String(row?.updatedAt || "-"))}</td>
+      <td><button class="sunriseMiniBtn" type="button" data-odp-open="${id}" data-odp-module-open="${module}">Details</button></td>
+    </tr>`;
+  }).join("");
+  return `<table class="sunriseControlTable odpDataTable"><thead><tr><th>Name / Record</th><th>Connection</th><th>Status / Stage</th><th>Owner</th><th>Updated</th><th>Action</th></tr></thead><tbody>${rows}</tbody></table>`;
+}
+
+function renderOdpEditorFields(odp) {
+  const fields = Array.isArray(odp?.editor?.fields) ? odp.editor.fields : [];
+  if (!fields.length) {
+    return "<p class='profileNote'>No fields loaded. Use Details on a record or add fields manually.</p>";
+  }
+  return fields.map((field, index) => {
+    return `<div class="odpEditorRow">
+      <input class="input" data-odp-field-key="${index}" value="${encodeHtmlEntities(String(field?.key || ""))}" placeholder="Field key">
+      <textarea class="input odpEditorValue" data-odp-field-value="${index}" rows="2" placeholder="Field value">${encodeHtmlEntities(String(field?.value || ""))}</textarea>
+      <button class="sunriseMiniBtn" type="button" data-odp-field-del="${index}">Remove</button>
+    </div>`;
+  }).join("");
+}
+
+function bindODPInteractions() {
+  const grid = document.getElementById("sunrise-odp-grid");
+  if (!grid || !sunriseControlState) return;
+  const odp = ensureOdpState();
+  if (!odp) return;
+
+  grid.querySelectorAll("[data-odp-module]").forEach((btn) => {
+    btn.addEventListener("click", () => {
+      odp.activeModule = normalizeOdpModuleName(btn.getAttribute("data-odp-module") || odp.activeModule);
+      odp.selectedRecordModule = odp.activeModule;
+      renderODPPage();
+    });
+  });
+
+  const syncBtn = grid.querySelector("[data-odp-sync]");
+  if (syncBtn instanceof HTMLButtonElement) {
+    syncBtn.addEventListener("click", async () => {
+      syncBtn.disabled = true;
+      await syncOdpFromZoho();
+      syncBtn.disabled = false;
+    });
+  }
+
+  const searchInput = grid.querySelector("#odp-search");
+  if (searchInput instanceof HTMLInputElement) {
+    searchInput.addEventListener("input", () => {
+      odp.search = String(searchInput.value || "");
+      renderODPPage();
+    });
+  }
+
+  const liveToggle = grid.querySelector("#odp-live-toggle");
+  if (liveToggle instanceof HTMLInputElement) {
+    liveToggle.addEventListener("change", () => {
+      odp.liveMirror = !!liveToggle.checked;
+      odpMirrorLog("Live mirror", odp.activeModule, "", odp.liveMirror ? "Enabled" : "Disabled");
+      saveSunriseControlState();
+      renderODPPage();
+    });
+  }
+
+  const autoToggle = grid.querySelector("#odp-auto-toggle");
+  if (autoToggle instanceof HTMLInputElement) {
+    autoToggle.addEventListener("change", () => {
+      odp.autoSync = !!autoToggle.checked;
+      ensureOdpAutoSync();
+      saveSunriseControlState();
+      renderODPPage();
+    });
+  }
+
+  const pollSelect = grid.querySelector("#odp-poll-select");
+  if (pollSelect instanceof HTMLSelectElement) {
+    pollSelect.addEventListener("change", () => {
+      odp.pollMs = Math.max(ODP_SYNC_MIN_MS, Number(pollSelect.value || ODP_SYNC_DEFAULT_MS));
+      ensureOdpAutoSync();
+      saveSunriseControlState();
+      renderODPPage();
+    });
+  }
+
+  grid.querySelectorAll("[data-odp-open]").forEach((btn) => {
+    btn.addEventListener("click", async () => {
+      const id = String(btn.getAttribute("data-odp-open") || "").trim();
+      const module = normalizeOdpModuleName(btn.getAttribute("data-odp-module-open") || odp.activeModule);
+      if (!id) return;
+      const response = await odpApiPost("fetch-record", { module, id });
+      if (!response.ok || !response.body?.ok || !response.body?.record) {
+        odp.warning = "Unable to load full Zoho record details.";
+        renderODPPage();
+        return;
+      }
+      const record = response.body.record;
+      odp.editor.module = module;
+      odp.editor.id = String(record.id || id);
+      odp.selectedRecordId = String(record.id || id);
+      odp.selectedRecordModule = module;
+      odp.editor.fields = odpEditorFieldsFromRawRecord(record.raw || {});
+      odp.status = `Loaded ${module} record ${odp.editor.id} for editing.`;
+      renderODPPage();
+    });
+  });
+
+  const editorModule = grid.querySelector("#odp-editor-module");
+  if (editorModule instanceof HTMLSelectElement) {
+    editorModule.addEventListener("change", () => {
+      odp.editor.module = normalizeOdpModuleName(editorModule.value);
+      saveSunriseControlState();
+      renderODPPage();
+    });
+  }
+
+  const editorId = grid.querySelector("#odp-editor-id");
+  if (editorId instanceof HTMLInputElement) {
+    editorId.addEventListener("input", () => {
+      odp.editor.id = String(editorId.value || "").trim();
+      saveSunriseControlState();
+    });
+  }
+
+  grid.querySelectorAll("[data-odp-field-key]").forEach((input) => {
+    input.addEventListener("input", () => {
+      const idx = Number(input.getAttribute("data-odp-field-key"));
+      if (!Number.isInteger(idx) || !odp.editor.fields[idx]) return;
+      odp.editor.fields[idx].key = String(input.value || "");
+      saveSunriseControlState();
+    });
+  });
+
+  grid.querySelectorAll("[data-odp-field-value]").forEach((input) => {
+    input.addEventListener("input", () => {
+      const idx = Number(input.getAttribute("data-odp-field-value"));
+      if (!Number.isInteger(idx) || !odp.editor.fields[idx]) return;
+      odp.editor.fields[idx].value = String(input.value || "");
+      saveSunriseControlState();
+    });
+  });
+
+  grid.querySelectorAll("[data-odp-field-del]").forEach((btn) => {
+    btn.addEventListener("click", () => {
+      const idx = Number(btn.getAttribute("data-odp-field-del"));
+      if (!Number.isInteger(idx) || idx < 0 || idx >= odp.editor.fields.length) return;
+      odp.editor.fields.splice(idx, 1);
+      saveSunriseControlState();
+      renderODPPage();
+    });
+  });
+
+  const addFieldBtn = grid.querySelector("[data-odp-field-add]");
+  if (addFieldBtn instanceof HTMLButtonElement) {
+    addFieldBtn.addEventListener("click", () => {
+      odp.editor.fields.push({ key: "", value: "" });
+      saveSunriseControlState();
+      renderODPPage();
+    });
+  }
+
+  const clearEditorBtn = grid.querySelector("[data-odp-editor-clear]");
+  if (clearEditorBtn instanceof HTMLButtonElement) {
+    clearEditorBtn.addEventListener("click", () => {
+      odp.editor.id = "";
+      odp.editor.fields = [];
+      odp.status = "ODP editor cleared.";
+      saveSunriseControlState();
+      renderODPPage();
+    });
+  }
+
+  const saveRecordBtn = grid.querySelector("[data-odp-save-record]");
+  if (saveRecordBtn instanceof HTMLButtonElement) {
+    saveRecordBtn.addEventListener("click", async () => {
+      const module = normalizeOdpModuleName(odp.editor.module || odp.activeModule);
+      const payload = odpBuildRecordPayload(odp.editor.fields);
+      if (odp.editor.id) payload.id = String(odp.editor.id);
+      const response = await odpApiPost("upsert-record", { module, record: payload });
+      if (!response.ok || !response.body?.ok) {
+        odp.warning = String(response.body?.message || "Unable to save record to Zoho.").trim();
+        renderODPPage();
+        return;
+      }
+      const action = String(response.body?.action || "saved");
+      const savedId = String(response.body?.id || odp.editor.id || "").trim();
+      odp.editor.id = savedId;
+      odp.status = `${module} record ${savedId || ""} ${action} in Zoho.`;
+      odp.warning = "";
+      odpMirrorLog("Sync to Zoho", module, savedId, `Record ${action}.`);
+      saveSunriseControlState();
+      await syncOdpFromZoho({ silent: true });
+      renderODPPage();
+    });
+  }
+
+  const deleteRecordBtn = grid.querySelector("[data-odp-delete-record]");
+  if (deleteRecordBtn instanceof HTMLButtonElement) {
+    deleteRecordBtn.addEventListener("click", async () => {
+      const module = normalizeOdpModuleName(odp.editor.module || odp.activeModule);
+      const id = String(odp.editor.id || "").trim();
+      if (!id) {
+        odp.warning = "Load or enter a record ID to delete from Zoho.";
+        renderODPPage();
+        return;
+      }
+      const response = await odpApiPost("delete-record", { module, id });
+      if (!response.ok || !response.body?.ok) {
+        odp.warning = String(response.body?.message || "Unable to delete record in Zoho.").trim();
+        renderODPPage();
+        return;
+      }
+      odpMirrorLog("Sync to Zoho", module, id, "Record deleted.");
+      odp.editor.id = "";
+      odp.editor.fields = [];
+      odp.status = `${module} record ${id} deleted in Zoho.`;
+      saveSunriseControlState();
+      await syncOdpFromZoho({ silent: true });
+      renderODPPage();
+    });
+  }
+}
+
+function renderODPPage() {
+  const grid = document.getElementById("sunrise-odp-grid");
+  if (!grid || !sunriseControlState) return;
+  const odp = ensureOdpState();
+  if (!odp) return;
+  const tracker = odpTrackerSnapshot();
+  const records = odpFilteredRecords();
+  const pollValue = String(Math.max(ODP_SYNC_MIN_MS, Number(odp.pollMs || ODP_SYNC_DEFAULT_MS)));
+  grid.innerHTML = `<article class="sunriseControlCard sunriseDetailWide odpHeroCard">
+    <div class="odpHeroTop">
+      <div>
+        <h3>Operational Dashboard Panel (ODP)</h3>
+        <p class="opsText">Live two-way mirror between Zoho CRM and Sunrise. All record updates, controls, opportunities, settings, and trackers synchronize through ODP.</p>
+      </div>
+      <div class="sunriseControlActions">
+        <button class="sunriseMiniBtn" type="button" data-odp-sync>Sync with Zoho</button>
+      </div>
+    </div>
+    <div class="odpStatGrid">
+      <article class="odpStatCard"><span>Last Zoho Sync</span><b>${encodeHtmlEntities(odp.lastSyncedAt || "Not synced yet")}</b></article>
+      <article class="odpStatCard"><span>Last Mirror Event</span><b>${encodeHtmlEntities(odp.lastMirroredAt || "No mirrored actions yet")}</b></article>
+      <article class="odpStatCard"><span>SOC Active / Past</span><b>${tracker.socCurrent} / ${tracker.socPast}</b></article>
+      <article class="odpStatCard"><span>AMP Customers / Staff</span><b>${tracker.ampCustomers} / ${tracker.ampStaff}</b></article>
+    </div>
+    <div class="odpControlRow">
+      <label class="choice"><input id="odp-live-toggle" type="checkbox" ${odp.liveMirror ? "checked" : ""}> Live Mirroring</label>
+      <label class="choice"><input id="odp-auto-toggle" type="checkbox" ${odp.autoSync ? "checked" : ""}> Auto Sync</label>
+      <label class="fieldLabel" for="odp-poll-select">Polling cadence</label>
+      <select class="select odpPollSelect" id="odp-poll-select">
+        <option value="15000" ${pollValue === "15000" ? "selected" : ""}>15 sec</option>
+        <option value="30000" ${pollValue === "30000" ? "selected" : ""}>30 sec</option>
+        <option value="45000" ${pollValue === "45000" ? "selected" : ""}>45 sec</option>
+        <option value="60000" ${pollValue === "60000" ? "selected" : ""}>60 sec</option>
+      </select>
+    </div>
+    <p class="authInfo">${encodeHtmlEntities(String(odp.status || "").trim())}</p>
+    ${odp.warning ? `<p class="authInfo sunriseWarnText">${encodeHtmlEntities(odp.warning)}</p>` : ""}
+  </article>
+  <article class="sunriseControlCard sunriseDetailWide">
+    <div class="sunriseSectionTabs odpTabs">${renderOdpModuleTabs(odp)}</div>
+    <div class="odpSearchRow">
+      <input class="input" id="odp-search" placeholder="Search records, owners, emails, phone, stage..." value="${encodeHtmlEntities(String(odp.search || ""))}">
+      <span class="profileNote">${records.length} record(s) listed</span>
+    </div>
+    ${renderOdpRecordsTable(records)}
+  </article>
+  <article class="sunriseControlCard sunriseDetailWide odpEditorCard">
+    <div class="odpEditorTop">
+      <h3>Zoho Record Editor</h3>
+      <div class="sunriseControlActions">
+        <button class="sunriseMiniBtn" type="button" data-odp-field-add>Add Field</button>
+        <button class="sunriseMiniBtn" type="button" data-odp-editor-clear>Clear</button>
+      </div>
+    </div>
+    <div class="odpEditorHeadRow">
+      <label class="field">
+        <span>Module</span>
+        <select class="select" id="odp-editor-module">${ODP_MODULE_ORDER.map((module) => `<option value="${module}" ${normalizeOdpModuleName(odp.editor.module) === module ? "selected" : ""}>${module}</option>`).join("")}</select>
+      </label>
+      <label class="field">
+        <span>Record ID</span>
+        <input class="input" id="odp-editor-id" value="${encodeHtmlEntities(String(odp.editor.id || ""))}" placeholder="Leave empty to create new record">
+      </label>
+    </div>
+    <div class="odpEditorFields">${renderOdpEditorFields(odp)}</div>
+    <div class="sunriseControlActions">
+      <button class="sunriseMiniBtn" type="button" data-odp-save-record>Save to Zoho</button>
+      <button class="sunriseMiniBtn isDanger" type="button" data-odp-delete-record>Delete from Zoho</button>
+    </div>
+  </article>
+  <article class="sunriseControlCard sunriseDetailWide odpMirrorCard">
+    <h3>Mirror Activity Trace</h3>
+    <div class="odpMirrorList">${(Array.isArray(odp.mirrorLog) ? odp.mirrorLog : []).slice(0, 14).map((entry) => {
+      const label = [entry.module, entry.recordId].filter(Boolean).join(" • ");
+      return `<article class="odpMirrorItem"><div><b>${encodeHtmlEntities(entry.action || "Event")}</b><p>${encodeHtmlEntities(entry.details || "")}</p></div><div class="odpMirrorMeta"><span>${encodeHtmlEntities(label || "ODP")}</span><span>${encodeHtmlEntities(entry.at || "")}</span></div></article>`;
+    }).join("") || "<p class='profileNote'>No mirrored ODP events recorded yet.</p>"}</div>
+  </article>`;
+
+  bindODPInteractions();
+  ensureOdpAutoSync();
+  if (!odp.lastSyncedAt && !odp.bootstrapRequested) {
+    odp.bootstrapRequested = true;
+    syncOdpFromZoho({ silent: true });
+  }
+}
+
 function renderSMCAPage() {
   const grid = document.getElementById("sunrise-smca-grid");
   if (!grid || !sunriseControlState) return;
@@ -13716,6 +14325,10 @@ function renderCustomSunriseControlPages() {
   }
   if (route === "sunrise-monarch") {
     renderMonarchArchangelPage();
+    return;
+  }
+  if (route === "sunrise-odp") {
+    renderODPPage();
     return;
   }
   if (route === "sunrise-amp" || route === "sunrise-alp" || route === "sunrise-mcc") {

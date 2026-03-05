@@ -4,10 +4,12 @@ import {
   createHubSpotTicket,
   ensureHubSpotContact,
   envValue,
+  hasConfiguredZohoProvider,
   json,
   readJson,
   sendEmailViaConfiguredProvider,
-  toParagraphHtml
+  toParagraphHtml,
+  zohoRequest
 } from "./_shared.js";
 
 function htmlPage({ title = "VVS Request", body = "", status = 200 } = {}) {
@@ -107,6 +109,84 @@ function validatePayload(payload = {}) {
     return "Invalid email address.";
   }
   return "";
+}
+
+function formatClosingDate(payload = {}) {
+  const now = new Date();
+  const value = String(payload.executionTime || "").trim().toLowerCase();
+  if (value.includes("instant")) now.setDate(now.getDate() + 1);
+  else if (value.includes("24")) now.setDate(now.getDate() + 1);
+  else if (value.includes("48")) now.setDate(now.getDate() + 2);
+  else now.setDate(now.getDate() + 3);
+  const y = now.getUTCFullYear();
+  const m = String(now.getUTCMonth() + 1).padStart(2, "0");
+  const d = String(now.getUTCDate()).padStart(2, "0");
+  return `${y}-${m}-${d}`;
+}
+
+async function syncRequestToZoho(env, payload = {}, {
+  contactMethodLabel = "",
+  conciergeName = ""
+} = {}) {
+  if (!hasConfiguredZohoProvider(env)) {
+    return {
+      ok: false,
+      skipped: true,
+      provider: "zoho",
+      message: "Zoho CRM provider is not configured."
+    };
+  }
+
+  const contactRow = {
+    First_Name: cleanText(payload.firstName),
+    Last_Name: cleanText(payload.lastName) || cleanText(payload.firstName) || "VVS Client",
+    Email: String(payload.email || "").trim().toLowerCase(),
+    Phone: cleanText(payload.phone),
+    Company: "Venture Voyager Services",
+    Lead_Source: "VVS Website",
+    Description: cleanText(
+      `Service type: ${payload.serviceType}. Desired execution: ${payload.executionTime}. Preferred contact: ${contactMethodLabel}. Assigned concierge: ${conciergeName}. Request details: ${payload.requestDetails}`
+    )
+  };
+
+  const contactResponse = await zohoRequest(env, "/crm/v2/Contacts/upsert", {
+    method: "POST",
+    body: {
+      data: [contactRow],
+      duplicate_check_fields: ["Email"],
+      trigger: ["workflow", "approval", "blueprint"]
+    }
+  });
+
+  const contactDetails = contactResponse.body?.data?.[0]?.details || {};
+  const contactId = String(contactDetails.id || "").trim();
+  const dealRow = {
+    Deal_Name: `VVS ${cleanText(payload.serviceType)} - ${cleanText(payload.lastName || payload.firstName) || "Client"}`,
+    Stage: "Qualification",
+    Closing_Date: formatClosingDate(payload),
+    Amount: 0,
+    Description: cleanText(
+      `Client: ${payload.title} ${payload.firstName} ${payload.lastName}. Country: ${payload.countryIssued}. Preferred contact: ${contactMethodLabel}. Assigned concierge: ${conciergeName}. Request details: ${payload.requestDetails}`
+    )
+  };
+  if (contactId) dealRow.Contact_Name = { id: contactId };
+  const dealResponse = await zohoRequest(env, "/crm/v2/Deals", {
+    method: "POST",
+    body: {
+      data: [dealRow],
+      trigger: ["workflow", "approval", "blueprint"]
+    }
+  });
+
+  const ok = !!(contactResponse.ok && dealResponse.ok);
+  return {
+    ok,
+    skipped: false,
+    provider: "zoho",
+    message: ok ? "Zoho contact and deal synchronized." : "Zoho sync failed.",
+    contact: contactResponse,
+    deal: dealResponse
+  };
 }
 
 export async function onRequestPost(context) {
@@ -217,6 +297,11 @@ export async function onRequestPost(context) {
     associationResult = await associateHubSpotContactToTicket(context.env, contactResult.contactId, ticketResult.ticketId);
   }
 
+  const zohoResult = await syncRequestToZoho(context.env, payload, {
+    contactMethodLabel,
+    conciergeName
+  });
+
   const responseBody = {
     ok: true,
     message: "Contact submission accepted.",
@@ -228,7 +313,8 @@ export async function onRequestPost(context) {
       crm: {
         contact: contactResult,
         ticket: ticketResult,
-        association: associationResult
+        association: associationResult,
+        zoho: zohoResult
       }
     }
   };

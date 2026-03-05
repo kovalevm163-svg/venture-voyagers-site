@@ -9,6 +9,9 @@ This project now includes Cloudflare Pages Functions for:
   - creates a HubSpot ticket
 - `/api/email-send`
   - sends Sunrise outbound emails through Resend
+- `/api/zoho-ops`
+  - powers Sunrise ODP (Operational Dashboard Panel)
+  - syncs Zoho modules, records, and two-way record updates/deletes
 
 ## Required environment variables
 
@@ -20,6 +23,11 @@ Set these in Cloudflare Pages:
 - `HUBSPOT_ACCESS_TOKEN`
 - `HUBSPOT_TICKET_PIPELINE`
 - `HUBSPOT_TICKET_STAGE`
+- `ZOHO_CLIENT_ID`
+- `ZOHO_CLIENT_SECRET`
+- `ZOHO_REFRESH_TOKEN`
+- `ZOHO_ACCOUNTS_DOMAIN` (optional, default `https://accounts.zoho.com`)
+- `ZOHO_CRM_API_DOMAIN` (optional, default `https://www.zohoapis.com`)
 
 For local Cloudflare dev, copy:
 

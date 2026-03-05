@@ -2054,6 +2054,206 @@ body.sunrise-dock-visible main{
   box-shadow: 0 0 0 1px rgba(255,218,188,.14) inset, 0 10px 22px rgba(0,0,0,.25);
 }
 
+.sunriseWarnText{
+  color: rgba(255,202,188,.92);
+}
+
+.odpHeroCard{
+  padding:18px;
+  background:
+    linear-gradient(145deg, rgba(76,36,21,.88), rgba(126,73,40,.66)),
+    radial-gradient(120% 140% at 12% 0%, rgba(236,182,133,.14), transparent 58%);
+}
+
+.odpHeroTop{
+  display:flex;
+  justify-content:space-between;
+  align-items:flex-start;
+  gap:14px;
+}
+
+.odpStatGrid{
+  margin-top:12px;
+  display:grid;
+  grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+  gap:10px;
+}
+
+.odpStatCard{
+  border:1px solid rgba(236,188,146,.22);
+  border-radius:14px;
+  padding:10px 12px;
+  background: rgba(18,10,8,.34);
+  min-width:0;
+}
+
+.odpStatCard span{
+  display:block;
+  font-size:10px;
+  letter-spacing:.13em;
+  text-transform:uppercase;
+  color: rgba(255,222,199,.72);
+}
+
+.odpStatCard b{
+  display:block;
+  margin-top:6px;
+  font-size:12px;
+  letter-spacing:.03em;
+  color: rgba(255,236,220,.96);
+  overflow-wrap:anywhere;
+}
+
+.odpControlRow{
+  margin-top:12px;
+  display:flex;
+  gap:10px 14px;
+  align-items:center;
+  flex-wrap:wrap;
+}
+
+.odpControlRow .fieldLabel{
+  font-size:11px;
+  letter-spacing:.13em;
+  text-transform:uppercase;
+  color: rgba(255,216,189,.7);
+}
+
+.odpPollSelect{
+  min-width:130px;
+}
+
+.odpTabs{
+  margin-top:0;
+}
+
+.odpTabBtn{
+  min-width:136px;
+}
+
+.odpSearchRow{
+  margin-top:10px;
+  display:flex;
+  gap:10px;
+  align-items:center;
+  flex-wrap:wrap;
+}
+
+.odpSearchRow .input{
+  flex:1 1 280px;
+}
+
+.odpDataTable td{
+  overflow-wrap:anywhere;
+}
+
+.odpEditorCard{
+  padding:16px;
+}
+
+.odpEditorTop{
+  display:flex;
+  justify-content:space-between;
+  align-items:center;
+  gap:10px;
+  flex-wrap:wrap;
+}
+
+.odpEditorHeadRow{
+  display:grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap:10px;
+}
+
+.odpEditorHeadRow .field{
+  margin:0;
+}
+
+.odpEditorFields{
+  margin-top:10px;
+  display:grid;
+  gap:8px;
+}
+
+.odpEditorRow{
+  display:grid;
+  grid-template-columns: minmax(180px, .6fr) minmax(0, 1fr) auto;
+  gap:8px;
+  align-items:start;
+}
+
+.odpEditorValue{
+  min-height:64px;
+  resize:vertical;
+}
+
+.odpMirrorCard{
+  padding:16px;
+}
+
+.odpMirrorList{
+  display:grid;
+  gap:8px;
+  max-height:390px;
+  overflow:auto;
+  padding-right:4px;
+}
+
+.odpMirrorItem{
+  border:1px solid rgba(223,167,131,.24);
+  border-radius:12px;
+  background: rgba(15,8,7,.42);
+  padding:10px;
+  display:flex;
+  justify-content:space-between;
+  gap:12px;
+}
+
+.odpMirrorItem b{
+  display:block;
+  margin-bottom:4px;
+  font-size:12px;
+  letter-spacing:.08em;
+  text-transform:uppercase;
+  color: rgba(255,228,208,.96);
+}
+
+.odpMirrorItem p{
+  margin:0;
+  font-size:12px;
+  color: rgba(255,216,192,.82);
+}
+
+.odpMirrorMeta{
+  display:grid;
+  gap:4px;
+  justify-items:end;
+  font-size:11px;
+  color: rgba(255,216,192,.72);
+  text-align:right;
+  min-width:160px;
+}
+
+@media (max-width: 940px){
+  .odpEditorHeadRow{
+    grid-template-columns: 1fr;
+  }
+
+  .odpEditorRow{
+    grid-template-columns: 1fr;
+  }
+
+  .odpMirrorItem{
+    flex-direction:column;
+  }
+
+  .odpMirrorMeta{
+    justify-items:start;
+    text-align:left;
+    min-width:0;
+  }
+}
+
 .sunriseInboxShell{
   display:grid;
   grid-template-columns: 290px minmax(0, 1fr);
