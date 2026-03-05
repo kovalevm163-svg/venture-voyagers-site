@@ -6,6 +6,7 @@ let currentAssignedConcierge = null;
 let sunriseControlState = null;
 const SESSION_EMAIL_KEY = "vvs_active_account_email";
 const SESSION_ACCOUNT_SNAPSHOT_KEY = "vvs_active_account_snapshot";
+const SESSION_AUTH_AT_KEY = "vvs_active_account_auth_at";
 const SUNRISE_SESSION_KEY = "vvs_sunrise_session";
 const SUNRISE_CONTROL_DATA_KEY = "vvs_sunrise_control_data";
 const MONARCH_ARCHANGEL_DATA_KEY = "vvs_monarch_archangel_data";
@@ -5961,6 +5962,7 @@ function setSharedRegistrySnapshot(registry = null, { mergeIntoAccounts = true, 
         localStorage.setItem(ACCOUNTS_DATA_KEY, JSON.stringify(accounts));
       } catch (_) {}
     }
+    enforceRemoteSessionRevocation();
   }
   queueMonarchArchangelSync();
 }
@@ -6102,6 +6104,7 @@ async function pullSharedRegistryAccountByEmail(rawEmail = "", { persistLocal = 
       localStorage.setItem(ACCOUNTS_DATA_KEY, JSON.stringify(accounts));
     } catch (_) {}
   }
+  enforceRemoteSessionRevocation();
   queueMonarchArchangelSync();
   if (sunriseControlState) {
     syncEcsWithStaffAccounts();
@@ -6245,6 +6248,111 @@ async function logSharedRegistryActivity({
     status,
     account: record
   });
+}
+
+async function syncCredentialsToRegistry({
+  account = null,
+  email = "",
+  eventType = "",
+  system = "vvs",
+  route = "",
+  status = ""
+} = {}) {
+  const normalizedEmail = normalizeEmailAddress(email || account?.email || "");
+  const source = account || accounts[normalizedEmail];
+  if (!normalizedEmail || !source || source.sunriseCredential) return false;
+  const record = sharedRegistryAccountPayload(source, normalizedEmail);
+  if (!record) return false;
+  const payload = {
+    action: "upsert-account",
+    account: record
+  };
+  if (eventType) {
+    payload.event = {
+      email: normalizedEmail,
+      eventType,
+      system,
+      route,
+      status
+    };
+  }
+  const posted = await postSharedRegistryAction(payload);
+  if (!posted) {
+    queueSharedRegistryAccountSync(normalizedEmail);
+    if (eventType) {
+      logSharedRegistryActivity({
+        email: normalizedEmail,
+        eventType,
+        system,
+        route,
+        status,
+        account: source
+      });
+    }
+  }
+  queueMonarchArchangelSync();
+  return posted;
+}
+
+function activeAccountForceLogoutAtMs(account = activeAccount) {
+  if (!account || typeof account !== "object") return 0;
+  const marker = String(account.forceLogoutAt || account.sessionRevokedAt || "").trim();
+  return parseSessionTimestampMs(marker);
+}
+
+function activeSessionShouldBeRevoked(account = activeAccount) {
+  if (!account || typeof account !== "object") return false;
+  const forceAt = activeAccountForceLogoutAtMs(account);
+  if (!forceAt) return false;
+  const sessionAt = readActiveSessionAuthAtMs();
+  if (!sessionAt) return true;
+  return sessionAt < forceAt;
+}
+
+function forceLogoutActiveSession(reason = "Session revoked. Please log in again.") {
+  const account = activeAccount;
+  const email = normalizeEmailAddress(account?.email || "");
+  closeAccountSettingsOverlay();
+  resetSunriseState();
+  activeAccount = null;
+  clearActiveSession();
+  updateAuthCta();
+  if (loginInfo) loginInfo.textContent = reason;
+  if (sunriseInfo) sunriseInfo.textContent = reason;
+  forceShowRoute("account");
+  if (email) {
+    logSharedRegistryActivity({
+      email,
+      eventType: "session_revoked",
+      system: "vvs",
+      route: "account",
+      status: reason,
+      account
+    });
+  }
+  return true;
+}
+
+function enforceRemoteSessionRevocation() {
+  if (!activeAccount) return false;
+  const account = findAccountByEmail(activeAccount.email) || activeAccount;
+  if (!activeSessionShouldBeRevoked(account)) return false;
+  return forceLogoutActiveSession("Session revoked by security policy. Please log in again.");
+}
+
+async function refreshActiveSessionRegistryGuard() {
+  if (!activeAccount || !activeAccount.email) return false;
+  const email = normalizeEmailAddress(activeAccount.email);
+  if (!email) return false;
+  await pullSharedRegistryAccountByEmail(email, { persistLocal: true });
+  return enforceRemoteSessionRevocation();
+}
+
+function ensureRemoteSessionRevocationGuard() {
+  if (remoteSessionRevocationTimer) return;
+  remoteSessionRevocationTimer = window.setInterval(() => {
+    refreshActiveSessionRegistryGuard();
+  }, REMOTE_SESSION_REVOCATION_INTERVAL_MS);
 }
 
 async function flushSharedRegistryAccountSync() {
@@ -7483,6 +7591,8 @@ let ampRegistryHydrationInFlight = false;
 let ampRegistryLastHydratedAt = 0;
 let ampRegistryLastHydratedEmail = "";
 const AMP_REGISTRY_HYDRATE_INTERVAL_MS = 20000;
+let remoteSessionRevocationTimer = 0;
+const REMOTE_SESSION_REVOCATION_INTERVAL_MS = 25000;
 
 let sunriseOwnerInboxRefreshHandle = 0;
 
@@ -8625,6 +8735,33 @@ function clearActiveSession() {
   try {
     localStorage.removeItem(SESSION_EMAIL_KEY);
     localStorage.removeItem(SESSION_ACCOUNT_SNAPSHOT_KEY);
+    localStorage.removeItem(SESSION_AUTH_AT_KEY);
+  } catch (_) {}
+}
+
+function parseSessionTimestampMs(rawValue = "") {
+  const raw = String(rawValue || "").trim();
+  if (!raw) return 0;
+  const normalized = raw.includes("UTC")
+    ? raw.replace(" UTC", "Z").replace(" ", "T")
+    : raw;
+  const numeric = Number(raw);
+  if (Number.isFinite(numeric) && numeric > 0) return numeric;
+  const parsed = Date.parse(normalized);
+  return Number.isFinite(parsed) && parsed > 0 ? parsed : 0;
+}
+
+function readActiveSessionAuthAtMs() {
+  try {
+    return parseSessionTimestampMs(localStorage.getItem(SESSION_AUTH_AT_KEY) || "");
+  } catch (_) {
+    return 0;
+  }
+}
+
+function markActiveSessionAuthenticatedNow() {
+  try {
+    localStorage.setItem(SESSION_AUTH_AT_KEY, String(Date.now()));
   } catch (_) {}
 }
 
@@ -8636,6 +8773,10 @@ function persistActiveSession(account) {
   try {
     localStorage.setItem(SESSION_EMAIL_KEY, String(account.email).trim().toLowerCase());
     localStorage.setItem(SESSION_ACCOUNT_SNAPSHOT_KEY, JSON.stringify(account));
+    const existingAuthAt = localStorage.getItem(SESSION_AUTH_AT_KEY) || "";
+    if (!String(existingAuthAt || "").trim()) {
+      markActiveSessionAuthenticatedNow();
+    }
   } catch (_) {}
 }
 
@@ -8848,6 +8989,7 @@ function restoreActiveSession() {
     activeAccount = account;
     renderProfile(account);
     restoreSunriseSession(account);
+    enforceRemoteSessionRevocation();
   } catch (_) {
     clearActiveSession();
   }
@@ -8874,14 +9016,13 @@ function finalizeSunriseUnlock(account) {
   if (sunriseNotosInfo) sunriseNotosInfo.textContent = "";
   updateSunriseAccessView();
   renderSunrise(activeAccount || targetAccount);
-  queueSharedRegistryAccountSync(String(operatorAccount?.email || targetAccount?.email || "").trim().toLowerCase());
-  logSharedRegistryActivity({
+  syncCredentialsToRegistry({
     email: String(operatorAccount?.email || targetAccount?.email || "").trim().toLowerCase(),
+    account: operatorAccount || targetAccount,
     eventType: "sunrise_login",
     system: "sunrise",
     route: currentVisibleRoute(),
-    status: "Access Granted",
-    account: operatorAccount || targetAccount
+    status: "Access Granted"
   });
 }
 
@@ -10142,6 +10283,7 @@ if (loginStep1) {
     authState.loginAccount = account;
     if (shouldBypassOwnerEmailVerification(account)) {
       activeAccount = account;
+      markActiveSessionAuthenticatedNow();
       persistActiveSession(activeAccount);
       renderProfile(account);
       updateAuthCta();
@@ -10150,14 +10292,13 @@ if (loginStep1) {
         loginStep2.reset();
       }
       if (loginInfo) loginInfo.textContent = "Owner verification confirmed. Redirecting to your account.";
-      queueSharedRegistryAccountSync(String(account.email || "").trim().toLowerCase());
-      logSharedRegistryActivity({
+      syncCredentialsToRegistry({
         email: String(account.email || "").trim().toLowerCase(),
+        account,
         eventType: "vvs_login",
         system: "vvs",
         route: "profile",
-        status: "Access Granted",
-        account
+        status: "Access Granted"
       });
       showRoute("profile");
       return;
@@ -10206,19 +10347,19 @@ if (loginStep2) {
     }
 
     activeAccount = account;
+    markActiveSessionAuthenticatedNow();
     persistActiveSession(activeAccount);
     renderProfile(account);
     updateAuthCta();
     if (loginInfo) loginInfo.textContent = "Verification successful. Redirecting to your account.";
     loginStep2.reset();
-    queueSharedRegistryAccountSync(String(account.email || "").trim().toLowerCase());
-    logSharedRegistryActivity({
+    syncCredentialsToRegistry({
       email: String(account.email || "").trim().toLowerCase(),
+      account,
       eventType: "vvs_login",
       system: "vvs",
       route: "profile",
-      status: "Access Granted",
-      account
+      status: "Access Granted"
     });
     showRoute("profile");
   });
@@ -10265,14 +10406,13 @@ if (signupStep1) {
     });
     persistAccountsData();
     const signupAccount = accounts[authState.signupEmail.toLowerCase()];
-    queueSharedRegistryAccountSync(authState.signupEmail);
-    logSharedRegistryActivity({
+    syncCredentialsToRegistry({
       email: authState.signupEmail,
+      account: signupAccount,
       eventType: "signup_started",
       system: "vvs",
       route: "signup",
-      status: "Pending Verification",
-      account: signupAccount
+      status: "Pending Verification"
     });
     authState.signupCode = issueTestEmailCode(authState.signupEmail);
     const pendingAccount = signupAccount;
@@ -10321,18 +10461,18 @@ if (signupStep2) {
       activeAccount.preferredContactMethod = String(activeAccount.preferredContactMethod || "email").trim().toLowerCase();
       normalizeAccountServiceCards(activeAccount);
       persistAccountsData();
-      queueSharedRegistryAccountSync(String(activeAccount.email || "").trim().toLowerCase());
-      logSharedRegistryActivity({
+      syncCredentialsToRegistry({
         email: String(activeAccount.email || "").trim().toLowerCase(),
+        account: activeAccount,
         eventType: "signup_verified",
         system: "vvs",
         route: "profile",
-        status: "Active",
-        account: activeAccount
+        status: "Active"
       });
     }
     renderProfile(activeAccount);
     updateAuthCta();
+    markActiveSessionAuthenticatedNow();
     persistActiveSession(activeAccount);
     signupStep2.reset();
     showRoute("profile");
@@ -15808,7 +15948,9 @@ try {
 refreshSharedAccountRegistry({ mergeIntoAccounts: true, persistLocal: true }).finally(() => {
   queueSharedRegistryBackfill();
   applyUpgradeInviteFromUrl();
+  enforceRemoteSessionRevocation();
 });
+ensureRemoteSessionRevocationGuard();
 if (document.body.dataset.sunrisePersistFlushBound !== "1") {
   document.body.dataset.sunrisePersistFlushBound = "1";
   document.addEventListener("visibilitychange", () => {
