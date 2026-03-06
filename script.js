@@ -3496,6 +3496,58 @@ function setActiveNav(route) {
   });
 }
 
+function ensureAboutNavLinkVisible() {
+  const nav = document.querySelector("header .navlinks");
+  if (!nav) return;
+  const existing = Array.from(nav.querySelectorAll("a")).find((link) => {
+    const route = String(link.getAttribute("data-route") || "").trim().toLowerCase();
+    const href = String(link.getAttribute("href") || "").trim().toLowerCase();
+    const text = String(link.textContent || "").trim().toLowerCase();
+    return route === "about" || href.includes("#about") || text === "about us" || text === "about";
+  });
+  if (existing) {
+    existing.hidden = false;
+    return;
+  }
+  const aboutLink = document.createElement("a");
+  const hasSpaAboutRoute = !!document.querySelector('.routePage[data-page="about"]');
+  if (hasSpaAboutRoute) {
+    aboutLink.href = "#about";
+    aboutLink.setAttribute("data-route", "about");
+    aboutLink.setAttribute("data-nav-link", "");
+  } else {
+    aboutLink.href = "index.html#about";
+  }
+  aboutLink.textContent = "About Us";
+  const contactLink = Array.from(nav.querySelectorAll("a")).find((link) => {
+    const href = String(link.getAttribute("href") || "").trim().toLowerCase();
+    const text = String(link.textContent || "").trim().toLowerCase();
+    return href.includes("#contact") || text === "contact";
+  });
+  if (contactLink) nav.insertBefore(aboutLink, contactLink);
+  else nav.appendChild(aboutLink);
+}
+
+function ensureMobileNavVisibilityStyles() {
+  if (document.getElementById("vvs-mobile-nav-fix-style")) return;
+  const style = document.createElement("style");
+  style.id = "vvs-mobile-nav-fix-style";
+  style.textContent = `
+    @media (max-width: 920px) {
+      .navlinks {
+        flex-wrap: wrap !important;
+        row-gap: 6px !important;
+        overflow: visible !important;
+        white-space: normal !important;
+      }
+      .navlinks a {
+        flex: 0 0 auto !important;
+      }
+    }
+  `;
+  document.head.appendChild(style);
+}
+
 function initHeroLocator() {
   const signal = document.querySelector(".heroSignal");
   const radar = document.querySelector(".heroRadar");
@@ -4495,6 +4547,8 @@ const safeStartupCall = (name, fn) => {
 };
 
 safeStartupCall("populateAllTierBacks", populateAllTierBacks);
+safeStartupCall("ensureAboutNavLinkVisible", ensureAboutNavLinkVisible);
+safeStartupCall("ensureMobileNavVisibilityStyles", ensureMobileNavVisibilityStyles);
 safeStartupCall("initHeroLocator", initHeroLocator);
 safeStartupCall("populateSignupCountries", populateSignupCountries);
 safeStartupCall("populateIssuedServiceCountries", populateIssuedServiceCountries);
@@ -10221,6 +10275,31 @@ function closeAmpCustomerDetails() {
   if (ampCustomerDetailsOverlay) ampCustomerDetailsOverlay.hidden = true;
 }
 
+function bindAmpGridDetailButtons() {
+  const grid = document.getElementById("sunrise-amp-grid");
+  if (!grid || grid.dataset.detailsBound === "1") return;
+  grid.addEventListener("click", (event) => {
+    const clickTarget = event.target instanceof Element ? event.target : null;
+    if (!clickTarget) return;
+
+    const staffBtn = clickTarget.closest("[data-amp-staff-details]");
+    if (staffBtn) {
+      event.preventDefault();
+      event.stopPropagation();
+      openAmpAccountDetails(String(staffBtn.getAttribute("data-amp-staff-details") || ""));
+      return;
+    }
+
+    const customerBtn = clickTarget.closest("[data-amp-customer-details]");
+    if (customerBtn) {
+      event.preventDefault();
+      event.stopPropagation();
+      openAmpCustomerDetails(String(customerBtn.getAttribute("data-amp-customer-details") || ""));
+    }
+  });
+  grid.dataset.detailsBound = "1";
+}
+
 authTabs.forEach((tab) => {
   tab.addEventListener("click", () => activateAuthTab(tab.getAttribute("data-auth-tab")));
 });
@@ -13434,6 +13513,7 @@ function renderAmpCustomerCards(entries = []) {
 function renderAMPPage(filter = "", options = {}) {
   const grid = document.getElementById("sunrise-amp-grid");
   if (!grid) return;
+  bindAmpGridDetailButtons();
   ensureAmpDeletedAccountsStore();
   syncMonarchAccountRecordsToAmp({
     track: true,
