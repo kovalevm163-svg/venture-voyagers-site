@@ -2790,20 +2790,20 @@ const sunriseModuleRoutes = [
   "sunrise-monarch"
 ];
 const sunriseShortcutRouteMap = {
-  rev1: "sunrise-revenue",
-  sls1: "sunrise-sales",
-  mkt1: "sunrise-marketing",
-  loc1: "sunrise-locations",
-  mnt1: "sunrise-maintenance",
-  emp1: "sunrise-employees",
-  srv1: "sunrise-services",
-  lgl1: "sunrise-legality",
-  exp1: "sunrise-expenses",
-  inc1: "sunrise-income",
-  csv1: "sunrise-surveys",
-  inb1: "sunrise-inbox",
-  evt1: "sunrise-events",
-  ovr1: "sunrise-performance",
+  rev: "sunrise-revenue",
+  sls: "sunrise-sales",
+  mkt: "sunrise-marketing",
+  loc: "sunrise-locations",
+  mnt: "sunrise-maintenance",
+  emp: "sunrise-employees",
+  srv: "sunrise-services",
+  lgl: "sunrise-legality",
+  exp: "sunrise-expenses",
+  inc: "sunrise-income",
+  csv: "sunrise-surveys",
+  inb: "sunrise-inbox",
+  evt: "sunrise-events",
+  ovr: "sunrise-performance",
   dts: "sunrise-dts",
   eam: "sunrise-eam",
   ifs: "sunrise-ifs",
@@ -2813,16 +2813,27 @@ const sunriseShortcutRouteMap = {
   rim: "sunrise-rim",
   soc: "sunrise-soc",
   lcs: "sunrise-lcs",
-  notos: "sunrise-lcs",
   amp: "sunrise-amp",
   alp: "sunrise-alp",
   mcc: "sunrise-mcc",
-  odp: "sunrise-odp",
-  ma1: "sunrise-monarch",
-  maa1: "sunrise-monarch"
+  odp: "sunrise-odp"
 };
 
 const sunriseShortcutDescriptions = {
+  rev: "Revenue Management",
+  sls: "Sales Performance",
+  mkt: "Marketing",
+  loc: "Locations",
+  mnt: "Maintenance",
+  emp: "Employees Dashboard",
+  srv: "Services Dashboard",
+  lgl: "Legality Follow Ups",
+  exp: "Expenses Management",
+  inc: "Income Management",
+  csv: "Customer Surveys",
+  inb: "Sunrise Inbox",
+  evt: "Events Planning",
+  ovr: "VVS Performance Overview",
   dts: "Documents To Submit",
   eam: "Expenses Adjusting Menu",
   ifs: "Income Flow Spreader",
@@ -2832,16 +2843,40 @@ const sunriseShortcutDescriptions = {
   rim: "Red Inviting Menu",
   soc: "Services & Operations Control",
   lcs: "Notos - Login Control System",
-  notos: "Notos - Login Control System",
   amp: "Account Management Page",
   alp: "Access Levels Page",
   mcc: "Manage & Create Codes",
   odp: "Operational Dashboard Panel",
-  ma1: "MONARCH ARCHANGEL",
-  maa1: "MONARCH ARCHANGEL",
   ws: "Website shutdown (freeze public access to 404)",
   wr: "Website restore"
 };
+
+const sunriseShortcutCodeAliases = Object.freeze({
+  rev1: "rev",
+  sls1: "sls",
+  mkt1: "mkt",
+  loc1: "loc",
+  mnt1: "mnt",
+  emp1: "emp",
+  srv1: "srv",
+  lgl1: "lgl",
+  exp1: "exp",
+  inc1: "inc",
+  csv1: "csv",
+  inb1: "inb",
+  evt1: "evt",
+  ovr1: "ovr",
+  notos: "lcs"
+});
+
+const sunriseShortcutBlockedCodes = new Set([
+  "ma",
+  "ma1",
+  "maa1",
+  "monarch",
+  "monarcharchangel",
+  "monarch-archangel"
+]);
 
 const sunriseAccessRouteDefaults = {
   STA: ["sunrise", "sunrise-inbox", "sunrise-services", "sunrise-performance"],
@@ -3619,7 +3654,6 @@ function suggestedAccessForShortcut(code, route) {
   const c = String(code || "").toLowerCase();
   const r = String(route || "").toLowerCase();
   if (c === "ws" || c === "wr") return "OW";
-  if (c === "ma1" || c === "maa1" || r === "sunrise-monarch") return currentSunriseCreatorViewer() ? "CR,OW" : "OW";
   if (c === "amp" || c === "alp" || c === "mcc" || c === "odp") return "SM,DA,CA,OW";
   if (c === "lcs" || c === "notos" || r === "sunrise-lcs") return "SS,SM,DA,CA,OW";
   if (c === "rta" || r === "sunrise-rta") return "SM,DA,CA,OW";
@@ -3646,6 +3680,67 @@ function defaultShortcutCodeRegistry() {
   return entries;
 }
 
+function normalizeShortcutRegistryRows(rows = []) {
+  return (Array.isArray(rows) ? rows : [])
+    .map((row) => {
+      const normalizedCode = normalizeSunriseShortcutToken(row?.code || "");
+      const normalizedRoute = String(row?.route || "").trim();
+      if (!normalizedCode) return null;
+      if (normalizedRoute === "sunrise-monarch") return null;
+      return {
+        code: String(normalizedCode || "").toUpperCase(),
+        route: normalizedRoute,
+        title: String(row?.title || "").trim(),
+        access: String(row?.access || "").trim().toUpperCase()
+      };
+    })
+    .filter((row) => row && !!row.code);
+}
+
+function mergeShortcutCodeRegistry(rows = []) {
+  const provided = normalizeShortcutRegistryRows(rows);
+  const defaults = normalizeShortcutRegistryRows(defaultShortcutCodeRegistry());
+  const byCode = new Map();
+
+  provided.forEach((entry) => {
+    if (!byCode.has(entry.code)) {
+      byCode.set(entry.code, {
+        code: entry.code,
+        route: entry.route,
+        title: entry.title,
+        access: entry.access || suggestedAccessForShortcut(entry.code, entry.route)
+      });
+      return;
+    }
+    const current = byCode.get(entry.code);
+    byCode.set(entry.code, {
+      ...current,
+      route: entry.route || current.route,
+      title: entry.title || current.title,
+      access: entry.access || current.access
+    });
+  });
+
+  defaults.forEach((entry) => {
+    if (!byCode.has(entry.code)) {
+      byCode.set(entry.code, entry);
+      return;
+    }
+    const current = byCode.get(entry.code);
+    byCode.set(entry.code, {
+      ...current,
+      route: current.route || entry.route,
+      title: current.title || entry.title,
+      access: current.access || entry.access
+    });
+  });
+
+  return Array.from(byCode.values()).map((entry) => ({
+    ...entry,
+    access: entry.access || suggestedAccessForShortcut(entry.code, entry.route)
+  }));
+}
+
 function normalizeCodeAccessList(value) {
   return String(value || "")
     .split(/[,\s/]+/)
@@ -3655,21 +3750,14 @@ function normalizeCodeAccessList(value) {
 
 function ensureShortcutCodeRegistry() {
   if (!sunriseControlState) return [];
-  if (!Array.isArray(sunriseControlState.shortcutCodes) || !sunriseControlState.shortcutCodes.length) {
-    sunriseControlState.shortcutCodes = defaultShortcutCodeRegistry();
-  }
-  sunriseControlState.shortcutCodes = sunriseControlState.shortcutCodes.map((row) => ({
-    code: String(row?.code || "").trim().toUpperCase(),
-    route: String(row?.route || "").trim(),
-    title: String(row?.title || "").trim(),
-    access: String(row?.access || "").trim().toUpperCase() || "OW"
-  })).filter((row) => !!row.code);
+  sunriseControlState.shortcutCodes = mergeShortcutCodeRegistry(sunriseControlState.shortcutCodes);
   syncSunriseDockCodesPreview(sunriseControlState.shortcutCodes);
   return sunriseControlState.shortcutCodes;
 }
 
 function findShortcutEntry(shortcutToken) {
-  const token = String(shortcutToken || "").trim().toUpperCase();
+  const normalized = normalizeSunriseShortcutToken(shortcutToken);
+  const token = String(normalized || "").trim().toUpperCase();
   if (!token) return null;
   const list = ensureShortcutCodeRegistry();
   return list.find((row) => row.code === token) || null;
@@ -3848,8 +3936,7 @@ function setupSunriseShortcutMenu() {
   }
 
   const normalizeShortcutToken = (rawValue) => {
-    const token = String(rawValue || "").trim().split(/[\s,;]+/)[0] || "";
-    return token.toLowerCase().replace(/[^a-z0-9-]/g, "");
+    return normalizeSunriseShortcutToken(rawValue);
   };
 
   const resolveShortcutRoute = (rawValue) => {
@@ -3876,7 +3963,7 @@ function setupSunriseShortcutMenu() {
     const runShortcut = () => {
       const raw = String(input.value || "").trim();
       if (!raw) {
-        info.textContent = "Enter a module code, for example REV1 or SLS1.";
+        info.textContent = "Enter a module code, for example REV or SLS.";
         return false;
       }
       if (!isShortcutAccessReady()) {
@@ -4015,7 +4102,11 @@ function setupSunriseShortcutMenu() {
 
 function normalizeSunriseShortcutToken(rawValue) {
   const token = String(rawValue || "").trim().split(/[\s,;]+/)[0] || "";
-  return token.toLowerCase().replace(/[^a-z0-9-]/g, "");
+  const cleaned = token.toLowerCase().replace(/[^a-z0-9-]/g, "");
+  const normalized = String(sunriseShortcutCodeAliases[cleaned] || cleaned).trim().toLowerCase();
+  if (!normalized) return "";
+  if (sunriseShortcutBlockedCodes.has(normalized)) return "";
+  return normalized;
 }
 
 function resolveSunriseShortcutRoute(rawValue) {
@@ -4032,7 +4123,7 @@ function runSunriseDockShortcut() {
   if (!(input instanceof HTMLInputElement) || !(info instanceof HTMLElement)) return false;
   const raw = String(input.value || "").trim();
   if (!raw) {
-    info.textContent = "Enter a module code, for example REV1 or SLS1.";
+    info.textContent = "Enter a module code, for example REV or SLS.";
     return false;
   }
   if (!sunriseState.unlocked && !(activeAccount && hasSunriseAccess(activeAccount))) {
@@ -4102,22 +4193,17 @@ function runSunriseDockShortcut() {
 function syncSunriseDockCodesPreview(registry = []) {
   const helpBox = document.getElementById("sunrise-code-help");
   const toggleBtn = document.getElementById("sunrise-shortcut-help-toggle");
-  const safeRegistry = Array.isArray(registry) ? registry : [];
+  const safeRegistry = mergeShortcutCodeRegistry(registry);
   if (toggleBtn instanceof HTMLElement) {
     toggleBtn.textContent = `Codes (${safeRegistry.length})`;
   }
   if (!(helpBox instanceof HTMLElement)) return false;
-  helpBox.innerHTML = (safeRegistry.length ? safeRegistry : Object.entries(sunriseShortcutDescriptions).map(([code, text]) => ({
-    code: String(code || "").toUpperCase(),
-    title: String(text || ""),
-    route: "",
-    access: ""
-  })))
+  helpBox.innerHTML = safeRegistry
     .map((entry) => {
       const code = String(entry.code || "").toUpperCase();
       const title = String(entry.title || entry.route || "Shortcut").trim();
       const route = String(entry.route || "").trim();
-      const access = normalizeCodeAccessList(entry.access).join(", ") || "OW";
+      const access = normalizeCodeAccessList(entry.access).join(", ") || suggestedAccessForShortcut(code, route);
       return `<article class="sunriseCodeHelpCard">
         <b>${code}</b>
         <p>${title}</p>
@@ -4198,7 +4284,7 @@ function updateSunriseShortcutDock(route = currentVisibleRoute()) {
 function initRouteFromHash() {
   const raw = window.location.hash.replace("#", "").trim();
   const [routeBase, query = ""] = raw.split("?");
-  const baseRoutes = ["home", "services", "membership", "contact", "account", "profile", "ambassador", "voyager-control", "sunrise", "shutdown-404"];
+  const baseRoutes = ["home", "services", "membership", "about", "contact", "account", "profile", "ambassador", "voyager-control", "sunrise", "shutdown-404"];
   const route = (baseRoutes.includes(routeBase) || sunriseModuleRoutes.includes(routeBase)) ? routeBase : "home";
   const ambassadorAllowed = activeAccount && String(activeAccount.membership || "").toLowerCase() === "voyager red";
   const controlAllowed = isVoyagerControlUser(activeAccount);
@@ -7757,6 +7843,7 @@ const MONARCH_ARCHANGEL_OWNER_ACCESS = {
     ownerName: "Mikhail Kovalev"
   }
 };
+const MONARCH_CREATOR_CONFIRMATION_CODE = "0707110117";
 
 let monarchArchangelState = loadMonarchArchangelState();
 const monarchArchangelRuntime = {
@@ -7783,7 +7870,9 @@ function emptyMonarchArchangelState() {
   return {
     records: {},
     ownerCredentials: {},
-    updatedAt: ""
+    updatedAt: "",
+    cloudErased: false,
+    cloudErasedAt: ""
   };
 }
 
@@ -7796,7 +7885,9 @@ function loadMonarchArchangelState() {
       ? {
         records: parsed.records && typeof parsed.records === "object" ? parsed.records : {},
         ownerCredentials: parsed.ownerCredentials && typeof parsed.ownerCredentials === "object" ? parsed.ownerCredentials : {},
-        updatedAt: String(parsed.updatedAt || "").trim()
+        updatedAt: String(parsed.updatedAt || "").trim(),
+        cloudErased: parsed.cloudErased === true,
+        cloudErasedAt: String(parsed.cloudErasedAt || "").trim()
       }
       : emptyMonarchArchangelState();
   } catch (_) {
@@ -7850,6 +7941,18 @@ function currentMonarchOwnerProfile(account = getCurrentSunriseOperator() || act
 
 function shouldShowMonarchArchangelForAccount(account = getCurrentSunriseOperator() || activeAccount || null) {
   return !!currentMonarchOwnerProfile(account);
+}
+
+function updateSunriseMonarchButtonVisibility(account = null) {
+  const monarchBtn = document.getElementById("sunrise-monarch-btn");
+  if (!(monarchBtn instanceof HTMLElement)) return;
+  const operator = account
+    || getCurrentSunriseOperator()
+    || sunriseState?.account
+    || activeAccount
+    || null;
+  const visible = !!sunriseState.unlocked && shouldShowMonarchArchangelForAccount(operator);
+  monarchBtn.hidden = !visible;
 }
 
 function resetMonarchArchangelAccess() {
@@ -8069,6 +8172,14 @@ function collectMonarchArchangelLiveRecords() {
 function syncMonarchArchangelArchive({ immediate = false } = {}) {
   if (!monarchArchangelState || typeof monarchArchangelState !== "object") {
     monarchArchangelState = emptyMonarchArchangelState();
+  }
+  if (monarchArchangelState.cloudErased === true) {
+    if (!monarchArchangelState.records || typeof monarchArchangelState.records !== "object") {
+      monarchArchangelState.records = {};
+    }
+    if (immediate) persistMonarchArchangelState();
+    else queueMonarchArchangelSync();
+    return;
   }
   const now = formatUtcTimestamp(new Date());
   const existing = monarchArchangelState.records && typeof monarchArchangelState.records === "object"
@@ -8536,6 +8647,7 @@ function updateSunriseAccessView() {
   if (!authCard || !panel) return;
   authCard.hidden = sunriseState.unlocked;
   panel.hidden = !sunriseState.unlocked;
+  updateSunriseMonarchButtonVisibility();
   updateSunriseShortcutDock();
   updateSunriseSessionBar();
 }
@@ -9486,7 +9598,7 @@ function renderSunrise(account) {
   const greetingEl = document.getElementById("sunrise-greeting");
   const subtitleEl = document.getElementById("sunrise-subtitle");
   const panel = document.getElementById("sunrise-panel");
-  const monarchBtn = document.getElementById("sunrise-monarch-btn");
+  const monarchVisibilityAccount = getCurrentSunriseOperator() || activeAccount || account || null;
   const meta = sunriseAccessMeta(account);
   const controlAccount = sunriseState.account;
   const isOwnerControllingOther = !!(
@@ -9537,7 +9649,7 @@ function renderSunrise(account) {
       card.hidden = !anyVisible;
     });
   }
-  if (monarchBtn) monarchBtn.hidden = !shouldShowMonarchArchangelForAccount(account);
+  updateSunriseMonarchButtonVisibility(monarchVisibilityAccount);
   updateSunriseAccessView();
 }
 
@@ -10877,6 +10989,7 @@ const sunriseControlDefaults = {
   odp: {
     liveMirror: true,
     autoSync: true,
+    usingFallback: false,
     pollMs: 45000,
     activeModule: "Contacts",
     search: "",
@@ -11191,6 +11304,7 @@ function loadSunriseControlState() {
       modules: Array.isArray(parsedOdp.modules) ? parsedOdp.modules : fallback.odp.modules,
       liveMirror: parsedOdp.liveMirror !== false,
       autoSync: parsedOdp.autoSync !== false,
+      usingFallback: parsedOdp.usingFallback === true,
       pollMs: Math.max(15000, Number(parsedOdp.pollMs || fallback.odp.pollMs || 45000)),
       mirrorLog: Array.isArray(parsedOdp.mirrorLog)
         ? parsedOdp.mirrorLog
@@ -11294,6 +11408,7 @@ function saveSunriseControlState(options = {}) {
   if (!sunriseControlState) return;
   syncRedTeamAssignmentsToClientAccounts();
   syncSocServicesToClientAccounts();
+  syncOdpFallbackMirrorFromSunrise({ touch: true });
   const markDirty = options?.markDirty !== false;
   if (markDirty) {
     refreshSunriseDirtyFlag();
@@ -11752,6 +11867,262 @@ function closeMonarchCredentialOverlay() {
   if (overlay) overlay.hidden = true;
 }
 
+function openMonarchTransferOverlay() {
+  const overlay = document.getElementById("monarch-transfer-overlay");
+  if (!overlay) return;
+  const endpointInput = document.getElementById("monarch-transfer-endpoint");
+  const targetInput = document.getElementById("monarch-transfer-target");
+  const formatSelect = document.getElementById("monarch-transfer-format");
+  const emailInput = document.getElementById("monarch-transfer-email");
+  const info = document.getElementById("monarch-transfer-info");
+  if (endpointInput instanceof HTMLInputElement && !endpointInput.value.trim()) {
+    endpointInput.value = "https://";
+  }
+  if (targetInput instanceof HTMLInputElement && !targetInput.value.trim()) {
+    targetInput.value = "Secure transfer node";
+  }
+  if (formatSelect instanceof HTMLSelectElement && !formatSelect.value.trim()) {
+    formatSelect.value = "zip";
+  }
+  if (emailInput instanceof HTMLInputElement && !emailInput.value.trim()) {
+    emailInput.value = String(activeAccount?.email || "").trim().toLowerCase();
+  }
+  if (info) info.textContent = "";
+  overlay.hidden = false;
+}
+
+function closeMonarchTransferOverlay() {
+  const overlay = document.getElementById("monarch-transfer-overlay");
+  if (overlay) overlay.hidden = true;
+}
+
+function openMonarchEraseCloudOverlay() {
+  const overlay = document.getElementById("monarch-erase-cloud-overlay");
+  const info = document.getElementById("monarch-erase-cloud-info");
+  const notosInput = document.getElementById("monarch-erase-cloud-notos");
+  const codeInput = document.getElementById("monarch-erase-cloud-code");
+  if (!overlay) return;
+  if (!isMikhailOwnerAccount(getCurrentSunriseOperator() || activeAccount || null)) {
+    if (info) info.textContent = "Access restricted.";
+    return;
+  }
+  if (info) info.textContent = "";
+  if (notosInput instanceof HTMLInputElement) notosInput.value = "";
+  if (codeInput instanceof HTMLInputElement) codeInput.value = "";
+  overlay.hidden = false;
+}
+
+function closeMonarchEraseCloudOverlay() {
+  const overlay = document.getElementById("monarch-erase-cloud-overlay");
+  if (overlay) overlay.hidden = true;
+}
+
+function isMikhailMonarchSessionActive() {
+  const operator = getCurrentSunriseOperator() || activeAccount || null;
+  const ownerProfile = currentMonarchOwnerProfile(operator);
+  return !!ownerProfile
+    && ownerProfile.operatorCode === "MO1"
+    && monarchArchangelRuntime.unlocked
+    && monarchArchangelRuntime.ownerOperatorCode === "MO1";
+}
+
+function monarchCloudTransferSnapshot() {
+  const ownerProfile = currentMonarchOwnerProfile(getCurrentSunriseOperator() || activeAccount || null);
+  const records = monarchArchiveRecordsList().map((record) => ({
+    id: String(record?.id || "").trim(),
+    category: String(record?.category || "").trim(),
+    sourceType: String(record?.sourceType || "").trim(),
+    sourceKey: String(record?.sourceKey || "").trim(),
+    title: String(record?.title || "").trim(),
+    summary: String(record?.summary || "").trim(),
+    deletedInSource: !!record?.deletedInSource,
+    updatedAt: String(record?.updatedAt || "").trim(),
+    payload: monarchDeepClone(record?.payload || {})
+  }));
+  return {
+    exportedAt: formatUtcTimestamp(new Date()),
+    owner: String(ownerProfile?.ownerName || "").trim(),
+    ownerCode: String(ownerProfile?.operatorCode || "").trim(),
+    counts: monarchArchiveCounts(),
+    records
+  };
+}
+
+function utf8ToBase64(value = "") {
+  try {
+    return btoa(unescape(encodeURIComponent(String(value || ""))));
+  } catch (_) {
+    return btoa(String(value || ""));
+  }
+}
+
+function monarchTransferArtifact({ format = "zip", payload = null, endpoint = "", target = "" } = {}) {
+  const normalizedFormat = String(format || "zip").trim().toLowerCase();
+  const stamp = new Date().toISOString().replace(/[:.]/g, "-");
+  const body = JSON.stringify({
+    transferEndpoint: String(endpoint || "").trim(),
+    transferTarget: String(target || "").trim(),
+    payload: payload || {}
+  }, null, 2);
+  if (normalizedFormat === "link") {
+    const encoded = encodeURIComponent(body);
+    return {
+      format: "link",
+      filename: "",
+      mime: "text/plain;charset=utf-8",
+      content: body,
+      transferLink: `data:text/plain;charset=utf-8,${encoded}`
+    };
+  }
+  const extension = (normalizedFormat === "pdf" || normalizedFormat === "docx" || normalizedFormat === "zip")
+    ? normalizedFormat
+    : "zip";
+  return {
+    format: extension,
+    filename: `monarch-archangel-cloud-${stamp}.${extension}`,
+    mime: "application/octet-stream",
+    content: body,
+    transferLink: ""
+  };
+}
+
+function downloadMonarchTransferArtifact(artifact = null) {
+  if (!artifact || artifact.format === "link") return;
+  const blob = new Blob([String(artifact.content || "")], { type: artifact.mime || "application/octet-stream" });
+  const url = URL.createObjectURL(blob);
+  const anchor = document.createElement("a");
+  anchor.href = url;
+  anchor.download = String(artifact.filename || "monarch-archangel-export.bin");
+  document.body.appendChild(anchor);
+  anchor.click();
+  anchor.remove();
+  window.setTimeout(() => URL.revokeObjectURL(url), 1200);
+}
+
+async function sendMonarchTransferCopyEmail({ recipient = "", endpoint = "", target = "", format = "", artifact = null } = {}) {
+  const to = String(recipient || "").trim().toLowerCase();
+  if (!to) return { ok: false, message: "Recipient email is missing." };
+  const owner = currentMonarchOwnerProfile(getCurrentSunriseOperator() || activeAccount || null);
+  const subject = `MONARCH ARCHANGEL transfer copy • ${String(format || "").toUpperCase()}`;
+  const html = `<p>MONARCH ARCHANGEL cloud transfer completed.</p>
+<p><strong>Target:</strong> ${encodeHtmlEntities(String(target || "").trim())}<br>
+<strong>Endpoint:</strong> ${encodeHtmlEntities(String(endpoint || "").trim())}<br>
+<strong>Format:</strong> ${encodeHtmlEntities(String(format || "").trim().toUpperCase())}</p>
+${artifact?.transferLink ? `<p><strong>Transfer link:</strong> <a href="${encodeHtmlEntities(artifact.transferLink)}" target="_blank" rel="noopener noreferrer">Open cloud package</a></p>` : ""}
+<p>Generated by ${encodeHtmlEntities(String(owner?.ownerName || "Owner").trim())} in MONARCH ARCHANGEL.</p>`;
+  const attachments = artifact?.filename
+    ? [{
+      filename: String(artifact.filename || "monarch-archangel-export.bin"),
+      content: utf8ToBase64(String(artifact.content || "")),
+      contentType: String(artifact.mime || "application/octet-stream")
+    }]
+    : [];
+  const sender = String(activeAccount?.email || owner?.ownerKey || "concierge@venture-voyagers.com").trim().toLowerCase();
+  const response = await postJsonWithTimeout("/api/email-send", {
+    to,
+    subject,
+    html,
+    text: `MONARCH ARCHANGEL cloud transfer completed for ${target}. Endpoint: ${endpoint}. Format: ${String(format || "").toUpperCase()}.`,
+    from: sender,
+    replyTo: sender,
+    attachments
+  }, 18000);
+  return {
+    ok: !!response.ok && !!response.body?.ok,
+    message: String(response.body?.message || "").trim()
+  };
+}
+
+async function submitMonarchCloudTransferRequest() {
+  const info = document.getElementById("monarch-transfer-info");
+  const endpointInput = document.getElementById("monarch-transfer-endpoint");
+  const targetInput = document.getElementById("monarch-transfer-target");
+  const formatSelect = document.getElementById("monarch-transfer-format");
+  const emailInput = document.getElementById("monarch-transfer-email");
+  const endpoint = String(endpointInput instanceof HTMLInputElement ? endpointInput.value : "").trim();
+  const target = String(targetInput instanceof HTMLInputElement ? targetInput.value : "").trim();
+  const format = String(formatSelect instanceof HTMLSelectElement ? formatSelect.value : "zip").trim().toLowerCase();
+  const email = String(emailInput instanceof HTMLInputElement ? emailInput.value : "").trim().toLowerCase();
+  const operator = getCurrentSunriseOperator() || activeAccount || null;
+  const ownerProfile = currentMonarchOwnerProfile(operator);
+  if (!ownerProfile || !monarchArchangelRuntime.unlocked || monarchArchangelRuntime.ownerOperatorCode !== ownerProfile.operatorCode) {
+    if (info) info.textContent = "Unlock MONARCH ARCHANGEL first.";
+    return;
+  }
+  let endpointUrl = null;
+  try {
+    endpointUrl = new URL(endpoint);
+  } catch (_) {
+    endpointUrl = null;
+  }
+  if (!endpointUrl || endpointUrl.protocol !== "https:") {
+    if (info) info.textContent = "Transfer endpoint must be a valid https URL.";
+    return;
+  }
+  if (!target) {
+    if (info) info.textContent = "Transfer target name is required.";
+    return;
+  }
+  if (!["zip", "pdf", "docx", "link"].includes(format)) {
+    if (info) info.textContent = "Select ZIP, PDF, DOCX, or LINK conversion format.";
+    return;
+  }
+  if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
+    if (info) info.textContent = "Recipient email address is required for transfer copy.";
+    return;
+  }
+  const snapshot = monarchCloudTransferSnapshot();
+  const artifact = monarchTransferArtifact({
+    format,
+    payload: snapshot,
+    endpoint: endpointUrl.href,
+    target
+  });
+  if (artifact.format !== "link") {
+    downloadMonarchTransferArtifact(artifact);
+  }
+  const copyResult = await sendMonarchTransferCopyEmail({
+    recipient: email,
+    endpoint: endpointUrl.href,
+    target,
+    format,
+    artifact
+  });
+  const linkSuffix = artifact.transferLink ? ` Transfer link: ${artifact.transferLink}` : "";
+  if (copyResult.ok) {
+    if (info) info.textContent = `Cloud transferred as ${format.toUpperCase()} and copy sent to ${email}.${linkSuffix}`;
+  } else {
+    if (info) info.textContent = `Cloud exported as ${format.toUpperCase()}, but email copy failed. ${copyResult.message || "Check mail provider configuration."}${linkSuffix}`;
+  }
+}
+
+function eraseAllMonarchCloudCredentials({ notosId = "", creatorCode = "" } = {}) {
+  const operator = getCurrentSunriseOperator() || activeAccount || null;
+  const ownerProfile = currentMonarchOwnerProfile(operator);
+  if (!ownerProfile || ownerProfile.operatorCode !== "MO1" || !isMikhailMonarchSessionActive()) {
+    return { ok: false, message: "Access restricted. Creator confirmation is available only for Mikhail." };
+  }
+  const expectedNotos = String(ownerProfile.notosId || "").trim();
+  if (String(notosId || "").trim() !== expectedNotos) {
+    return { ok: false, message: "Invalid NOTOS ID." };
+  }
+  if (String(creatorCode || "").trim() !== MONARCH_CREATOR_CONFIRMATION_CODE) {
+    return { ok: false, message: "Invalid Creator confirmation code." };
+  }
+  const now = formatUtcTimestamp(new Date());
+  monarchArchangelState.records = {};
+  monarchArchangelState.cloudErased = true;
+  monarchArchangelState.cloudErasedAt = now;
+  monarchArchangelState.updatedAt = now;
+  monarchArchangelRuntime.detailsRecordId = "";
+  monarchArchangelRuntime.info = `MONARCH ARCHANGEL cloud credentials erased by Creator confirmation on ${now}.`;
+  monarchArchangelRuntime.hasUnsavedChanges = false;
+  persistMonarchArchangelState();
+  updateMonarchSaveButtonsState();
+  closeMonarchRecordOverlay();
+  return { ok: true, message: monarchArchangelRuntime.info };
+}
+
 function saveMonarchOwnerCredentials(operatorCode = "", updates = {}) {
   const code = String(operatorCode || "").trim().toUpperCase();
   const base = MONARCH_ARCHANGEL_OWNER_ACCESS[code] || null;
@@ -11792,89 +12163,95 @@ function removeRecordsFromCollection(list, predicate) {
   return removed;
 }
 
-function restoreMonarchArchiveRecord(recordId = "") {
-  const record = findMonarchArchiveRecord(recordId);
-  if (!record) return { ok: false, message: "Archive record not found." };
+function applyMonarchArchivePayloadToSource(record = null) {
+  if (!record || typeof record !== "object") {
+    return { ok: false, message: "Archive record not found.", updatedAccounts: false, updatedSunrise: false };
+  }
   const payload = monarchDeepClone(record.payload);
   const sourceType = String(record.sourceType || "").trim();
-  if (!payload || typeof payload !== "object") return { ok: false, message: "Archive payload is invalid." };
+  if (!payload || typeof payload !== "object") {
+    return { ok: false, message: "Archive payload is invalid.", updatedAccounts: false, updatedSunrise: false };
+  }
 
   if (sourceType === "account") {
     const key = normalizeEmailAddress(payload.email || record.sourceKey || "");
-    if (!key) return { ok: false, message: "Account email is required for restore." };
+    if (!key) return { ok: false, message: "Account email is required for sync.", updatedAccounts: false, updatedSunrise: false };
     accounts[key] = normalizeAccountServiceCards(payload);
-    persistAccountsData();
-    syncMonarchArchangelArchive({ immediate: true });
-    return { ok: true, message: "Account restored to VVS and AMP." };
+    return { ok: true, message: "Account synchronized to VVS and AMP.", updatedAccounts: true, updatedSunrise: false };
   }
 
-  if (!sunriseControlState) return { ok: false, message: "Sunrise storage is unavailable." };
+  if (!sunriseControlState) {
+    return { ok: false, message: "Sunrise storage is unavailable.", updatedAccounts: false, updatedSunrise: false };
+  }
 
   if (sourceType === "rta") {
     ensureRtaAssignmentsStore();
     upsertRecordInCollection(sunriseControlState.rtaAssignments, normalizeRtaAssignment(payload), (row) => row?.clientKey);
-    saveSunriseControlState({ immediate: true, markDirty: false });
-    return { ok: true, message: "RTA record restored to Sunrise." };
+    return { ok: true, message: "RTA record synchronized to Sunrise.", updatedAccounts: false, updatedSunrise: true };
   }
   if (sourceType === "rim") {
     upsertRecordInCollection(sunriseControlState.rimInvites, payload, (row) => row?.id || row?.email);
-    saveSunriseControlState({ immediate: true, markDirty: false });
-    return { ok: true, message: "RIM record restored to Sunrise." };
+    return { ok: true, message: "RIM record synchronized to Sunrise.", updatedAccounts: false, updatedSunrise: true };
   }
   if (sourceType === "ecs") {
     upsertRecordInCollection(sunriseControlState.ecsEmployees, payload, (row) => row?.id || row?.email);
-    saveSunriseControlState({ immediate: true, markDirty: false });
-    return { ok: true, message: "ECS employee restored to Sunrise." };
+    return { ok: true, message: "ECS employee synchronized to Sunrise.", updatedAccounts: false, updatedSunrise: true };
   }
   if (sourceType === "eam") {
     upsertRecordInCollection(sunriseControlState.eamExpenses, payload, (row) => row?.id);
-    saveSunriseControlState({ immediate: true, markDirty: false });
-    return { ok: true, message: "Expense record restored to Sunrise." };
+    return { ok: true, message: "Expense record synchronized to Sunrise.", updatedAccounts: false, updatedSunrise: true };
   }
   if (sourceType === "ifs") {
     upsertRecordInCollection(sunriseControlState.ifsIncome, payload, (row) => row?.id);
-    saveSunriseControlState({ immediate: true, markDirty: false });
-    return { ok: true, message: "Income record restored to Sunrise." };
+    return { ok: true, message: "Income record synchronized to Sunrise.", updatedAccounts: false, updatedSunrise: true };
   }
   if (sourceType === "smca") {
     upsertRecordInCollection(sunriseControlState.smca, payload, (row) => row?.id);
-    saveSunriseControlState({ immediate: true, markDirty: false });
-    return { ok: true, message: "Commission record restored to Sunrise." };
+    return { ok: true, message: "Commission record synchronized to Sunrise.", updatedAccounts: false, updatedSunrise: true };
   }
   if (sourceType === "lcs") {
     upsertRecordInCollection(sunriseControlState.lcsSessions, payload, (row) => row?.id);
-    saveSunriseControlState({ immediate: true, markDirty: false });
-    return { ok: true, message: "NOTOS session restored to Sunrise." };
+    return { ok: true, message: "NOTOS session synchronized to Sunrise.", updatedAccounts: false, updatedSunrise: true };
   }
   if (sourceType === "mail") {
     const inbox = sunriseControlState.inbox || {};
     if (!Array.isArray(inbox.messages)) inbox.messages = [];
     upsertRecordInCollection(inbox.messages, payload, (row) => row?.id);
     sunriseControlState.inbox = inbox;
-    saveSunriseControlState({ immediate: true, markDirty: false });
-    return { ok: true, message: "Mail record restored to Sunrise inbox storage." };
+    if (Array.isArray(sunriseOwnerInboxState?.messages)) {
+      upsertRecordInCollection(sunriseOwnerInboxState.messages, payload, (row) => row?.id);
+    }
+    return { ok: true, message: "Mail record synchronized to Sunrise inbox.", updatedAccounts: false, updatedSunrise: true };
   }
   if (sourceType === "access-level") {
     upsertRecordInCollection(sunriseControlState.accessLevels, payload, (row) => row?.code);
-    saveSunriseControlState({ immediate: true, markDirty: false });
-    return { ok: true, message: "Access level restored to ALP." };
+    return { ok: true, message: "Access level synchronized to ALP.", updatedAccounts: false, updatedSunrise: true };
   }
   if (sourceType === "shortcut-code") {
     ensureShortcutCodeRegistry();
     upsertRecordInCollection(sunriseControlState.shortcutCodes, payload, (row) => row?.code);
-    saveSunriseControlState({ immediate: true, markDirty: false });
-    return { ok: true, message: "Shortcut code restored to MCC." };
+    return { ok: true, message: "Shortcut code synchronized to MCC.", updatedAccounts: false, updatedSunrise: true };
   }
   if (sourceType.startsWith("soc-")) {
     const bucket = sourceType.replace("soc-", "");
     const targetList = Array.isArray(sunriseControlState?.socServices?.[bucket]) ? sunriseControlState.socServices[bucket] : null;
-    if (!targetList) return { ok: false, message: "SOC collection is unavailable." };
+    if (!targetList) return { ok: false, message: "SOC collection is unavailable.", updatedAccounts: false, updatedSunrise: false };
     upsertRecordInCollection(targetList, payload, (row) => row?.id);
-    saveSunriseControlState({ immediate: true, markDirty: false });
-    return { ok: true, message: "SOC service restored to Sunrise." };
+    return { ok: true, message: "SOC service synchronized to Sunrise.", updatedAccounts: false, updatedSunrise: true };
   }
 
-  return { ok: false, message: "This archive type is view-only." };
+  return { ok: false, message: "This archive type is view-only.", updatedAccounts: false, updatedSunrise: false };
+}
+
+function restoreMonarchArchiveRecord(recordId = "") {
+  const record = findMonarchArchiveRecord(recordId);
+  if (!record) return { ok: false, message: "Archive record not found." };
+  const result = applyMonarchArchivePayloadToSource(record);
+  if (!result.ok) return { ok: false, message: result.message };
+  if (result.updatedAccounts) persistAccountsData();
+  if (result.updatedSunrise) saveSunriseControlState({ immediate: true, markDirty: false });
+  syncMonarchArchangelArchive({ immediate: true });
+  return { ok: true, message: result.message };
 }
 
 function eraseMonarchArchiveRecordFromSource(recordId = "") {
@@ -12039,7 +12416,7 @@ function renderMonarchArchiveCards(records = []) {
 }
 
 function updateMonarchSaveButtonsState() {
-  const buttons = document.querySelectorAll("#monarch-save-btn, #monarch-save-top-btn");
+  const buttons = document.querySelectorAll("#monarch-save-top-btn");
   buttons.forEach((btn) => {
     if (!(btn instanceof HTMLButtonElement)) return;
     btn.disabled = !monarchArchangelRuntime.hasUnsavedChanges;
@@ -12055,10 +12432,42 @@ function markMonarchUnsaved(message = "") {
 
 function commitMonarchArchangelChanges() {
   commitSunriseChanges();
+  const manualOverrideRecords = monarchArchiveRecordsList()
+    .filter((record) => record?.manualOverride && !record?.deletedInSource);
+  let accountsTouched = false;
+  let sunriseTouched = false;
+  let appliedCount = 0;
+  const syncWarnings = [];
+  const appliedAt = formatUtcTimestamp(new Date());
+  manualOverrideRecords.forEach((record) => {
+    const result = applyMonarchArchivePayloadToSource(record);
+    if (!result.ok) {
+      syncWarnings.push(`${String(record?.title || record?.id || "Record").trim()}: ${result.message}`);
+      return;
+    }
+    accountsTouched = accountsTouched || !!result.updatedAccounts;
+    sunriseTouched = sunriseTouched || !!result.updatedSunrise;
+    const persistedRecord = findMonarchArchiveRecord(record.id);
+    if (persistedRecord && typeof persistedRecord === "object") {
+      persistedRecord.manualOverride = false;
+      persistedRecord.updatedAt = appliedAt;
+      persistedRecord.lastSyncedAt = appliedAt;
+    }
+    appliedCount += 1;
+  });
+  if (accountsTouched) persistAccountsData();
+  if (sunriseTouched) saveSunriseControlState({ immediate: true, markDirty: false });
   syncMonarchArchangelArchive({ immediate: true });
   persistMonarchArchangelState();
   monarchArchangelRuntime.hasUnsavedChanges = false;
-  monarchArchangelRuntime.info = "MONARCH ARCHANGEL changes saved.";
+  if (syncWarnings.length) {
+    const sample = syncWarnings.slice(0, 2).join(" | ");
+    monarchArchangelRuntime.info = `MONARCH ARCHANGEL changes saved with ${syncWarnings.length} sync warning${syncWarnings.length === 1 ? "" : "s"}: ${sample}`;
+  } else if (appliedCount > 0) {
+    monarchArchangelRuntime.info = `MONARCH ARCHANGEL changes saved and synchronized to Sunrise (${appliedCount} record${appliedCount === 1 ? "" : "s"}).`;
+  } else {
+    monarchArchangelRuntime.info = "MONARCH ARCHANGEL changes saved.";
+  }
   updateMonarchSaveButtonsState();
 }
 
@@ -12123,6 +12532,7 @@ function renderMonarchArchangelPage() {
   }
 
   const records = filteredMonarchArchiveRecords();
+  const cloudErased = monarchArchangelState?.cloudErased === true;
   const categoryButtons = [
     ["all", "All Records"],
     ["credentials", "Credentials"],
@@ -12145,16 +12555,14 @@ function renderMonarchArchangelPage() {
         </div>
       </article>`
     : "";
+  const mikhailDangerAction = ownerProfile.operatorCode === "MO1"
+    ? `<button class="btn ghost monarchDangerBtn" type="button" id="monarch-erase-cloud-btn">Erase All Cloud Credentials</button>`
+    : "";
   grid.innerHTML = `<section class="monarchShell monarchShellUnlocked sunriseDetailWide">
-    <article class="monarchHero">
-      <div>
-        <p class="monarchKicker">Owner-only archive</p>
-        <h2>MONARCH ARCHANGEL</h2>
-        <p class="profileNote">Guardian archive for Sunrise and VVS records, credentials, services, payments, mail, and login intelligence.</p>
-      </div>
-      <div class="monarchHeroActions">
-        <button class="btn ghost" type="button" id="monarch-save-btn" data-monarch-save-changes="1">Save Changes</button>
-        <button class="btn ghost" type="button" id="monarch-lock-btn">Lock</button>
+    <article class="sunriseControlCard sunriseDetailWide monarchActionStrip">
+      <div class="monarchCloudActions">
+        <button class="btn ghost" type="button" id="monarch-transfer-btn">Transfer Cloud</button>
+        ${mikhailDangerAction}
       </div>
     </article>
     <section class="monarchStatsGrid">
@@ -12175,6 +12583,7 @@ function renderMonarchArchangelPage() {
       </div>
       <div class="sunriseSectionTabs monarchTabs">${categoryButtons}</div>
       <p class="profileNote">Archive sync ${encodeHtmlEntities(String(monarchArchangelState?.updatedAt || "").trim() || "pending")}.</p>
+      ${cloudErased ? `<p class="authInfo sunriseWarnText">Cloud credentials erased at ${encodeHtmlEntities(String(monarchArchangelState?.cloudErasedAt || "").trim() || "N/A")}. Auto-sync to MONARCH ARCHANGEL is paused.</p>` : ""}
       <p class="authInfo">${encodeHtmlEntities(String(monarchArchangelRuntime.info || "").trim())}</p>
     </article>
     <section class="monarchArchiveGrid">${renderMonarchArchiveCards(records)}</section>
@@ -13414,7 +13823,7 @@ function renderShortcutCodeAdminCard(context = "MCC", filter = "", searchId = "m
     <div class="mccRegistryTop">
       <div>
         <h3>Manage &amp; Create Codes</h3>
-        <p class="opsText">Maintain Sunrise shortcut codes with route targets and allowed access levels in a cleaner control layout.</p>
+        <p class="opsText">Maintain one canonical Sunrise shortcut list. Legacy duplicate aliases are normalized automatically.</p>
       </div>
       <div class="mccRegistryStats">
         <div class="mccRegistryStat"><span>Visible Codes</span><b>${filteredCodes.length}</b></div>
@@ -13769,7 +14178,25 @@ function ensureOdpState() {
   odp.pollMs = Math.max(ODP_SYNC_MIN_MS, Number(odp.pollMs || ODP_SYNC_DEFAULT_MS));
   odp.liveMirror = odp.liveMirror !== false;
   odp.autoSync = odp.autoSync !== false;
+  odp.usingFallback = odp.usingFallback === true;
   return odp;
+}
+
+function syncOdpFallbackMirrorFromSunrise({ force = false, render = false, touch = false } = {}) {
+  const odp = ensureOdpState();
+  if (!odp) return false;
+  if (!force && !odp.usingFallback) return false;
+  hydrateOdpFallbackRecordsFromSunrise(odp);
+  if (touch) {
+    odp.lastMirroredAt = formatUtcTimestamp(new Date());
+  }
+  if (odp.usingFallback) {
+    odp.status = "ODP mirrored from Sunrise modules (Zoho mirror unavailable).";
+  }
+  if (render && currentVisibleRoute() === "sunrise-odp") {
+    renderODPPage();
+  }
+  return true;
 }
 
 function hydrateOdpFallbackRecordsFromSunrise(odp = null) {
@@ -13984,6 +14411,59 @@ function odpBuildRecordPayload(fields = []) {
   return payload;
 }
 
+function summarizeOdpFallbackRecord(module = "Contacts", id = "", payload = {}) {
+  const data = payload && typeof payload === "object" ? payload : {};
+  const normalizedModule = normalizeOdpModuleName(module);
+  const safeId = String(id || data.id || data.ID || `${normalizedModule}-${Date.now()}`).trim();
+  return {
+    id: safeId,
+    module: normalizedModule,
+    name: String(
+      data.First_Name
+      || data.Last_Name
+      || data.Deal_Name
+      || data.Subject
+      || data.Account_Name
+      || data.Name
+      || safeId
+    ).trim(),
+    email: String(data.Email || "").trim(),
+    phone: String(data.Phone || data.Mobile || "").trim(),
+    company: String(data.Company || data.Account_Name?.name || data.Account_Name || "").trim(),
+    stage: String(data.Stage || data.Lead_Status || data.Status || "").trim(),
+    amount: Number(data.Amount || 0),
+    owner: String(data.Owner?.name || data.Owner || "").trim(),
+    createdAt: String(data.Created_Time || "").trim(),
+    updatedAt: formatUtcTimestamp(new Date()),
+    raw: monarchDeepClone({ ...data, id: safeId })
+  };
+}
+
+function upsertOdpFallbackRecord(module = "Contacts", id = "", payload = {}) {
+  const odp = ensureOdpState();
+  if (!odp) return null;
+  const normalizedModule = normalizeOdpModuleName(module);
+  const row = summarizeOdpFallbackRecord(normalizedModule, id, payload);
+  if (!Array.isArray(odp.records[normalizedModule])) odp.records[normalizedModule] = [];
+  const list = odp.records[normalizedModule];
+  const idx = list.findIndex((entry) => String(entry?.id || "").trim() === String(row.id || "").trim());
+  if (idx >= 0) list[idx] = row;
+  else list.unshift(row);
+  return row;
+}
+
+function removeOdpFallbackRecord(module = "Contacts", id = "") {
+  const odp = ensureOdpState();
+  if (!odp) return false;
+  const normalizedModule = normalizeOdpModuleName(module);
+  if (!Array.isArray(odp.records[normalizedModule])) odp.records[normalizedModule] = [];
+  const list = odp.records[normalizedModule];
+  const next = list.filter((entry) => String(entry?.id || "").trim() !== String(id || "").trim());
+  const changed = next.length !== list.length;
+  if (changed) odp.records[normalizedModule] = next;
+  return changed;
+}
+
 async function odpApiGet(mode = "bootstrap", query = {}) {
   const params = new URLSearchParams({ mode, ...query });
   return requestJsonWithTimeout(`/api/zoho-ops?${params.toString()}`, {
@@ -14003,10 +14483,14 @@ async function odpApiPost(action = "", payload = {}) {
 async function syncOdpFromZoho({ silent = false } = {}) {
   const odp = ensureOdpState();
   if (!odp) return false;
-  if (!silent) odp.status = "Synchronizing ODP with Zoho CRM...";
+  if (!silent) {
+    odp.status = "Synchronizing ODP with Zoho CRM...";
+    odp.warning = "";
+  }
   const response = await odpApiGet("bootstrap", { perPage: 35 });
   if (!response.ok || !response.body) {
-    hydrateOdpFallbackRecordsFromSunrise(odp);
+    odp.usingFallback = true;
+    syncOdpFallbackMirrorFromSunrise({ force: true, touch: true });
     odp.warning = "Zoho sync failed. Check ODP API status and credentials.";
     odp.status = "ODP sync failed.";
     renderODPPage();
@@ -14014,7 +14498,8 @@ async function syncOdpFromZoho({ silent = false } = {}) {
   }
   const body = response.body || {};
   if (!body.ok && !body.skipped) {
-    hydrateOdpFallbackRecordsFromSunrise(odp);
+    odp.usingFallback = true;
+    syncOdpFallbackMirrorFromSunrise({ force: true, touch: true });
     odp.warning = String(body.message || body.warnings?.[0] || "Zoho returned an error.").trim();
     odp.status = "ODP sync failed.";
     renderODPPage();
@@ -14024,15 +14509,14 @@ async function syncOdpFromZoho({ silent = false } = {}) {
   ODP_MODULE_ORDER.forEach((module) => {
     odp.records[module] = Array.isArray(incomingRecords[module]) ? incomingRecords[module] : [];
   });
+  odp.usingFallback = !!body.skipped;
   odp.modules = Array.isArray(body.modules) ? body.modules : [];
   odp.lastSyncedAt = String(body.syncedAt || formatUtcTimestamp(new Date())).trim();
   odp.warning = Array.isArray(body.warnings) && body.warnings.length ? body.warnings.join(" | ") : "";
   odp.status = body.skipped
     ? "Zoho CRM credentials are not configured in Cloudflare secrets yet. ODP is showing Sunrise fallback records."
     : "ODP live mirror synchronized with Zoho CRM.";
-  if (body.skipped) {
-    hydrateOdpFallbackRecordsFromSunrise(odp);
-  }
+  if (body.skipped) syncOdpFallbackMirrorFromSunrise({ force: true, touch: true });
   odpMirrorLog("Sync from Zoho", odp.activeModule, "", "Bootstrap synchronization completed.");
   saveSunriseControlState({ markDirty: false });
   renderODPPage();
@@ -14133,6 +14617,22 @@ function bindODPInteractions() {
   if (!grid || !sunriseControlState) return;
   const odp = ensureOdpState();
   if (!odp) return;
+  const runAsyncOdpAction = async (button, processingLabel, action) => {
+    if (!(button instanceof HTMLButtonElement)) {
+      await action();
+      return;
+    }
+    if (button.disabled) return;
+    const previousLabel = button.textContent;
+    button.disabled = true;
+    if (processingLabel) button.textContent = processingLabel;
+    try {
+      await action();
+    } finally {
+      button.disabled = false;
+      button.textContent = previousLabel;
+    }
+  };
 
   grid.querySelectorAll("[data-odp-module]").forEach((btn) => {
     btn.addEventListener("click", () => {
@@ -14145,9 +14645,9 @@ function bindODPInteractions() {
   const syncBtn = grid.querySelector("[data-odp-sync]");
   if (syncBtn instanceof HTMLButtonElement) {
     syncBtn.addEventListener("click", async () => {
-      syncBtn.disabled = true;
-      await syncOdpFromZoho();
-      syncBtn.disabled = false;
+      await runAsyncOdpAction(syncBtn, "Syncing...", async () => {
+        await syncOdpFromZoho();
+      });
     });
   }
 
@@ -14194,20 +14694,43 @@ function bindODPInteractions() {
       const id = String(btn.getAttribute("data-odp-open") || "").trim();
       const module = normalizeOdpModuleName(btn.getAttribute("data-odp-module-open") || odp.activeModule);
       if (!id) return;
-      const response = await odpApiPost("fetch-record", { module, id });
-      if (!response.ok || !response.body?.ok || !response.body?.record) {
-        odp.warning = "Unable to load full Zoho record details.";
+      await runAsyncOdpAction(btn, "Loading...", async () => {
+        const response = await odpApiPost("fetch-record", { module, id });
+        const record = (response.ok && response.body?.ok && response.body?.record)
+          ? response.body.record
+          : (() => {
+            const localRow = odpModuleRecords(module).find((row) => String(row?.id || "").trim() === id);
+            if (!localRow) return null;
+            return {
+              id,
+              module,
+              raw: localRow.raw && typeof localRow.raw === "object"
+                ? localRow.raw
+                : {
+                  Name: localRow.name,
+                  Email: localRow.email,
+                  Phone: localRow.phone,
+                  Company: localRow.company,
+                  Stage: localRow.stage,
+                  Owner: localRow.owner,
+                  Updated_At: localRow.updatedAt
+                }
+            };
+          })();
+        if (!record) {
+          odp.warning = "Unable to load record details.";
+          renderODPPage();
+          return;
+        }
+        odp.editor.module = module;
+        odp.editor.id = String(record.id || id);
+        odp.selectedRecordId = String(record.id || id);
+        odp.selectedRecordModule = module;
+        odp.editor.fields = odpEditorFieldsFromRawRecord(record.raw || {});
+        odp.warning = "";
+        odp.status = `Loaded ${module} record ${odp.editor.id} for editing.`;
         renderODPPage();
-        return;
-      }
-      const record = response.body.record;
-      odp.editor.module = module;
-      odp.editor.id = String(record.id || id);
-      odp.selectedRecordId = String(record.id || id);
-      odp.selectedRecordModule = module;
-      odp.editor.fields = odpEditorFieldsFromRawRecord(record.raw || {});
-      odp.status = `Loaded ${module} record ${odp.editor.id} for editing.`;
-      renderODPPage();
+      });
     });
   });
 
@@ -14279,50 +14802,80 @@ function bindODPInteractions() {
   const saveRecordBtn = grid.querySelector("[data-odp-save-record]");
   if (saveRecordBtn instanceof HTMLButtonElement) {
     saveRecordBtn.addEventListener("click", async () => {
-      const module = normalizeOdpModuleName(odp.editor.module || odp.activeModule);
-      const payload = odpBuildRecordPayload(odp.editor.fields);
-      if (odp.editor.id) payload.id = String(odp.editor.id);
-      const response = await odpApiPost("upsert-record", { module, record: payload });
-      if (!response.ok || !response.body?.ok) {
-        odp.warning = String(response.body?.message || "Unable to save record to Zoho.").trim();
+      await runAsyncOdpAction(saveRecordBtn, "Saving...", async () => {
+        const module = normalizeOdpModuleName(odp.editor.module || odp.activeModule);
+        const payload = odpBuildRecordPayload(odp.editor.fields);
+        if (odp.editor.id) payload.id = String(odp.editor.id);
+        const response = await odpApiPost("upsert-record", { module, record: payload });
+        if (!response.ok || !response.body?.ok) {
+          if (odp.usingFallback) {
+            const fallbackId = String(payload.id || `LOCAL-${Date.now()}`).trim();
+            const row = upsertOdpFallbackRecord(module, fallbackId, payload);
+            if (row) {
+              odp.editor.id = row.id;
+              odp.status = `${module} record ${row.id} saved in Sunrise fallback mirror.`;
+              odp.warning = "Zoho sync unavailable. Record staged locally in ODP fallback.";
+              odpMirrorLog("Fallback Save", module, row.id, "Record staged in Sunrise fallback mirror.");
+              saveSunriseControlState({ markDirty: false });
+              renderODPPage();
+              return;
+            }
+          }
+          odp.warning = String(response.body?.message || "Unable to save record to Zoho.").trim();
+          renderODPPage();
+          return;
+        }
+        const action = String(response.body?.action || "saved");
+        const savedId = String(response.body?.id || odp.editor.id || "").trim();
+        odp.editor.id = savedId;
+        odp.status = `${module} record ${savedId || ""} ${action} in Zoho.`;
+        odp.warning = "";
+        odpMirrorLog("Sync to Zoho", module, savedId, `Record ${action}.`);
+        saveSunriseControlState();
+        await syncOdpFromZoho({ silent: true });
         renderODPPage();
-        return;
-      }
-      const action = String(response.body?.action || "saved");
-      const savedId = String(response.body?.id || odp.editor.id || "").trim();
-      odp.editor.id = savedId;
-      odp.status = `${module} record ${savedId || ""} ${action} in Zoho.`;
-      odp.warning = "";
-      odpMirrorLog("Sync to Zoho", module, savedId, `Record ${action}.`);
-      saveSunriseControlState();
-      await syncOdpFromZoho({ silent: true });
-      renderODPPage();
+      });
     });
   }
 
   const deleteRecordBtn = grid.querySelector("[data-odp-delete-record]");
   if (deleteRecordBtn instanceof HTMLButtonElement) {
     deleteRecordBtn.addEventListener("click", async () => {
-      const module = normalizeOdpModuleName(odp.editor.module || odp.activeModule);
-      const id = String(odp.editor.id || "").trim();
-      if (!id) {
-        odp.warning = "Load or enter a record ID to delete from Zoho.";
+      await runAsyncOdpAction(deleteRecordBtn, "Deleting...", async () => {
+        const module = normalizeOdpModuleName(odp.editor.module || odp.activeModule);
+        const id = String(odp.editor.id || "").trim();
+        if (!id) {
+          odp.warning = "Load or enter a record ID to delete from Zoho.";
+          renderODPPage();
+          return;
+        }
+        const response = await odpApiPost("delete-record", { module, id });
+        if (!response.ok || !response.body?.ok) {
+          if (odp.usingFallback) {
+            const removed = removeOdpFallbackRecord(module, id);
+            if (removed) {
+              odpMirrorLog("Fallback Delete", module, id, "Record removed from Sunrise fallback mirror.");
+              odp.editor.id = "";
+              odp.editor.fields = [];
+              odp.status = `${module} record ${id} deleted in Sunrise fallback mirror.`;
+              odp.warning = "Zoho sync unavailable. Delete applied to local ODP fallback.";
+              saveSunriseControlState({ markDirty: false });
+              renderODPPage();
+              return;
+            }
+          }
+          odp.warning = String(response.body?.message || "Unable to delete record in Zoho.").trim();
+          renderODPPage();
+          return;
+        }
+        odpMirrorLog("Sync to Zoho", module, id, "Record deleted.");
+        odp.editor.id = "";
+        odp.editor.fields = [];
+        odp.status = `${module} record ${id} deleted in Zoho.`;
+        saveSunriseControlState();
+        await syncOdpFromZoho({ silent: true });
         renderODPPage();
-        return;
-      }
-      const response = await odpApiPost("delete-record", { module, id });
-      if (!response.ok || !response.body?.ok) {
-        odp.warning = String(response.body?.message || "Unable to delete record in Zoho.").trim();
-        renderODPPage();
-        return;
-      }
-      odpMirrorLog("Sync to Zoho", module, id, "Record deleted.");
-      odp.editor.id = "";
-      odp.editor.fields = [];
-      odp.status = `${module} record ${id} deleted in Zoho.`;
-      saveSunriseControlState();
-      await syncOdpFromZoho({ silent: true });
-      renderODPPage();
+      });
     });
   }
 }
@@ -14332,9 +14885,13 @@ function renderODPPage() {
   if (!grid || !sunriseControlState) return;
   const odp = ensureOdpState();
   if (!odp) return;
-  const hasAnyRecords = ODP_MODULE_ORDER.some((module) => Array.isArray(odp.records[module]) && odp.records[module].length > 0);
-  if (!hasAnyRecords) {
-    hydrateOdpFallbackRecordsFromSunrise(odp);
+  if (odp.usingFallback) {
+    syncOdpFallbackMirrorFromSunrise({ force: true });
+  } else {
+    const hasAnyRecords = ODP_MODULE_ORDER.some((module) => Array.isArray(odp.records[module]) && odp.records[module].length > 0);
+    if (!hasAnyRecords) {
+      hydrateOdpFallbackRecordsFromSunrise(odp);
+    }
   }
   const tracker = odpTrackerSnapshot();
   const records = odpFilteredRecords();
@@ -14540,6 +15097,10 @@ function bindSunriseControlInteractions() {
   const monarchCredentialOverlay = document.getElementById("monarch-credential-overlay");
   const monarchCredentialClose = document.getElementById("monarch-credential-close");
   const monarchCredentialSave = document.getElementById("monarch-credential-save");
+  const monarchTransferOverlay = document.getElementById("monarch-transfer-overlay");
+  const monarchTransferClose = document.getElementById("monarch-transfer-close");
+  const monarchEraseCloudOverlay = document.getElementById("monarch-erase-cloud-overlay");
+  const monarchEraseCloudClose = document.getElementById("monarch-erase-cloud-close");
   if (notosPathClose && notosPathClose.dataset.boundNotosClose !== "1") {
     notosPathClose.addEventListener("click", () => {
       if (notosPathOverlay) notosPathOverlay.hidden = true;
@@ -14605,6 +15166,30 @@ function bindSunriseControlInteractions() {
       if (event.target === monarchCredentialOverlay) closeMonarchCredentialOverlay();
     });
     monarchCredentialOverlay.dataset.boundMonarchCredentialBackdrop = "1";
+  }
+  if (monarchTransferClose && monarchTransferClose.dataset.boundMonarchTransferClose !== "1") {
+    monarchTransferClose.addEventListener("click", () => {
+      closeMonarchTransferOverlay();
+    });
+    monarchTransferClose.dataset.boundMonarchTransferClose = "1";
+  }
+  if (monarchTransferOverlay && monarchTransferOverlay.dataset.boundMonarchTransferBackdrop !== "1") {
+    monarchTransferOverlay.addEventListener("click", (event) => {
+      if (event.target === monarchTransferOverlay) closeMonarchTransferOverlay();
+    });
+    monarchTransferOverlay.dataset.boundMonarchTransferBackdrop = "1";
+  }
+  if (monarchEraseCloudClose && monarchEraseCloudClose.dataset.boundMonarchEraseClose !== "1") {
+    monarchEraseCloudClose.addEventListener("click", () => {
+      closeMonarchEraseCloudOverlay();
+    });
+    monarchEraseCloudClose.dataset.boundMonarchEraseClose = "1";
+  }
+  if (monarchEraseCloudOverlay && monarchEraseCloudOverlay.dataset.boundMonarchEraseBackdrop !== "1") {
+    monarchEraseCloudOverlay.addEventListener("click", (event) => {
+      if (event.target === monarchEraseCloudOverlay) closeMonarchEraseCloudOverlay();
+    });
+    monarchEraseCloudOverlay.dataset.boundMonarchEraseBackdrop = "1";
   }
   if (monarchCredentialSave && monarchCredentialSave.dataset.boundMonarchCredentialSave !== "1") {
     monarchCredentialSave.addEventListener("click", () => {
@@ -14929,14 +15514,63 @@ function bindSunriseControlInteractions() {
     const monarchLockBtn = clickTarget.closest("#monarch-lock-btn");
     if (monarchLockBtn) {
       resetMonarchArchangelAccess();
+      closeMonarchTransferOverlay();
+      closeMonarchEraseCloudOverlay();
       renderMonarchArchangelPage();
       return;
     }
 
-    const monarchSaveBtn = clickTarget.closest("#monarch-save-btn, #monarch-save-top-btn");
+    const monarchSaveBtn = clickTarget.closest("#monarch-save-top-btn");
     if (monarchSaveBtn) {
       commitMonarchArchangelChanges();
       renderMonarchArchangelPage();
+      return;
+    }
+
+    const monarchTransferBtn = clickTarget.closest("#monarch-transfer-btn");
+    if (monarchTransferBtn) {
+      openMonarchTransferOverlay();
+      return;
+    }
+
+    const monarchEraseCloudBtn = clickTarget.closest("#monarch-erase-cloud-btn");
+    if (monarchEraseCloudBtn) {
+      openMonarchEraseCloudOverlay();
+      return;
+    }
+
+    const monarchTransferSubmitBtn = clickTarget.closest("#monarch-transfer-submit");
+    if (monarchTransferSubmitBtn) {
+      await submitMonarchCloudTransferRequest();
+      return;
+    }
+
+    const monarchTransferCloseBtn = clickTarget.closest("#monarch-transfer-close");
+    if (monarchTransferCloseBtn) {
+      closeMonarchTransferOverlay();
+      return;
+    }
+
+    const monarchEraseConfirmBtn = clickTarget.closest("#monarch-erase-cloud-confirm");
+    if (monarchEraseConfirmBtn) {
+      const info = document.getElementById("monarch-erase-cloud-info");
+      const notosInput = document.getElementById("monarch-erase-cloud-notos");
+      const codeInput = document.getElementById("monarch-erase-cloud-code");
+      const result = eraseAllMonarchCloudCredentials({
+        notosId: String(notosInput instanceof HTMLInputElement ? notosInput.value : "").trim(),
+        creatorCode: String(codeInput instanceof HTMLInputElement ? codeInput.value : "").trim()
+      });
+      if (info) info.textContent = result.message;
+      if (result.ok) {
+        closeMonarchEraseCloudOverlay();
+        renderMonarchArchangelPage();
+      }
+      return;
+    }
+
+    const monarchEraseCloseBtn = clickTarget.closest("#monarch-erase-cloud-close");
+    if (monarchEraseCloseBtn) {
+      closeMonarchEraseCloudOverlay();
       return;
     }
 
@@ -16373,6 +17007,29 @@ function bindSunriseControlInteractions() {
     const form = event.target instanceof HTMLFormElement ? event.target : null;
     if (!form) return;
 
+    if (form.id === "monarch-transfer-form") {
+      event.preventDefault();
+      submitMonarchCloudTransferRequest();
+      return;
+    }
+
+    if (form.id === "monarch-erase-cloud-form") {
+      event.preventDefault();
+      const info = document.getElementById("monarch-erase-cloud-info");
+      const notosInput = document.getElementById("monarch-erase-cloud-notos");
+      const codeInput = document.getElementById("monarch-erase-cloud-code");
+      const result = eraseAllMonarchCloudCredentials({
+        notosId: String(notosInput instanceof HTMLInputElement ? notosInput.value : "").trim(),
+        creatorCode: String(codeInput instanceof HTMLInputElement ? codeInput.value : "").trim()
+      });
+      if (info) info.textContent = result.message;
+      if (result.ok) {
+        closeMonarchEraseCloudOverlay();
+        renderMonarchArchangelPage();
+      }
+      return;
+    }
+
     if (form.id === "monarch-auth-form") {
       event.preventDefault();
       const operator = getCurrentSunriseOperator() || activeAccount || null;
@@ -16848,7 +17505,9 @@ function bindSunriseControlInteractions() {
       ensureShortcutCodeRegistry();
       const idx = Number(raw);
       if (!sunriseControlState.shortcutCodes[idx]) return;
-      sunriseControlState.shortcutCodes[idx].code = String(t.value || "").trim().toUpperCase();
+      const normalized = normalizeSunriseShortcutToken(t.value);
+      if (!normalized) return;
+      sunriseControlState.shortcutCodes[idx].code = String(normalized || "").trim().toUpperCase();
       syncSunriseDockCodesPreview(sunriseControlState.shortcutCodes);
       scheduleSunriseAdminRenders();
     })) return;
