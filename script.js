@@ -3528,6 +3528,265 @@ function ensureAboutNavLinkVisible() {
   else nav.appendChild(aboutLink);
 }
 
+function ensureAboutRouteSectionPresent() {
+  const existing = document.querySelector('.routePage[data-page="about"]');
+  if (existing) return;
+  const contactSection = document.querySelector('.routePage[data-page="contact"]');
+  if (!contactSection || !contactSection.parentElement) return;
+
+  const aboutSection = document.createElement("section");
+  aboutSection.className = "routePage";
+  aboutSection.setAttribute("data-page", "about");
+  aboutSection.setAttribute("aria-label", "About Us Page");
+  aboutSection.setAttribute("hidden", "");
+  aboutSection.innerHTML = `
+    <section class="view" aria-label="About Us View">
+      <div class="viewInner">
+        <div class="viewTop">
+          <div class="kicker"><span class="dot" aria-hidden="true"></span> About Us</div>
+          <a class="btn ghost" href="#home" data-route="home">Back</a>
+        </div>
+        <h2 class="viewTitle">Built from discipline. Trusted for discretion.</h2>
+        <p class="viewSub aboutLead">Venture Voyager Services was founded by Aleks Totev and Mikhail Kovalev to solve a recurring problem in premium concierge operations: fragmented execution. Clients were forced to coordinate multiple vendors for travel, security, and private logistics with no single command owner when plans shifted under pressure. VVS was built as one accountable system, where operations are controlled end-to-end through a single executive desk. In the early stage, we had limited connections and no inherited global network. We built trust city by city through referral-only delivery, strict confidentiality, and performance review after every assignment.</p>
+
+        <div class="aboutFounders" aria-label="Founders">
+          <article class="aboutFounderCard">
+            <div class="aboutFounderMedia aboutFounderMediaAleks">
+              <img src="assets/about-aleks.jpg" alt="Aleks Totev, CEO and Founder" loading="lazy" decoding="async" />
+              <span class="aboutFounderTag">Founder</span>
+            </div>
+            <div class="aboutFounderBody">
+              <h3>Aleks Totev</h3>
+              <p class="aboutFounderMeta">CEO &amp; Founder • Bulgaria</p>
+              <p class="aboutFounderCopy">Aleks built the original VVS service framework around execution speed, confidentiality, and accountability. He leads strategic growth, international partner standards, and high-priority member programs.</p>
+            </div>
+          </article>
+
+          <article class="aboutFounderCard">
+            <div class="aboutFounderMedia">
+              <img src="assets/about-mikhail.jpg" alt="Mikhail Kovalev, COO and Co-Founder" loading="lazy" decoding="async" />
+              <span class="aboutFounderTag">Co-Founder</span>
+            </div>
+            <div class="aboutFounderBody">
+              <h3>Mikhail Kovalev</h3>
+              <p class="aboutFounderMeta">COO &amp; Co-Founder • Russian Federation</p>
+              <p class="aboutFounderCopy">Mikhail leads operational control, service assurance, and security execution discipline across all VVS channels. His mandate is simple: every assignment must close cleanly, safely, and on time.</p>
+            </div>
+          </article>
+        </div>
+
+        <article class="aboutStoryPanel" aria-label="VVS Story">
+          <h3 class="aboutStoryTitle">How VVS was built</h3>
+          <p class="aboutStoryIntro">From early-stage network limits to multi-region operations, every chapter of VVS was built on structured execution, trust-based relationships, and measurable operational discipline.</p>
+          <div class="aboutTimeline">
+            <details class="aboutStoryStep">
+              <summary><span class="aboutStepCode">01</span>Foundation under pressure</summary>
+              <p>At launch, VVS operated with a narrow partner base and limited privileged access points. Every handoff was managed manually across time zones, with direct verification of transport, venue, and security readiness before release to client.</p>
+              <p>Rather than scaling too fast, the team accepted fewer operations and over-delivered each one. This built a reputation for reliability before volume, and established the first operational blueprint for what VVS is today.</p>
+            </details>
+            <details class="aboutStoryStep">
+              <summary><span class="aboutStepCode">02</span>Network expansion with standards</summary>
+              <p>As demand increased, VVS expanded through controlled onboarding only. Every new city node passed compliance screening, field capability checks, and live pilot execution before becoming active in production.</p>
+              <p>Partners were retained only when they consistently met response-time, discretion, and quality metrics. This kept growth precise, while preserving the confidentiality and service discipline expected by private principals.</p>
+            </details>
+            <details class="aboutStoryStep">
+              <summary><span class="aboutStepCode">03</span>Security Escort case (client-permitted disclosure)</summary>
+              <div class="aboutCaseMeta">
+                <span>Service: Security Escort</span>
+                <span>Disclosure: Permitted by client</span>
+                <span>Identity: Withheld</span>
+              </div>
+              <p>During a high-sensitivity movement window, a client required secure transfer across multiple points with elevated exposure risk and schedule volatility. VVS command ran the assignment with layered safeguards and controlled timing.</p>
+              <ul class="aboutCaseList">
+                <li>Advance reconnaissance of primary and contingency corridors before movement.</li>
+                <li>Staggered departure and decoy timing to reduce predictability of route pattern.</li>
+                <li>Layered protection: vehicle coordination, perimeter monitoring, and close escort.</li>
+                <li>Live command updates through every checkpoint with immediate fallback authority.</li>
+              </ul>
+              <p>Result: the mission closed on schedule, without exposure, and with full operational continuity. Post-operation review was completed and used to further refine VVS security execution protocols.</p>
+            </details>
+            <details class="aboutStoryStep">
+              <summary><span class="aboutStepCode">04</span>Current standard</summary>
+              <p>Today VVS operates as a disciplined command model for principals who require fast response, trusted execution, and consistent confidentiality. Every assignment is structured with clear accountability, execution checkpoints, and post-close quality control.</p>
+              <p>This is how VVS maintains precision under pressure: one command chain, one responsible operator, and one standard across every service category.</p>
+            </details>
+          </div>
+        </article>
+
+        <section class="aboutCtaPanel" aria-label="About Us Call To Action">
+          <h3>Ready to move with VVS?</h3>
+          <p>Engage the concierge desk and receive a coordinated execution plan aligned to your timeline, destination, and security profile.</p>
+          <div class="viewActions">
+            <a class="btn primary" href="#contact" data-route="contact">Start Concierge Request</a>
+            <a class="btn ghost" href="#services" data-route="services">Review Services</a>
+          </div>
+        </section>
+
+        <div class="aboutBottomContact">
+          <a class="btn primary jumbo aboutContactBtn" href="#contact" data-route="contact">Open Contact Menu</a>
+        </div>
+      </div>
+    </section>
+  `;
+  contactSection.parentElement.insertBefore(aboutSection, contactSection);
+}
+
+function ensureAboutSectionStyles() {
+  if (document.getElementById("vvs-about-section-style")) return;
+  const style = document.createElement("style");
+  style.id = "vvs-about-section-style";
+  style.textContent = `
+    .aboutLead { max-width: 980px; }
+    .aboutFounders {
+      margin-top: 16px;
+      display: grid;
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+      gap: 14px;
+    }
+    .aboutFounderCard {
+      border: 1px solid rgba(216,198,163,.22);
+      border-radius: 22px;
+      background: linear-gradient(165deg, rgba(18,11,9,.86), rgba(61,32,20,.58));
+      overflow: hidden;
+      box-shadow: inset 0 1px 0 rgba(255,255,255,.03);
+    }
+    .aboutFounderMedia {
+      position: relative;
+      aspect-ratio: 4 / 5;
+      overflow: hidden;
+      background: rgba(12,8,7,.72);
+    }
+    .aboutFounderMedia img {
+      width: 100%;
+      height: 100%;
+      object-fit: cover;
+      object-position: center 12%;
+      display: block;
+    }
+    .aboutFounderMediaAleks img { object-position: center 22%; }
+    .aboutFounderTag {
+      position: absolute;
+      left: 12px;
+      bottom: 12px;
+      padding: 6px 12px;
+      border-radius: 999px;
+      border: 1px solid rgba(216,198,163,.3);
+      background: rgba(8,5,4,.62);
+      color: rgba(255,232,213,.92);
+      font-size: 12px;
+      letter-spacing: .08em;
+      text-transform: uppercase;
+    }
+    .aboutFounderBody { padding: 14px 14px 16px; }
+    .aboutFounderBody h3 {
+      margin: 0;
+      font-size: clamp(28px, 5vw, 50px);
+      line-height: 1.04;
+      color: rgba(248,237,222,.98);
+    }
+    .aboutFounderMeta {
+      margin: 4px 0 10px;
+      color: rgba(236,199,169,.82);
+      letter-spacing: .12em;
+      text-transform: uppercase;
+      font-size: 11px;
+    }
+    .aboutFounderCopy {
+      margin: 0;
+      color: rgba(242,228,210,.85);
+      line-height: 1.55;
+    }
+    .aboutStoryPanel,
+    .aboutCtaPanel {
+      margin-top: 16px;
+      padding: 18px;
+      border: 1px solid rgba(216,198,163,.2);
+      border-radius: 20px;
+      background: linear-gradient(160deg, rgba(14,9,8,.8), rgba(48,25,17,.52));
+    }
+    .aboutStoryTitle {
+      margin: 0;
+      color: rgba(248,237,222,.97);
+      font-size: 24px;
+      letter-spacing: .03em;
+    }
+    .aboutStoryIntro {
+      margin: 8px 0 0;
+      color: rgba(236,219,201,.82);
+      line-height: 1.6;
+    }
+    .aboutTimeline { margin-top: 12px; display: grid; gap: 10px; }
+    .aboutStoryStep {
+      border-radius: 16px;
+      border: 1px solid rgba(216,198,163,.18);
+      background: rgba(10,6,5,.34);
+      overflow: hidden;
+    }
+    .aboutStoryStep summary {
+      list-style: none;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      padding: 12px 14px;
+      color: rgba(250,239,226,.96);
+      font-size: 21px;
+      font-weight: 700;
+      line-height: 1.3;
+    }
+    .aboutStoryStep summary::-webkit-details-marker { display: none; }
+    .aboutStepCode {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      min-width: 38px;
+      height: 30px;
+      border-radius: 999px;
+      border: 1px solid rgba(216,198,163,.28);
+      color: rgba(236,205,176,.84);
+      font-size: 13px;
+      letter-spacing: .12em;
+    }
+    .aboutStoryStep p,
+    .aboutStoryStep ul {
+      margin: 0;
+      padding: 0 14px 12px;
+      color: rgba(238,223,205,.84);
+      line-height: 1.62;
+    }
+    .aboutCaseMeta {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 8px;
+      padding: 0 14px 10px;
+    }
+    .aboutCaseMeta span {
+      padding: 7px 10px;
+      border-radius: 999px;
+      border: 1px solid rgba(216,198,163,.2);
+      background: rgba(12,7,6,.42);
+      color: rgba(241,225,206,.86);
+      font-size: 12px;
+      letter-spacing: .08em;
+      text-transform: uppercase;
+    }
+    .aboutCaseList {
+      margin: 0;
+      padding: 0 28px 12px;
+      color: rgba(238,223,205,.85);
+      line-height: 1.6;
+    }
+    .aboutBottomContact { margin-top: 14px; display: flex; justify-content: center; }
+    @media (max-width: 920px) {
+      .aboutFounders { grid-template-columns: 1fr; }
+      .aboutFounderMedia { aspect-ratio: 4 / 4.6; }
+      .aboutFounderBody h3 { font-size: clamp(34px, 9vw, 58px); }
+      .aboutStoryStep summary { font-size: 20px; }
+    }
+  `;
+  document.head.appendChild(style);
+}
+
 function ensureMobileNavVisibilityStyles() {
   if (document.getElementById("vvs-mobile-nav-fix-style")) return;
   const style = document.createElement("style");
@@ -4547,6 +4806,8 @@ const safeStartupCall = (name, fn) => {
 };
 
 safeStartupCall("populateAllTierBacks", populateAllTierBacks);
+safeStartupCall("ensureAboutRouteSectionPresent", ensureAboutRouteSectionPresent);
+safeStartupCall("ensureAboutSectionStyles", ensureAboutSectionStyles);
 safeStartupCall("ensureAboutNavLinkVisible", ensureAboutNavLinkVisible);
 safeStartupCall("ensureMobileNavVisibilityStyles", ensureMobileNavVisibilityStyles);
 safeStartupCall("initHeroLocator", initHeroLocator);
