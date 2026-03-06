@@ -12163,55 +12163,81 @@ function removeRecordsFromCollection(list, predicate) {
   return removed;
 }
 
+function parseMonarchSyncTimestamp(value = "") {
+  const raw = String(value || "").trim();
+  if (!raw) return 0;
+  const normalized = raw
+    .replace(/\s+UTC$/i, "Z")
+    .replace(" ", "T");
+  const ms = Date.parse(normalized);
+  return Number.isFinite(ms) ? ms : 0;
+}
+
+function shouldApplyMonarchAccountRecord(record = null, account = null) {
+  if (!record || String(record?.sourceType || "").trim() !== "account" || record?.deletedInSource) return false;
+  if (!account) return true;
+  if (record.manualOverride) return true;
+  const recordTs = Math.max(
+    parseMonarchSyncTimestamp(record.updatedAt),
+    parseMonarchSyncTimestamp(record.lastSyncedAt)
+  );
+  const accountTs = Math.max(
+    parseMonarchSyncTimestamp(account.updatedAt),
+    parseMonarchSyncTimestamp(account.verifiedAt),
+    parseMonarchSyncTimestamp(account.createdAt)
+  );
+  return recordTs > accountTs;
+}
+
 function applyMonarchArchivePayloadToSource(record = null) {
   if (!record || typeof record !== "object") {
-    return { ok: false, message: "Archive record not found.", updatedAccounts: false, updatedSunrise: false };
+    return { ok: false, message: "Archive record not found.", updatedAccounts: false, updatedSunrise: false, accountKey: "" };
   }
   const payload = monarchDeepClone(record.payload);
   const sourceType = String(record.sourceType || "").trim();
   if (!payload || typeof payload !== "object") {
-    return { ok: false, message: "Archive payload is invalid.", updatedAccounts: false, updatedSunrise: false };
+    return { ok: false, message: "Archive payload is invalid.", updatedAccounts: false, updatedSunrise: false, accountKey: "" };
   }
 
   if (sourceType === "account") {
     const key = normalizeEmailAddress(payload.email || record.sourceKey || "");
-    if (!key) return { ok: false, message: "Account email is required for sync.", updatedAccounts: false, updatedSunrise: false };
+    if (!key) return { ok: false, message: "Account email is required for sync.", updatedAccounts: false, updatedSunrise: false, accountKey: "" };
     accounts[key] = normalizeAccountServiceCards(payload);
-    return { ok: true, message: "Account synchronized to VVS and AMP.", updatedAccounts: true, updatedSunrise: false };
+    return { ok: true, message: "Account synchronized to VVS and AMP.", updatedAccounts: true, updatedSunrise: false, accountKey: key };
   }
 
   if (!sunriseControlState) {
-    return { ok: false, message: "Sunrise storage is unavailable.", updatedAccounts: false, updatedSunrise: false };
+    return { ok: false, message: "Sunrise storage is unavailable.", updatedAccounts: false, updatedSunrise: false, accountKey: "" };
   }
 
   if (sourceType === "rta") {
     ensureRtaAssignmentsStore();
     upsertRecordInCollection(sunriseControlState.rtaAssignments, normalizeRtaAssignment(payload), (row) => row?.clientKey);
-    return { ok: true, message: "RTA record synchronized to Sunrise.", updatedAccounts: false, updatedSunrise: true };
+    return { ok: true, message: "RTA record synchronized to Sunrise.", updatedAccounts: false, updatedSunrise: true, accountKey: "" };
   }
   if (sourceType === "rim") {
     upsertRecordInCollection(sunriseControlState.rimInvites, payload, (row) => row?.id || row?.email);
-    return { ok: true, message: "RIM record synchronized to Sunrise.", updatedAccounts: false, updatedSunrise: true };
+    return { ok: true, message: "RIM record synchronized to Sunrise.", updatedAccounts: false, updatedSunrise: true, accountKey: "" };
   }
   if (sourceType === "ecs") {
     upsertRecordInCollection(sunriseControlState.ecsEmployees, payload, (row) => row?.id || row?.email);
-    return { ok: true, message: "ECS employee synchronized to Sunrise.", updatedAccounts: false, updatedSunrise: true };
+    return { ok: true, message: "ECS employee synchronized to Sunrise.", updatedAccounts: false, updatedSunrise: true, accountKey: "" };
   }
   if (sourceType === "eam") {
     upsertRecordInCollection(sunriseControlState.eamExpenses, payload, (row) => row?.id);
-    return { ok: true, message: "Expense record synchronized to Sunrise.", updatedAccounts: false, updatedSunrise: true };
+    return { ok: true, message: "Expense record synchronized to Sunrise.", updatedAccounts: false, updatedSunrise: true, accountKey: "" };
   }
   if (sourceType === "ifs") {
     upsertRecordInCollection(sunriseControlState.ifsIncome, payload, (row) => row?.id);
-    return { ok: true, message: "Income record synchronized to Sunrise.", updatedAccounts: false, updatedSunrise: true };
+    return { ok: true, message: "Income record synchronized to Sunrise.", updatedAccounts: false, updatedSunrise: true, accountKey: "" };
   }
   if (sourceType === "smca") {
     upsertRecordInCollection(sunriseControlState.smca, payload, (row) => row?.id);
-    return { ok: true, message: "Commission record synchronized to Sunrise.", updatedAccounts: false, updatedSunrise: true };
+    return { ok: true, message: "Commission record synchronized to Sunrise.", updatedAccounts: false, updatedSunrise: true, accountKey: "" };
   }
   if (sourceType === "lcs") {
     upsertRecordInCollection(sunriseControlState.lcsSessions, payload, (row) => row?.id);
-    return { ok: true, message: "NOTOS session synchronized to Sunrise.", updatedAccounts: false, updatedSunrise: true };
+    return { ok: true, message: "NOTOS session synchronized to Sunrise.", updatedAccounts: false, updatedSunrise: true, accountKey: "" };
   }
   if (sourceType === "mail") {
     const inbox = sunriseControlState.inbox || {};
@@ -12221,26 +12247,71 @@ function applyMonarchArchivePayloadToSource(record = null) {
     if (Array.isArray(sunriseOwnerInboxState?.messages)) {
       upsertRecordInCollection(sunriseOwnerInboxState.messages, payload, (row) => row?.id);
     }
-    return { ok: true, message: "Mail record synchronized to Sunrise inbox.", updatedAccounts: false, updatedSunrise: true };
+    return { ok: true, message: "Mail record synchronized to Sunrise inbox.", updatedAccounts: false, updatedSunrise: true, accountKey: "" };
   }
   if (sourceType === "access-level") {
     upsertRecordInCollection(sunriseControlState.accessLevels, payload, (row) => row?.code);
-    return { ok: true, message: "Access level synchronized to ALP.", updatedAccounts: false, updatedSunrise: true };
+    return { ok: true, message: "Access level synchronized to ALP.", updatedAccounts: false, updatedSunrise: true, accountKey: "" };
   }
   if (sourceType === "shortcut-code") {
     ensureShortcutCodeRegistry();
     upsertRecordInCollection(sunriseControlState.shortcutCodes, payload, (row) => row?.code);
-    return { ok: true, message: "Shortcut code synchronized to MCC.", updatedAccounts: false, updatedSunrise: true };
+    return { ok: true, message: "Shortcut code synchronized to MCC.", updatedAccounts: false, updatedSunrise: true, accountKey: "" };
   }
   if (sourceType.startsWith("soc-")) {
     const bucket = sourceType.replace("soc-", "");
     const targetList = Array.isArray(sunriseControlState?.socServices?.[bucket]) ? sunriseControlState.socServices[bucket] : null;
-    if (!targetList) return { ok: false, message: "SOC collection is unavailable.", updatedAccounts: false, updatedSunrise: false };
+    if (!targetList) return { ok: false, message: "SOC collection is unavailable.", updatedAccounts: false, updatedSunrise: false, accountKey: "" };
     upsertRecordInCollection(targetList, payload, (row) => row?.id);
-    return { ok: true, message: "SOC service synchronized to Sunrise.", updatedAccounts: false, updatedSunrise: true };
+    return { ok: true, message: "SOC service synchronized to Sunrise.", updatedAccounts: false, updatedSunrise: true, accountKey: "" };
   }
 
-  return { ok: false, message: "This archive type is view-only.", updatedAccounts: false, updatedSunrise: false };
+  return { ok: false, message: "This archive type is view-only.", updatedAccounts: false, updatedSunrise: false, accountKey: "" };
+}
+
+function syncMonarchAccountRecordsToAmp({
+  track = false,
+  reason = "MONARCH ARCHANGEL account sync applied to AMP."
+} = {}) {
+  if (!monarchArchangelState || monarchArchangelState.cloudErased === true) {
+    return { applied: 0, tracked: 0, keys: [] };
+  }
+  const changedKeys = new Set();
+  let applied = 0;
+  const appliedAt = formatUtcTimestamp(new Date());
+  monarchArchiveRecordsList().forEach((record) => {
+    if (String(record?.sourceType || "").trim() !== "account" || record?.deletedInSource) return;
+    const accountKey = normalizeEmailAddress(record?.sourceKey || record?.payload?.email || "");
+    const account = accountKey ? accounts[accountKey] : null;
+    if (!shouldApplyMonarchAccountRecord(record, account)) return;
+    const result = applyMonarchArchivePayloadToSource(record);
+    if (!result.ok || !result.updatedAccounts || !result.accountKey) return;
+    changedKeys.add(result.accountKey);
+    const persistedRecord = findMonarchArchiveRecord(record.id);
+    if (persistedRecord && typeof persistedRecord === "object") {
+      persistedRecord.manualOverride = false;
+      persistedRecord.updatedAt = appliedAt;
+      persistedRecord.lastSyncedAt = appliedAt;
+    }
+    applied += 1;
+  });
+  if (!applied) return { applied: 0, tracked: 0, keys: [] };
+  persistAccountsData();
+  let tracked = 0;
+  Array.from(changedKeys).forEach((key) => {
+    queueSharedRegistryAccountSync(key);
+    if (!track) return;
+    tracked += 1;
+    void logSharedRegistryActivity({
+      email: key,
+      eventType: "account_updated",
+      system: "monarch",
+      route: "sunrise-monarch",
+      status: reason,
+      account: accounts[key]
+    });
+  });
+  return { applied, tracked, keys: Array.from(changedKeys) };
 }
 
 function restoreMonarchArchiveRecord(recordId = "") {
@@ -12436,6 +12507,7 @@ function commitMonarchArchangelChanges() {
     .filter((record) => record?.manualOverride && !record?.deletedInSource);
   let accountsTouched = false;
   let sunriseTouched = false;
+  const syncedAccountKeys = new Set();
   let appliedCount = 0;
   const syncWarnings = [];
   const appliedAt = formatUtcTimestamp(new Date());
@@ -12447,6 +12519,9 @@ function commitMonarchArchangelChanges() {
     }
     accountsTouched = accountsTouched || !!result.updatedAccounts;
     sunriseTouched = sunriseTouched || !!result.updatedSunrise;
+    if (result.updatedAccounts && result.accountKey) {
+      syncedAccountKeys.add(result.accountKey);
+    }
     const persistedRecord = findMonarchArchiveRecord(record.id);
     if (persistedRecord && typeof persistedRecord === "object") {
       persistedRecord.manualOverride = false;
@@ -12456,6 +12531,19 @@ function commitMonarchArchangelChanges() {
     appliedCount += 1;
   });
   if (accountsTouched) persistAccountsData();
+  if (syncedAccountKeys.size) {
+    Array.from(syncedAccountKeys).forEach((key) => {
+      queueSharedRegistryAccountSync(key);
+      void logSharedRegistryActivity({
+        email: key,
+        eventType: "account_updated",
+        system: "monarch",
+        route: "sunrise-monarch",
+        status: "MONARCH ARCHANGEL account sync applied to AMP.",
+        account: accounts[key]
+      });
+    });
+  }
   if (sunriseTouched) saveSunriseControlState({ immediate: true, markDirty: false });
   syncMonarchArchangelArchive({ immediate: true });
   persistMonarchArchangelState();
@@ -13347,6 +13435,10 @@ function renderAMPPage(filter = "", options = {}) {
   const grid = document.getElementById("sunrise-amp-grid");
   if (!grid) return;
   ensureAmpDeletedAccountsStore();
+  syncMonarchAccountRecordsToAmp({
+    track: true,
+    reason: "AMP synchronized from MONARCH ARCHANGEL account records."
+  });
   if (!options?.skipRegistryHydration) {
     queueAmpRegistryHydration(filter);
   }
@@ -17868,6 +17960,10 @@ restoreProtectedOwnerCredentials();
 pruneDuplicateSunriseCredentials();
 normalizeAllAccountRecords();
 persistAccountsData();
+syncMonarchAccountRecordsToAmp({
+  track: true,
+  reason: "Startup reconciliation from MONARCH ARCHANGEL account records."
+});
 
 sunriseControlState = loadSunriseControlState();
 syncEcsWithStaffAccounts();
