@@ -12710,6 +12710,9 @@ function syncMonarchAccountRecordsToAmp({
     if (!shouldApplyMonarchAccountRecord(record, account)) return;
     const result = applyMonarchArchivePayloadToSource(record);
     if (!result.ok || !result.updatedAccounts || !result.accountKey) return;
+    if (accounts[result.accountKey] && typeof accounts[result.accountKey] === "object") {
+      accounts[result.accountKey].updatedAt = appliedAt;
+    }
     changedKeys.add(result.accountKey);
     const persistedRecord = findMonarchArchiveRecord(record.id);
     if (persistedRecord && typeof persistedRecord === "object") {
@@ -12724,16 +12727,7 @@ function syncMonarchAccountRecordsToAmp({
   let tracked = 0;
   Array.from(changedKeys).forEach((key) => {
     queueSharedRegistryAccountSync(key);
-    if (!track) return;
-    tracked += 1;
-    void logSharedRegistryActivity({
-      email: key,
-      eventType: "account_updated",
-      system: "monarch",
-      route: "sunrise-monarch",
-      status: reason,
-      account: accounts[key]
-    });
+    if (track) tracked += 1;
   });
   return { applied, tracked, keys: Array.from(changedKeys) };
 }
@@ -13476,12 +13470,13 @@ function scheduleSunriseAdminRenders() {
   sunriseAdminRenderQueued = true;
   window.setTimeout(() => {
     sunriseAdminRenderQueued = false;
+    const visibleRoute = currentVisibleRoute();
     const ampQuery = String(document.getElementById("amp-search")?.value || "").trim();
     const alpQuery = String(document.getElementById("alp-search")?.value || "").trim();
     const mccQuery = String(document.getElementById("mcc-search")?.value || "").trim();
-    renderAMPPage(ampQuery);
-    renderALPPage(alpQuery);
-    renderMCCPage(mccQuery);
+    if (visibleRoute === "sunrise-amp") renderAMPPage(ampQuery);
+    if (visibleRoute === "sunrise-alp") renderALPPage(alpQuery);
+    if (visibleRoute === "sunrise-mcc") renderMCCPage(mccQuery);
     syncSunriseDockCodesPreview(ensureShortcutCodeRegistry());
   }, 60);
 }
@@ -13860,8 +13855,9 @@ function renderAMPPage(filter = "", options = {}) {
   if (!grid) return;
   bindAmpGridDetailButtons();
   ensureAmpDeletedAccountsStore();
+  const ampVisible = currentVisibleRoute() === "sunrise-amp";
   syncMonarchAccountRecordsToAmp({
-    track: true,
+    track: ampVisible,
     reason: "AMP synchronized from MONARCH ARCHANGEL account records."
   });
   if (!options?.skipRegistryHydration) {
