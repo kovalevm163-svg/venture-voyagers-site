@@ -18,5 +18,11 @@
 /script.js*
   Cache-Control: no-store
 
+/script.js
+  Cache-Control: no-store, must-revalidate
+
 /styles.css*
   Cache-Control: no-store
+
+/styles.css
+  Cache-Control: no-store, must-revalidate
