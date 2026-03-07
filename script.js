@@ -18407,121 +18407,155 @@ if (profileSubmitServiceTopBtn) {
   });
 }
 
-if (sunriseStep1) {
-  sunriseStep1.addEventListener("submit", async (event) => {
-    event.preventDefault();
-    if (!hasSunriseAccess(activeAccount)) {
-      if (sunriseInfo) sunriseInfo.textContent = "Sunrise-enabled account required.";
-      return;
-    }
+async function handleSunriseStep1Submit(event = null) {
+  if (event) event.preventDefault();
+  if (!hasSunriseAccess(activeAccount)) {
+    if (sunriseInfo) sunriseInfo.textContent = "Sunrise-enabled account required.";
+    return;
+  }
 
-    const emailEl = document.getElementById("sunrise-email");
-    const passwordEl = document.getElementById("sunrise-password");
-    const email = emailEl ? emailEl.value.trim() : "";
-    const password = passwordEl ? passwordEl.value.trim() : "";
-    if (!email || !password) {
-      if (sunriseInfo) sunriseInfo.textContent = "Enter Sunrise email and password.";
+  const emailEl = document.getElementById("sunrise-email");
+  const passwordEl = document.getElementById("sunrise-password");
+  const email = emailEl ? emailEl.value.trim() : "";
+  const password = passwordEl ? passwordEl.value.trim() : "";
+  if (!email || !password) {
+    if (sunriseInfo) sunriseInfo.textContent = "Enter Sunrise email and password.";
+    return;
+  }
+  const account = findAccountByEmail(email);
+  if (isAleksRestrictedFromMikhailSunrise(account)) {
+    if (sunriseInfo) sunriseInfo.textContent = "Access restricted: Aleks Sunrise profile cannot open Mikhail Sunrise credentials.";
+    return;
+  }
+  if (account && isSunriseCredentialAccount(account)) {
+    const activeOwner = !!(activeAccount && isOwnerAccount(activeAccount));
+    const ownerTarget = isOwnerAccount(account);
+    if (!activeOwner && ownerTarget) {
+      resetSunriseState({ clearStoredSession: false });
+      blockSunriseOwnerBreachAttempt();
       return;
     }
-    const account = findAccountByEmail(email);
-    if (isAleksRestrictedFromMikhailSunrise(account)) {
-      if (sunriseInfo) sunriseInfo.textContent = "Access restricted: Aleks Sunrise profile cannot open Mikhail Sunrise credentials.";
-      return;
-    }
-    if (account && isSunriseCredentialAccount(account)) {
-      const activeOwner = !!(activeAccount && isOwnerAccount(activeAccount));
-      const ownerTarget = isOwnerAccount(account);
-      if (!activeOwner && ownerTarget) {
-        resetSunriseState({ clearStoredSession: false });
-        blockSunriseOwnerBreachAttempt();
-        return;
-      }
-    }
-    const allPasswords = account
-      ? [String(account.password), ...((account.altPasswords || []).map((item) => String(item)))]
-      : [];
-    const passOk = account && allPasswords.some((stored) =>
-      password === stored || password.toLowerCase() === stored.toLowerCase()
-    );
+  }
+  const allPasswords = account
+    ? [String(account.password), ...((account.altPasswords || []).map((item) => String(item)))]
+    : [];
+  const passOk = account && allPasswords.some((stored) =>
+    password === stored || password.toLowerCase() === stored.toLowerCase()
+  );
 
-    if (!account || !passOk || !isSunriseCredentialAccount(account)) {
-      if (sunriseInfo) sunriseInfo.textContent = "Sunrise log in failed. Check your Sunrise email or password.";
-      return;
-    }
+  if (!account || !passOk || !isSunriseCredentialAccount(account)) {
+    if (sunriseInfo) sunriseInfo.textContent = "Sunrise log in failed. Check your Sunrise email or password.";
+    return;
+  }
 
-    sunriseState.email = String(account.email || email).trim().toLowerCase();
-    sunriseState.account = account;
-    if (shouldBypassOwnerEmailVerification(account)) {
-      if (sunriseStep2) {
-        sunriseStep2.hidden = true;
-        sunriseStep2.reset();
-      }
-      if (sunriseInfo) sunriseInfo.textContent = "Owner Sunrise verification confirmed. Unlocking control.";
-      finalizeSunriseUnlock(account);
-      return;
-    }
-    const candidateSunriseCode = issueTestEmailCode(sunriseState.email);
-    const delivery = await sendVerificationCodeEmail({
-      email: sunriseState.email,
-      code: candidateSunriseCode,
-      context: "sunrise",
-      name: verificationRecipientName(account)
-    });
-    sunriseState.code = delivery.ok ? candidateSunriseCode : "";
-
-    sunriseStep1.hidden = false;
+  sunriseState.email = String(account.email || email).trim().toLowerCase();
+  sunriseState.account = account;
+  if (shouldBypassOwnerEmailVerification(account)) {
     if (sunriseStep2) {
-      sunriseStep2.hidden = !delivery.ok;
-      if (!delivery.ok) sunriseStep2.reset();
+      sunriseStep2.hidden = true;
+      sunriseStep2.reset();
     }
-    if (sunriseInfo) {
-      sunriseInfo.textContent = buildVerificationDispatchMessage({
-        email: sunriseState.email,
-        context: "sunrise",
-        delivery
-      });
-    }
+    if (sunriseInfo) sunriseInfo.textContent = "Owner Sunrise verification confirmed. Unlocking control.";
+    finalizeSunriseUnlock(account);
+    return;
+  }
+  const candidateSunriseCode = issueTestEmailCode(sunriseState.email);
+  const delivery = await sendVerificationCodeEmail({
+    email: sunriseState.email,
+    code: candidateSunriseCode,
+    context: "sunrise",
+    name: verificationRecipientName(account)
   });
+  sunriseState.code = delivery.ok ? candidateSunriseCode : "";
+
+  if (sunriseStep1) sunriseStep1.hidden = false;
+  if (sunriseStep2) {
+    sunriseStep2.hidden = !delivery.ok;
+    if (!delivery.ok) sunriseStep2.reset();
+  }
+  if (sunriseInfo) {
+    sunriseInfo.textContent = buildVerificationDispatchMessage({
+      email: sunriseState.email,
+      context: "sunrise",
+      delivery
+    });
+  }
 }
 
-if (sunriseStep2) {
-  sunriseStep2.addEventListener("submit", (event) => {
-    event.preventDefault();
-    const phraseEl = document.getElementById("sunrise-phrase");
-    const codeEl = document.getElementById("sunrise-code");
-    const phrase = phraseEl ? phraseEl.value.trim().toLowerCase() : "";
-    const code = codeEl ? codeEl.value.trim() : "";
-    if (!phrase || !code) {
-      if (sunriseInfo) sunriseInfo.textContent = "Enter secret phrase and email confirmation code.";
-      return;
-    }
-    const account = sunriseState.account || findAccountByEmail(sunriseState.email);
-    if (isAleksRestrictedFromMikhailSunrise(account)) {
-      if (sunriseInfo) sunriseInfo.textContent = "Access restricted: Aleks Sunrise profile cannot open Mikhail Sunrise credentials.";
-      sunriseState.pendingAccount = null;
-      return;
-    }
+function handleSunriseStep2Submit(event = null) {
+  if (event) event.preventDefault();
+  const phraseEl = document.getElementById("sunrise-phrase");
+  const codeEl = document.getElementById("sunrise-code");
+  const phrase = phraseEl ? phraseEl.value.trim().toLowerCase() : "";
+  const code = codeEl ? codeEl.value.trim() : "";
+  if (!phrase || !code) {
+    if (sunriseInfo) sunriseInfo.textContent = "Enter secret phrase and email confirmation code.";
+    return;
+  }
+  const account = sunriseState.account || findAccountByEmail(sunriseState.email);
+  if (isAleksRestrictedFromMikhailSunrise(account)) {
+    if (sunriseInfo) sunriseInfo.textContent = "Access restricted: Aleks Sunrise profile cannot open Mikhail Sunrise credentials.";
+    sunriseState.pendingAccount = null;
+    return;
+  }
 
-    const phraseOk = !!(account && phrase && phrase === String(account.secretPhrase || "").toLowerCase());
-    const codeOk = !!(code && code === sunriseState.code);
-    const owner = isOwnerAccount(account);
-    const actingOwner = isOwnerAccount(activeAccount);
-    if (!phraseOk || !codeOk) {
-      if (sunriseInfo) sunriseInfo.textContent = "Sunrise verification failed. Confirm secret phrase and code.";
-      return;
-    }
+  const phraseOk = !!(account && phrase && phrase === String(account.secretPhrase || "").toLowerCase());
+  const codeOk = !!(code && code === sunriseState.code);
+  const owner = isOwnerAccount(account);
+  const actingOwner = isOwnerAccount(activeAccount);
+  if (!phraseOk || !codeOk) {
+    if (sunriseInfo) sunriseInfo.textContent = "Sunrise verification failed. Confirm secret phrase and code.";
+    return;
+  }
 
-    if (owner || actingOwner) {
-      finalizeSunriseUnlock(account);
-      return;
-    }
+  if (owner || actingOwner) {
+    finalizeSunriseUnlock(account);
+    return;
+  }
 
-    sunriseState.pendingAccount = account;
-    if (sunriseNotosOverlay) sunriseNotosOverlay.hidden = false;
-    if (sunriseNotosInput) sunriseNotosInput.value = "";
-    if (sunriseNotosInfo) sunriseNotosInfo.textContent = "NOTOS Employee ID is required to continue.";
-  });
+  sunriseState.pendingAccount = account;
+  if (sunriseNotosOverlay) sunriseNotosOverlay.hidden = false;
+  if (sunriseNotosInput) sunriseNotosInput.value = "";
+  if (sunriseNotosInfo) sunriseNotosInfo.textContent = "NOTOS Employee ID is required to continue.";
 }
+
+if (sunriseStep1 && sunriseStep1.dataset.boundSubmit !== "1") {
+  sunriseStep1.addEventListener("submit", (event) => {
+    void handleSunriseStep1Submit(event);
+  });
+  const submitBtn = sunriseStep1.querySelector('button[type="submit"]');
+  if (submitBtn && submitBtn.dataset.sunriseFallbackClick !== "1") {
+    submitBtn.addEventListener("click", (event) => {
+      event.preventDefault();
+      void handleSunriseStep1Submit(event);
+    });
+    submitBtn.dataset.sunriseFallbackClick = "1";
+  }
+  sunriseStep1.dataset.boundSubmit = "1";
+}
+
+if (sunriseStep2 && sunriseStep2.dataset.boundSubmit !== "1") {
+  sunriseStep2.addEventListener("submit", handleSunriseStep2Submit);
+  const submitBtn = sunriseStep2.querySelector('button[type="submit"]');
+  if (submitBtn && submitBtn.dataset.sunriseFallbackClick !== "1") {
+    submitBtn.addEventListener("click", (event) => {
+      event.preventDefault();
+      handleSunriseStep2Submit(event);
+    });
+    submitBtn.dataset.sunriseFallbackClick = "1";
+  }
+  sunriseStep2.dataset.boundSubmit = "1";
+}
+
+window.submitSunriseStep1 = (event) => {
+  void handleSunriseStep1Submit(event || null);
+  return false;
+};
+
+window.submitSunriseStep2 = (event) => {
+  handleSunriseStep2Submit(event || null);
+  return false;
+};
 
 const verifySunriseNotosPopup = () => {
   const account = sunriseState.pendingAccount || sunriseState.account || findAccountByEmail(sunriseState.email);
@@ -18667,6 +18701,4 @@ forceSubmitOnClick("login-step1");
 forceSubmitOnClick("login-step2");
 forceSubmitOnClick("signup-step1");
 forceSubmitOnClick("signup-step2");
-forceSubmitOnClick("sunrise-step1");
-forceSubmitOnClick("sunrise-step2");
 setupSunriseShortcutMenu();
