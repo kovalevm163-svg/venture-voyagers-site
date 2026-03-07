@@ -52,6 +52,56 @@ function envValue(env, key) {
   return String(env?.[key] || "").trim();
 }
 
+function firstEnvValue(env, keys = []) {
+  for (const key of keys) {
+    const value = envValue(env, key);
+    if (value) return value;
+  }
+  return "";
+}
+
+function resolveGmailConfig(env) {
+  return {
+    clientId: firstEnvValue(env, ["GMAIL_CLIENT_ID", "GOOGLE_CLIENT_ID", "GMAIL_OAUTH_CLIENT_ID"]),
+    clientSecret: firstEnvValue(env, ["GMAIL_CLIENT_SECRET", "GOOGLE_CLIENT_SECRET", "GMAIL_OAUTH_CLIENT_SECRET"]),
+    refreshToken: firstEnvValue(env, ["GMAIL_REFRESH_TOKEN", "GOOGLE_REFRESH_TOKEN", "GMAIL_OAUTH_REFRESH_TOKEN"]),
+    accountEmail: firstEnvValue(env, ["GMAIL_ACCOUNT_EMAIL", "GMAIL_FROM_EMAIL", "VVS_GMAIL_ACCOUNT_EMAIL"])
+  };
+}
+
+function resolveZohoConfig(env) {
+  return {
+    clientId: firstEnvValue(env, [
+      "ZOHO_CLIENT_ID",
+      "ZOHO_CRM_CLIENT_ID",
+      "ZOHO_OAUTH_CLIENT_ID",
+      "ZOHO_CLIENTID"
+    ]),
+    clientSecret: firstEnvValue(env, [
+      "ZOHO_CLIENT_SECRET",
+      "ZOHO_CRM_CLIENT_SECRET",
+      "ZOHO_OAUTH_CLIENT_SECRET",
+      "ZOHO_CLIENTSECRET"
+    ]),
+    refreshToken: firstEnvValue(env, [
+      "ZOHO_REFRESH_TOKEN",
+      "ZOHO_CRM_REFRESH_TOKEN",
+      "ZOHO_OAUTH_REFRESH_TOKEN",
+      "ZOHO_REFRESHTOKEN"
+    ]),
+    accountsDomain: firstEnvValue(env, [
+      "ZOHO_ACCOUNTS_DOMAIN",
+      "ZOHO_OAUTH_DOMAIN",
+      "ZOHO_AUTH_DOMAIN"
+    ]),
+    crmApiDomain: firstEnvValue(env, [
+      "ZOHO_CRM_API_DOMAIN",
+      "ZOHO_API_DOMAIN",
+      "ZOHO_DOMAIN"
+    ])
+  };
+}
+
 let gmailTokenCache = {
   cacheKey: "",
   accessToken: "",
@@ -133,18 +183,20 @@ async function sendEmailViaResend(env, {
 }
 
 function hasConfiguredGmailProvider(env) {
+  const config = resolveGmailConfig(env);
   return !!(
-    envValue(env, "GMAIL_CLIENT_ID")
-    && envValue(env, "GMAIL_CLIENT_SECRET")
-    && envValue(env, "GMAIL_REFRESH_TOKEN")
+    config.clientId
+    && config.clientSecret
+    && config.refreshToken
   );
 }
 
 function hasConfiguredZohoProvider(env) {
+  const config = resolveZohoConfig(env);
   return !!(
-    envValue(env, "ZOHO_CLIENT_ID")
-    && envValue(env, "ZOHO_CLIENT_SECRET")
-    && envValue(env, "ZOHO_REFRESH_TOKEN")
+    config.clientId
+    && config.clientSecret
+    && config.refreshToken
   );
 }
 
@@ -311,11 +363,12 @@ async function getGoogleAccessToken(env) {
   if (!hasConfiguredGmailProvider(env)) {
     return { ok: false, skipped: true, provider: "gmail", message: "GMAIL provider secrets are not configured." };
   }
+  const config = resolveGmailConfig(env);
 
   const now = Date.now();
   const cacheKey = [
-    envValue(env, "GMAIL_CLIENT_ID"),
-    envValue(env, "GMAIL_ACCOUNT_EMAIL")
+    config.clientId,
+    config.accountEmail
   ].join("::");
   if (
     gmailTokenCache.cacheKey === cacheKey
@@ -337,9 +390,9 @@ async function getGoogleAccessToken(env) {
       "Content-Type": "application/x-www-form-urlencoded;charset=UTF-8"
     },
     body: new URLSearchParams({
-      client_id: envValue(env, "GMAIL_CLIENT_ID"),
-      client_secret: envValue(env, "GMAIL_CLIENT_SECRET"),
-      refresh_token: envValue(env, "GMAIL_REFRESH_TOKEN"),
+      client_id: config.clientId,
+      client_secret: config.clientSecret,
+      refresh_token: config.refreshToken,
       grant_type: "refresh_token"
     })
   });
@@ -436,7 +489,8 @@ async function sendEmailViaGmail(env, {
     from,
     attachments
   });
-  const user = encodeURIComponent(envValue(env, "GMAIL_ACCOUNT_EMAIL") || "me");
+  const config = resolveGmailConfig(env);
+  const user = encodeURIComponent(config.accountEmail || "me");
   const response = await gmailRequest(env, `/users/${user}/messages/send`, {
     method: "POST",
     body: JSON.stringify({ raw })
@@ -456,9 +510,29 @@ async function sendEmailViaGmail(env, {
 
 async function sendEmailViaConfiguredProvider(env, payload = {}) {
   if (hasConfiguredGmailProvider(env)) {
-    const gmailResult = await sendEmailViaGmail(env, payload);
+    let gmailResult;
+    try {
+      gmailResult = await sendEmailViaGmail(env, payload);
+    } catch (error) {
+      gmailResult = {
+        ok: false,
+        skipped: false,
+        provider: "gmail",
+        message: String(error?.message || "Gmail provider is temporarily unavailable.")
+      };
+    }
     if (gmailResult.ok) return gmailResult;
-    const resendResult = await sendEmailViaResend(env, payload);
+    let resendResult;
+    try {
+      resendResult = await sendEmailViaResend(env, payload);
+    } catch (error) {
+      resendResult = {
+        ok: false,
+        skipped: false,
+        provider: "resend",
+        message: String(error?.message || "Resend provider is temporarily unavailable.")
+      };
+    }
     if (resendResult.ok) {
       return {
         ...resendResult,
@@ -469,19 +543,29 @@ async function sendEmailViaConfiguredProvider(env, payload = {}) {
     return gmailResult.skipped ? resendResult : gmailResult;
   }
 
-  return sendEmailViaResend(env, payload);
+  try {
+    return await sendEmailViaResend(env, payload);
+  } catch (error) {
+    return {
+      ok: false,
+      skipped: false,
+      provider: "resend",
+      message: String(error?.message || "Email provider is temporarily unavailable.")
+    };
+  }
 }
 
 async function getZohoAccessToken(env) {
   if (!hasConfiguredZohoProvider(env)) {
     return { ok: false, skipped: true, provider: "zoho", message: "ZOHO provider secrets are not configured." };
   }
+  const config = resolveZohoConfig(env);
 
   const now = Date.now();
   const cacheKey = [
-    envValue(env, "ZOHO_CLIENT_ID"),
-    envValue(env, "ZOHO_REFRESH_TOKEN"),
-    envValue(env, "ZOHO_CRM_API_DOMAIN")
+    config.clientId,
+    config.refreshToken,
+    config.crmApiDomain
   ].join("::");
   if (
     zohoTokenCache.cacheKey === cacheKey
@@ -500,7 +584,7 @@ async function getZohoAccessToken(env) {
   }
 
   const accountsDomain = normalizeZohoDomain(
-    envValue(env, "ZOHO_ACCOUNTS_DOMAIN"),
+    config.accountsDomain,
     "https://accounts.zoho.com"
   );
   const response = await fetch(`${accountsDomain}/oauth/v2/token`, {
@@ -509,9 +593,9 @@ async function getZohoAccessToken(env) {
       "Content-Type": "application/x-www-form-urlencoded;charset=UTF-8"
     },
     body: new URLSearchParams({
-      refresh_token: envValue(env, "ZOHO_REFRESH_TOKEN"),
-      client_id: envValue(env, "ZOHO_CLIENT_ID"),
-      client_secret: envValue(env, "ZOHO_CLIENT_SECRET"),
+      refresh_token: config.refreshToken,
+      client_id: config.clientId,
+      client_secret: config.clientSecret,
       grant_type: "refresh_token"
     })
   });
@@ -519,7 +603,7 @@ async function getZohoAccessToken(env) {
   const body = await response.json().catch(() => ({}));
   const accessToken = String(body?.access_token || "").trim();
   const apiDomain = normalizeZohoDomain(
-    envValue(env, "ZOHO_CRM_API_DOMAIN"),
+    config.crmApiDomain,
     body?.api_domain || "https://www.zohoapis.com"
   );
   if (!response.ok || !accessToken || !apiDomain) {
