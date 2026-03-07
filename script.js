@@ -18409,10 +18409,6 @@ if (profileSubmitServiceTopBtn) {
 
 async function handleSunriseStep1Submit(event = null) {
   if (event) event.preventDefault();
-  if (!hasSunriseAccess(activeAccount)) {
-    if (sunriseInfo) sunriseInfo.textContent = "Sunrise-enabled account required.";
-    return;
-  }
 
   const emailEl = document.getElementById("sunrise-email");
   const passwordEl = document.getElementById("sunrise-password");
@@ -18428,9 +18424,10 @@ async function handleSunriseStep1Submit(event = null) {
     return;
   }
   if (account && isSunriseCredentialAccount(account)) {
-    const activeOwner = !!(activeAccount && isOwnerAccount(activeAccount));
+    const hasActiveSession = !!activeAccount;
+    const activeOwner = !!(hasActiveSession && isOwnerAccount(activeAccount));
     const ownerTarget = isOwnerAccount(account);
-    if (!activeOwner && ownerTarget) {
+    if (hasActiveSession && !activeOwner && ownerTarget) {
       resetSunriseState({ clearStoredSession: false });
       blockSunriseOwnerBreachAttempt();
       return;
