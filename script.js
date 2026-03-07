@@ -10898,113 +10898,48 @@ if (accountSettingsRecoveryStep2) {
   });
 }
 
-if (loginStep1) {
-  loginStep1.addEventListener("submit", async (event) => {
-    event.preventDefault();
+async function handleLoginStep1Submit(event = null) {
+  if (event) event.preventDefault();
 
-    const email = document.getElementById("login-email");
-    const password = document.getElementById("login-password");
-    authState.loginEmail = email ? email.value.trim() : "";
-    const emailValue = authState.loginEmail;
-    const passwordValue = password ? password.value.trim() : "";
-    if (!emailValue || !passwordValue) {
-      if (loginInfo) loginInfo.textContent = "Enter your email address and password.";
-      return;
-    }
-    const account = findAccountByEmail(authState.loginEmail);
-    const enteredPassword = passwordValue;
-    const allPasswords = account
-      ? [String(account.password), ...((account.altPasswords || []).map((item) => String(item)))]
-      : [];
-    const passOk = account && allPasswords.some((stored) =>
-      enteredPassword === stored || enteredPassword.toLowerCase() === stored.toLowerCase()
-    );
+  const email = document.getElementById("login-email");
+  const password = document.getElementById("login-password");
+  authState.loginEmail = email ? email.value.trim() : "";
+  const emailValue = authState.loginEmail;
+  const passwordValue = password ? password.value.trim() : "";
+  if (!emailValue || !passwordValue) {
+    if (loginInfo) loginInfo.textContent = "Enter your email address and password.";
+    return;
+  }
+  const account = findAccountByEmail(authState.loginEmail);
+  const enteredPassword = passwordValue;
+  const allPasswords = account
+    ? [String(account.password), ...((account.altPasswords || []).map((item) => String(item)))]
+    : [];
+  const passOk = account && allPasswords.some((stored) =>
+    enteredPassword === stored || enteredPassword.toLowerCase() === stored.toLowerCase()
+  );
 
-    if (!account || !passOk || !isVvsCredentialAccount(account)) {
-      if (loginInfo) loginInfo.textContent = "Log in failed. Check your email address or password.";
-      return;
-    }
-    if (isWebsiteShutdownActive() && !isOwnerAccount(account)) {
-      if (loginInfo) loginInfo.textContent = "Website is temporarily unavailable. Only owner login is permitted at this time.";
-      return;
-    }
+  if (!account || !passOk || !isVvsCredentialAccount(account)) {
+    if (loginInfo) loginInfo.textContent = "Log in failed. Check your email address or password.";
+    return;
+  }
+  if (isWebsiteShutdownActive() && !isOwnerAccount(account)) {
+    if (loginInfo) loginInfo.textContent = "Website is temporarily unavailable. Only owner login is permitted at this time.";
+    return;
+  }
 
-    authState.loginAccount = account;
-    if (shouldBypassOwnerEmailVerification(account)) {
-      activeAccount = account;
-      markActiveSessionAuthenticatedNow();
-      persistActiveSession(activeAccount);
-      renderProfile(account);
-      updateAuthCta();
-      if (loginStep2) {
-        loginStep2.hidden = true;
-        loginStep2.reset();
-      }
-      if (loginInfo) loginInfo.textContent = "Owner verification confirmed. Redirecting to your account.";
-      syncCredentialsToRegistry({
-        email: String(account.email || "").trim().toLowerCase(),
-        account,
-        eventType: "vvs_login",
-        system: "vvs",
-        route: "profile",
-        status: "Access Granted"
-      });
-      showRoute("profile");
-      return;
-    }
-
-    const candidateLoginCode = issueTestEmailCode(authState.loginEmail);
-    const delivery = await sendVerificationCodeEmail({
-      email: authState.loginEmail,
-      code: candidateLoginCode,
-      context: "vvs",
-      name: verificationRecipientName(account)
-    });
-    authState.loginCode = delivery.ok ? candidateLoginCode : "";
-
-    loginStep1.hidden = false;
-    if (loginStep2) {
-      loginStep2.hidden = !delivery.ok;
-      if (!delivery.ok) loginStep2.reset();
-    }
-    if (loginInfo) {
-      loginInfo.textContent = buildVerificationDispatchMessage({
-        email: authState.loginEmail,
-        context: "vvs",
-        delivery
-      });
-    }
-  });
-}
-
-if (loginStep2) {
-  loginStep2.addEventListener("submit", (event) => {
-    event.preventDefault();
-
-    const phrase = document.getElementById("login-phrase");
-    const code = document.getElementById("login-code");
-    const phraseValue = phrase ? phrase.value.trim() : "";
-    const codeValue = code ? code.value.trim() : "";
-    if (!phraseValue || !codeValue) {
-      if (loginInfo) loginInfo.textContent = "Enter your secret phrase and email confirmation code.";
-      return;
-    }
-    const account = authState.loginAccount || findAccountByEmail(authState.loginEmail);
-    const phraseOk = !!(account && phraseValue.toLowerCase() === String(account.secretPhrase || "").toLowerCase());
-    const codeOk = codeValue === authState.loginCode;
-
-    if (!phraseOk || !codeOk) {
-      if (loginInfo) loginInfo.textContent = "Verification failed. Confirm your secret phrase and enter the correct email confirmation code.";
-      return;
-    }
-
+  authState.loginAccount = account;
+  if (shouldBypassOwnerEmailVerification(account)) {
     activeAccount = account;
     markActiveSessionAuthenticatedNow();
     persistActiveSession(activeAccount);
     renderProfile(account);
     updateAuthCta();
-    if (loginInfo) loginInfo.textContent = "Verification successful. Redirecting to your account.";
-    loginStep2.reset();
+    if (loginStep2) {
+      loginStep2.hidden = true;
+      loginStep2.reset();
+    }
+    if (loginInfo) loginInfo.textContent = "Owner verification confirmed. Redirecting to your account.";
     syncCredentialsToRegistry({
       email: String(account.email || "").trim().toLowerCase(),
       account,
@@ -11014,8 +10949,107 @@ if (loginStep2) {
       status: "Access Granted"
     });
     showRoute("profile");
+    return;
+  }
+
+  const candidateLoginCode = issueTestEmailCode(authState.loginEmail);
+  const delivery = await sendVerificationCodeEmail({
+    email: authState.loginEmail,
+    code: candidateLoginCode,
+    context: "vvs",
+    name: verificationRecipientName(account)
   });
+  authState.loginCode = delivery.ok ? candidateLoginCode : "";
+
+  if (loginStep1) loginStep1.hidden = false;
+  if (loginStep2) {
+    loginStep2.hidden = !delivery.ok;
+    if (!delivery.ok) loginStep2.reset();
+  }
+  if (loginInfo) {
+    loginInfo.textContent = buildVerificationDispatchMessage({
+      email: authState.loginEmail,
+      context: "vvs",
+      delivery
+    });
+  }
 }
+
+function handleLoginStep2Submit(event = null) {
+  if (event) event.preventDefault();
+
+  const phrase = document.getElementById("login-phrase");
+  const code = document.getElementById("login-code");
+  const phraseValue = phrase ? phrase.value.trim() : "";
+  const codeValue = code ? code.value.trim() : "";
+  if (!phraseValue || !codeValue) {
+    if (loginInfo) loginInfo.textContent = "Enter your secret phrase and email confirmation code.";
+    return;
+  }
+  const account = authState.loginAccount || findAccountByEmail(authState.loginEmail);
+  const phraseOk = !!(account && phraseValue.toLowerCase() === String(account.secretPhrase || "").toLowerCase());
+  const codeOk = codeValue === authState.loginCode;
+
+  if (!phraseOk || !codeOk) {
+    if (loginInfo) loginInfo.textContent = "Verification failed. Confirm your secret phrase and enter the correct email confirmation code.";
+    return;
+  }
+
+  activeAccount = account;
+  markActiveSessionAuthenticatedNow();
+  persistActiveSession(activeAccount);
+  renderProfile(account);
+  updateAuthCta();
+  if (loginInfo) loginInfo.textContent = "Verification successful. Redirecting to your account.";
+  if (loginStep2) loginStep2.reset();
+  syncCredentialsToRegistry({
+    email: String(account.email || "").trim().toLowerCase(),
+    account,
+    eventType: "vvs_login",
+    system: "vvs",
+    route: "profile",
+    status: "Access Granted"
+  });
+  showRoute("profile");
+}
+
+if (loginStep1 && loginStep1.dataset.boundSubmit !== "1") {
+  loginStep1.addEventListener("submit", (event) => {
+    void handleLoginStep1Submit(event);
+  });
+  const submitBtn = loginStep1.querySelector('button[type="submit"]');
+  if (submitBtn && submitBtn.dataset.loginFallbackClick !== "1") {
+    submitBtn.addEventListener("click", (event) => {
+      event.preventDefault();
+      void handleLoginStep1Submit(event);
+    });
+    submitBtn.dataset.loginFallbackClick = "1";
+  }
+  loginStep1.dataset.boundSubmit = "1";
+}
+
+if (loginStep2 && loginStep2.dataset.boundSubmit !== "1") {
+  loginStep2.addEventListener("submit", handleLoginStep2Submit);
+  const submitBtn = loginStep2.querySelector('button[type="submit"]');
+  if (submitBtn && submitBtn.dataset.loginFallbackClick !== "1") {
+    submitBtn.addEventListener("click", (event) => {
+      event.preventDefault();
+      handleLoginStep2Submit(event);
+    });
+    submitBtn.dataset.loginFallbackClick = "1";
+  }
+  loginStep2.dataset.boundSubmit = "1";
+}
+
+window.submitLoginStep1 = (event) => {
+  void handleLoginStep1Submit(event || null);
+  return false;
+};
+
+window.submitLoginStep2 = (event) => {
+  handleLoginStep2Submit(event || null);
+  return false;
+};
 
 if (signupStep1) {
   signupStep1.addEventListener("submit", async (event) => {
@@ -18694,8 +18728,6 @@ const forceSubmitOnClick = (formId) => {
   submitBtn.dataset.forceSubmitBound = "1";
 };
 
-forceSubmitOnClick("login-step1");
-forceSubmitOnClick("login-step2");
 forceSubmitOnClick("signup-step1");
 forceSubmitOnClick("signup-step2");
 setupSunriseShortcutMenu();
