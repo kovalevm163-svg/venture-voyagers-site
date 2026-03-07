@@ -8106,6 +8106,7 @@ const membershipUpgradeName = document.getElementById("membership-upgrade-name")
 
 const authState = {
   loginCode: "",
+  loginCodeIssuedAt: 0,
   signupCode: "",
   loginEmail: "",
   signupEmail: "",
@@ -8135,6 +8136,7 @@ const sunriseState = {
   unlocked: false,
   email: "",
   code: "",
+  codeIssuedAt: 0,
   account: null,
   sessionId: "",
   operatorCode: "",
@@ -8183,6 +8185,7 @@ let sharedRegistryGlobalRefreshTimer = 0;
 const SHARED_REGISTRY_GLOBAL_REFRESH_INTERVAL_MS = 30000;
 let remoteSessionRevocationTimer = 0;
 const REMOTE_SESSION_REVOCATION_INTERVAL_MS = 25000;
+const VERIFICATION_CODE_REUSE_WINDOW_MS = 10 * 60 * 1000;
 
 let sunriseOwnerInboxRefreshHandle = 0;
 let sunriseInboxDraggedMessageId = "";
@@ -9050,6 +9053,7 @@ function resetSunriseState(options = {}) {
   sunriseState.unlocked = false;
   sunriseState.email = "";
   sunriseState.code = "";
+  sunriseState.codeIssuedAt = 0;
   sunriseState.account = null;
   sunriseState.sessionId = "";
   sunriseState.operatorCode = "";
@@ -10948,6 +10952,23 @@ async function handleLoginStep1Submit(event = null) {
     }
 
     authState.loginAccount = account;
+    const nowMs = Date.now();
+    const canReuseCode = (
+      authState.loginCode
+      && authState.loginEmail === String(account.email || authState.loginEmail || "").trim().toLowerCase()
+      && Number(authState.loginCodeIssuedAt || 0) > 0
+      && (nowMs - Number(authState.loginCodeIssuedAt || 0)) <= VERIFICATION_CODE_REUSE_WINDOW_MS
+    );
+    if (canReuseCode) {
+      if (loginStep1) loginStep1.hidden = false;
+      if (loginStep2) loginStep2.hidden = false;
+      if (loginInfo) loginInfo.textContent = "Verification code already sent. Use the latest email confirmation code to continue.";
+      window.requestAnimationFrame(() => {
+        const phrase = document.getElementById("login-phrase");
+        if (phrase) phrase.focus();
+      });
+      return;
+    }
     if (shouldBypassOwnerEmailVerification(account)) {
       activeAccount = account;
       markActiveSessionAuthenticatedNow();
@@ -10979,7 +11000,13 @@ async function handleLoginStep1Submit(event = null) {
       context: "vvs",
       name: verificationRecipientName(account)
     });
-    authState.loginCode = delivery.ok ? candidateLoginCode : "";
+    if (delivery.ok) {
+      authState.loginCode = candidateLoginCode;
+      authState.loginCodeIssuedAt = Date.now();
+    } else {
+      authState.loginCode = "";
+      authState.loginCodeIssuedAt = 0;
+    }
 
     if (loginStep1) loginStep1.hidden = false;
     if (loginStep2) {
@@ -18514,6 +18541,23 @@ async function handleSunriseStep1Submit(event = null) {
 
     sunriseState.email = String(account.email || email).trim().toLowerCase();
     sunriseState.account = account;
+    const nowMs = Date.now();
+    const canReuseCode = (
+      sunriseState.code
+      && sunriseState.email === String(account.email || sunriseState.email || "").trim().toLowerCase()
+      && Number(sunriseState.codeIssuedAt || 0) > 0
+      && (nowMs - Number(sunriseState.codeIssuedAt || 0)) <= VERIFICATION_CODE_REUSE_WINDOW_MS
+    );
+    if (canReuseCode) {
+      if (sunriseStep1) sunriseStep1.hidden = false;
+      if (sunriseStep2) sunriseStep2.hidden = false;
+      if (sunriseInfo) sunriseInfo.textContent = "Verification code already sent. Use the latest email confirmation code to continue.";
+      window.requestAnimationFrame(() => {
+        const phrase = document.getElementById("sunrise-phrase");
+        if (phrase) phrase.focus();
+      });
+      return;
+    }
     if (shouldBypassOwnerEmailVerification(account)) {
       if (sunriseStep2) {
         sunriseStep2.hidden = true;
@@ -18532,7 +18576,13 @@ async function handleSunriseStep1Submit(event = null) {
       context: "sunrise",
       name: verificationRecipientName(account)
     });
-    sunriseState.code = delivery.ok ? candidateSunriseCode : "";
+    if (delivery.ok) {
+      sunriseState.code = candidateSunriseCode;
+      sunriseState.codeIssuedAt = Date.now();
+    } else {
+      sunriseState.code = "";
+      sunriseState.codeIssuedAt = 0;
+    }
 
     if (sunriseStep1) sunriseStep1.hidden = false;
     if (sunriseStep2) {
