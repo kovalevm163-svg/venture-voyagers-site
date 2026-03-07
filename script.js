@@ -3564,7 +3564,7 @@ function ensureAboutRouteSectionPresent() {
 
           <article class="aboutFounderCard">
             <div class="aboutFounderMedia">
-              <img src="assets/about-mikhail.jpg" alt="Mikhail Kovalev, COO and Co-Founder" loading="lazy" decoding="async" />
+              <img src="assets/about-mikhail-20260307.jpg" alt="Mikhail Kovalev, COO and Co-Founder" loading="lazy" decoding="async" />
               <span class="aboutFounderTag">Co-Founder</span>
             </div>
             <div class="aboutFounderBody">
