@@ -3636,52 +3636,61 @@ function ensureAboutSectionStyles() {
   const style = document.createElement("style");
   style.id = "vvs-about-section-style";
   style.textContent = `
-    .aboutLead { max-width: 980px; }
+    .aboutLead {
+      margin: 0 0 12px;
+      max-width: 74ch;
+      color: rgba(242,239,231,.78);
+      line-height: 1.65;
+      font-size: 15px;
+    }
     .aboutFounders {
       margin-top: 16px;
       display: grid;
       grid-template-columns: repeat(2, minmax(0, 1fr));
-      gap: 14px;
+      gap: 12px;
     }
     .aboutFounderCard {
-      border: 1px solid rgba(216,198,163,.22);
-      border-radius: 22px;
-      background: linear-gradient(165deg, rgba(18,11,9,.86), rgba(61,32,20,.58));
+      border: 1px solid rgba(216,198,163,.14);
+      border-radius: 20px;
+      background: rgba(0,0,0,.22);
       overflow: hidden;
-      box-shadow: inset 0 1px 0 rgba(255,255,255,.03);
+      box-shadow: 0 18px 40px rgba(0,0,0,.25);
     }
     .aboutFounderMedia {
       position: relative;
-      aspect-ratio: 4 / 5;
+      aspect-ratio: 4 / 4.8;
       overflow: hidden;
-      background: rgba(12,8,7,.72);
+      background: rgba(0,0,0,.3);
+      border-bottom: 1px solid rgba(216,198,163,.12);
     }
     .aboutFounderMedia img {
       width: 100%;
       height: 100%;
       object-fit: cover;
-      object-position: center 12%;
+      object-position: center 14%;
       display: block;
+      transition: transform .35s ease;
     }
-    .aboutFounderMediaAleks img { object-position: center 22%; }
+    .aboutFounderCard:hover .aboutFounderMedia img { transform: scale(1.02); }
+    .aboutFounderMediaAleks img { object-position: center 18%; }
     .aboutFounderTag {
       position: absolute;
       left: 12px;
       bottom: 12px;
-      padding: 6px 12px;
+      padding: 6px 10px;
       border-radius: 999px;
-      border: 1px solid rgba(216,198,163,.3);
-      background: rgba(8,5,4,.62);
+      border: 1px solid rgba(216,198,163,.2);
+      background: rgba(0,0,0,.36);
       color: rgba(255,232,213,.92);
-      font-size: 12px;
-      letter-spacing: .08em;
+      font-size: 11px;
+      letter-spacing: .12em;
       text-transform: uppercase;
     }
     .aboutFounderBody { padding: 14px 14px 16px; }
     .aboutFounderBody h3 {
       margin: 0;
-      font-size: clamp(28px, 5vw, 50px);
-      line-height: 1.04;
+      font-size: clamp(22px, 4vw, 40px);
+      line-height: 1.08;
       color: rgba(248,237,222,.98);
     }
     .aboutFounderMeta {
@@ -3693,33 +3702,35 @@ function ensureAboutSectionStyles() {
     }
     .aboutFounderCopy {
       margin: 0;
-      color: rgba(242,228,210,.85);
-      line-height: 1.55;
+      color: rgba(242,239,231,.72);
+      line-height: 1.5;
     }
     .aboutStoryPanel,
     .aboutCtaPanel {
       margin-top: 16px;
-      padding: 18px;
-      border: 1px solid rgba(216,198,163,.2);
+      padding: 16px;
+      border: 1px solid rgba(216,198,163,.14);
       border-radius: 20px;
-      background: linear-gradient(160deg, rgba(14,9,8,.8), rgba(48,25,17,.52));
+      background: rgba(0,0,0,.22);
+      box-shadow: 0 18px 40px rgba(0,0,0,.25);
     }
     .aboutStoryTitle {
       margin: 0;
-      color: rgba(248,237,222,.97);
-      font-size: 24px;
-      letter-spacing: .03em;
+      color: rgba(242,239,231,.78);
+      font-size: 12px;
+      letter-spacing: .16em;
+      text-transform: uppercase;
     }
     .aboutStoryIntro {
-      margin: 8px 0 0;
-      color: rgba(236,219,201,.82);
-      line-height: 1.6;
+      margin: 10px 0 0;
+      color: rgba(242,239,231,.72);
+      line-height: 1.58;
     }
     .aboutTimeline { margin-top: 12px; display: grid; gap: 10px; }
     .aboutStoryStep {
       border-radius: 16px;
-      border: 1px solid rgba(216,198,163,.18);
-      background: rgba(10,6,5,.34);
+      border: 1px solid rgba(216,198,163,.14);
+      background: rgba(0,0,0,.22);
       overflow: hidden;
     }
     .aboutStoryStep summary {
@@ -3729,30 +3740,32 @@ function ensureAboutSectionStyles() {
       align-items: center;
       gap: 10px;
       padding: 12px 14px;
-      color: rgba(250,239,226,.96);
-      font-size: 21px;
-      font-weight: 700;
-      line-height: 1.3;
+      color: rgba(242,239,231,.88);
+      font-size: 12px;
+      letter-spacing: .12em;
+      text-transform: uppercase;
+      font-weight: 600;
+      line-height: 1.45;
     }
     .aboutStoryStep summary::-webkit-details-marker { display: none; }
     .aboutStepCode {
       display: inline-flex;
       align-items: center;
       justify-content: center;
-      min-width: 38px;
-      height: 30px;
+      min-width: 34px;
+      height: 28px;
       border-radius: 999px;
-      border: 1px solid rgba(216,198,163,.28);
+      border: 1px solid rgba(216,198,163,.2);
       color: rgba(236,205,176,.84);
-      font-size: 13px;
+      font-size: 11px;
       letter-spacing: .12em;
     }
     .aboutStoryStep p,
     .aboutStoryStep ul {
       margin: 0;
       padding: 0 14px 12px;
-      color: rgba(238,223,205,.84);
-      line-height: 1.62;
+      color: rgba(242,239,231,.72);
+      line-height: 1.58;
     }
     .aboutCaseMeta {
       display: flex;
@@ -3763,25 +3776,44 @@ function ensureAboutSectionStyles() {
     .aboutCaseMeta span {
       padding: 7px 10px;
       border-radius: 999px;
-      border: 1px solid rgba(216,198,163,.2);
-      background: rgba(12,7,6,.42);
-      color: rgba(241,225,206,.86);
-      font-size: 12px;
+      border: 1px solid rgba(216,198,163,.14);
+      background: rgba(0,0,0,.28);
+      color: rgba(241,225,206,.82);
+      font-size: 11px;
       letter-spacing: .08em;
       text-transform: uppercase;
     }
     .aboutCaseList {
       margin: 0;
-      padding: 0 28px 12px;
-      color: rgba(238,223,205,.85);
-      line-height: 1.6;
+      padding: 0 28px 12px 30px;
+      color: rgba(242,239,231,.72);
+      line-height: 1.58;
     }
-    .aboutBottomContact { margin-top: 14px; display: flex; justify-content: center; }
+    .aboutCtaPanel h3 {
+      margin: 0;
+      font-size: clamp(30px, 5vw, 56px);
+      line-height: 1.02;
+      color: rgba(248,237,222,.97);
+    }
+    .aboutCtaPanel p {
+      margin: 10px 0 0;
+      color: rgba(242,239,231,.76);
+      line-height: 1.55;
+    }
+    .aboutBottomContact {
+      margin-top: 14px;
+      display: flex;
+      justify-content: center;
+    }
+    .aboutContactBtn {
+      width: 100%;
+      max-width: 380px;
+      text-align: center;
+    }
     @media (max-width: 920px) {
       .aboutFounders { grid-template-columns: 1fr; }
-      .aboutFounderMedia { aspect-ratio: 4 / 4.6; }
-      .aboutFounderBody h3 { font-size: clamp(34px, 9vw, 58px); }
-      .aboutStoryStep summary { font-size: 20px; }
+      .aboutFounderMedia { aspect-ratio: 4 / 4.5; }
+      .aboutFounderBody h3 { font-size: clamp(24px, 8vw, 40px); }
     }
   `;
   document.head.appendChild(style);
