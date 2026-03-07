@@ -7743,26 +7743,45 @@ async function sendVerificationCodeEmail({
   context = "vvs",
   name = ""
 } = {}) {
-  const result = await postJsonWithTimeout("/api/auth-code-send", {
-    email,
-    code,
-    context,
-    name
-  });
-  if (result.ok && result.body?.ok) {
-    return {
-      ok: true,
-      fallback: false,
-      message: String(result.body?.message || "").trim()
+  const retryDelaysMs = [0, 350, 900];
+  let finalFailure = null;
+
+  for (let attempt = 0; attempt < retryDelaysMs.length; attempt += 1) {
+    if (retryDelaysMs[attempt] > 0) {
+      await new Promise((resolve) => window.setTimeout(resolve, retryDelaysMs[attempt]));
+    }
+    const result = await postJsonWithTimeout("/api/auth-code-send", {
+      email,
+      code,
+      context,
+      name
+    });
+    if (result.ok && result.body?.ok) {
+      return {
+        ok: true,
+        fallback: false,
+        message: String(result.body?.message || "").trim()
+      };
+    }
+    const likelyMissingApi = isLocalPreviewHost() && (result.status === 0 || result.status === 404 || result.status === 405);
+    const skipped = likelyMissingApi || !!result.body?.skipped || !!result.body?.email?.skipped;
+    const message = String(result.body?.message || result.body?.email?.message || "Confirmation code delivery is unavailable.").trim();
+    finalFailure = {
+      ok: false,
+      fallback: true,
+      skipped,
+      message
     };
+    const isTransientStatus = [0, 429, 500, 502, 503, 504].includes(Number(result.status || 0));
+    const isTransientMessage = /temporar|retry|timeout|network|unavailable/i.test(message);
+    if (skipped || (!isTransientStatus && !isTransientMessage)) break;
   }
-  const likelyMissingApi = isLocalPreviewHost() && (result.status === 0 || result.status === 404 || result.status === 405);
-  const skipped = likelyMissingApi || !!result.body?.skipped || !!result.body?.email?.skipped;
-  return {
+
+  return finalFailure || {
     ok: false,
     fallback: true,
-    skipped,
-    message: String(result.body?.message || result.body?.email?.message || "Confirmation code delivery is unavailable.").trim()
+    skipped: false,
+    message: "Confirmation code delivery is unavailable."
   };
 }
 
