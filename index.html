@@ -8,9 +8,47 @@
   <meta http-equiv="Expires" content="0" />
   <title>Venture Voyager Services - Concierge</title>
   <meta name="description" content="Venture Voyager Services (VVS) - discreet luxury concierge and private access." />
-  <link rel="stylesheet" href="styles.css?v=20260307-905" />
+  <meta name="theme-color" content="#07080b" />
+  <link rel="apple-touch-icon" sizes="180x180" href="/apple-touch-icon.png?v=20260308-1" />
+  <link rel="icon" type="image/png" sizes="32x32" href="/favicon-32x32.png?v=20260308-1" />
+  <link rel="icon" type="image/png" sizes="16x16" href="/favicon-16x16.png?v=20260308-1" />
+  <link rel="icon" type="image/x-icon" href="/favicon.ico?v=20260308-1" />
+  <link rel="shortcut icon" type="image/x-icon" href="/favicon.ico?v=20260308-1" />
+  <link rel="mask-icon" href="/safari-pinned-tab.svg?v=20260308-1" color="#d9bd8c" />
+  <link rel="manifest" href="/site.webmanifest?v=20260308-1" />
+  <link rel="stylesheet" href="styles.css?v=20260312-hotfix2" />
 </head>
 <body>
+  <div class="cinematicOverlay" id="vvs-cinematic-overlay" hidden>
+    <section class="cinematicScene cinematicSceneVvs" data-cinematic-scene="vvs">
+      <div class="cinematicVvsGlow" aria-hidden="true"></div>
+      <div class="cinematicVvsCore" id="cinematic-vvs-core">VVS</div>
+      <div class="cinematicVvsBuild" id="cinematic-vvs-build" aria-hidden="true">
+        <p class="cinematicVvsWord"><b>V</b><span id="cinematic-vvs-word-1"></span></p>
+        <p class="cinematicVvsWord"><b>V</b><span id="cinematic-vvs-word-2"></span></p>
+        <p class="cinematicVvsWord"><b>S</b><span id="cinematic-vvs-word-3"></span></p>
+      </div>
+    </section>
+    <section class="cinematicScene cinematicSceneVvsLogin" data-cinematic-scene="vvs-login" hidden>
+      <div class="cinematicVvsLoginGlow" aria-hidden="true"></div>
+      <p class="cinematicTyping" id="cinematic-vvs-login-daypart"></p>
+      <h2 class="cinematicHeading" id="cinematic-vvs-login-title"></h2>
+      <p class="cinematicSubheading" id="cinematic-vvs-login-subtitle"></p>
+    </section>
+    <section class="cinematicScene cinematicSceneSunrise" data-cinematic-scene="sunrise" hidden>
+      <div class="cinematicSunriseSky" aria-hidden="true"></div>
+      <div class="cinematicSunriseSun" aria-hidden="true"></div>
+      <h2 class="cinematicHeading" id="cinematic-sunrise-title"></h2>
+      <p class="cinematicSubheading" id="cinematic-sunrise-subtitle"></p>
+    </section>
+    <section class="cinematicScene cinematicSceneMonarch" data-cinematic-scene="monarch" hidden>
+      <div class="cinematicMonarchGrid" aria-hidden="true"></div>
+      <div class="cinematicMonarchWing cinematicMonarchWingLeft" aria-hidden="true"></div>
+      <div class="cinematicMonarchWing cinematicMonarchWingRight" aria-hidden="true"></div>
+      <div class="cinematicMonarchRing" aria-hidden="true"></div>
+      <h2 class="cinematicHeading" id="cinematic-monarch-title"></h2>
+    </section>
+  </div>
   <div class="wrap">
     <header>
       <div class="nav">
@@ -658,6 +696,11 @@
                 <p class="profileLabel">Upcoming Service</p>
                 <h3 class="profileValue" id="profile-upcoming-title">Maldives - Radoga Resorts</h3>
                 <p class="profileNote" id="profile-upcoming-details"></p>
+                <p class="profileNote" id="profile-upcoming-link-wrap" hidden>
+                  <a class="inlineLink" id="profile-upcoming-link" href="#" target="_blank" rel="noopener noreferrer">
+                    <span id="profile-upcoming-link-label">Join meeting</span>
+                  </a>
+                </p>
               </article>
 
               <article class="profileCard profileCardWide" id="profile-owner-metrics" hidden>
@@ -965,6 +1008,7 @@
                     <a class="sunriseLaunchBtn" href="#sunrise-marketing" data-route="sunrise-marketing" data-shortcut="mkt"><span class="sunriseShortcutCode">MKT</span>Marketing</a>
                     <a class="sunriseLaunchBtn" href="#sunrise-employees" data-route="sunrise-employees" data-shortcut="emp"><span class="sunriseShortcutCode">EMP</span>Employees Dashboard</a>
                     <a class="sunriseLaunchBtn" href="#sunrise-surveys" data-route="sunrise-surveys" data-shortcut="csv"><span class="sunriseShortcutCode">CSV</span>Customer Surveys</a>
+                    <a class="sunriseLaunchBtn" href="#sunrise-cac" data-route="sunrise-cac" data-shortcut="cac"><span class="sunriseShortcutCode">CAC</span>Customer Assistance Chat</a>
                     <a class="sunriseLaunchBtn" href="#sunrise-legality" data-route="sunrise-legality" data-shortcut="lgl"><span class="sunriseShortcutCode">LGL</span>Legality Follow Ups</a>
                   </div>
                 </article>
@@ -1016,6 +1060,12 @@
 
       <section class="routePage" data-page="sunrise-surveys" aria-label="Sunrise Surveys Page" hidden>
         <section class="view"><div class="viewInner sunriseShell sunriseDetailShell"><div class="viewTop"><div class="kicker"><span class="dot"></span> Sunrise • Surveys</div><div class="viewActions" style="margin-top:0;"><button class="btn ghost" type="button" data-sunrise-logout>Log Out</button><a class="btn ghost" href="#sunrise" data-route="sunrise">Back</a></div></div><h2 class="viewTitle">Customer Surveys</h2><div class="sunriseDetailGrid"><article class="sunriseDetailCard opsEditableBlock"><h3>Survey Intelligence</h3><p class="opsText">Surveys, reviews, FAQ responded, avg handling time, most asked question, and positive/negative discussion topics.</p><textarea class="opsEditor" hidden></textarea><div class="sunriseModuleActions"><button class="sunriseMiniBtn ops-edit" type="button">Edit</button><button class="sunriseMiniBtn ops-save" type="button" hidden>Save</button><button class="sunriseMiniBtn ops-cancel" type="button" hidden>Cancel</button></div></article><article class="sunriseDetailCard sunriseDetailWide"><h3>Respond to Client (Demo)</h3><form class="sunriseReplyForm sunriseClientReplyForm"><div class="field"><label>Client Email</label><input class="input sunrise-client-email" type="email" required /></div><div class="field"><label>Response Message</label><textarea class="input sunrise-client-reply" rows="3" required></textarea></div><div class="sunriseModuleActions"><button class="sunriseMiniBtn ops-save" type="submit">Send Response</button></div></form><p class="authInfo sunrise-reply-info"></p></article></div></div></section>
+      </section>
+      <section class="routePage" data-page="sunrise-cac" aria-label="Sunrise CAC Page" hidden>
+        <section class="view"><div class="viewInner sunriseShell sunriseDetailShell"><div class="viewTop"><div class="kicker"><span class="dot"></span> Sunrise • CAC</div><div class="viewActions" style="margin-top:0;"><button class="btn ghost" type="button" data-sunrise-save-changes>Saved</button><a class="btn ghost" href="#sunrise-cac-closed" data-route="sunrise-cac-closed" id="sunrise-cac-closed-btn">Closed Chats</a><button class="btn ghost" type="button" data-sunrise-logout>Log Out</button><a class="btn ghost" href="#sunrise" data-route="sunrise">Back</a></div></div><h2 class="viewTitle">Customer Assistance Chat</h2><div class="sunriseDetailGrid" id="sunrise-cac-grid"></div></div></section>
+      </section>
+      <section class="routePage" data-page="sunrise-cac-closed" aria-label="Sunrise CAC Closed Chats Page" hidden>
+        <section class="view"><div class="viewInner sunriseShell sunriseDetailShell"><div class="viewTop"><div class="kicker"><span class="dot"></span> Sunrise • CAC Closed</div><div class="viewActions" style="margin-top:0;"><button class="btn ghost" type="button" data-sunrise-save-changes>Saved</button><button class="btn ghost" type="button" data-sunrise-logout>Log Out</button><a class="btn ghost" href="#sunrise-cac" data-route="sunrise-cac">Back to CAC</a></div></div><h2 class="viewTitle">Closed Customer Assistance Chats</h2><div class="sunriseDetailGrid" id="sunrise-cac-closed-grid"></div></div></section>
       </section>
 
       <section class="routePage" data-page="sunrise-events" aria-label="Sunrise Events Page" hidden>
@@ -1077,7 +1127,7 @@
               <div class="kicker monarchHeaderBadge"><span class="dot"></span> MONARCH ARCHANGEL • OWNER VAULT</div>
               <div class="viewActions" style="margin-top:0;">
                 <button class="btn ghost" type="button" id="monarch-save-top-btn" hidden>Save Changes</button>
-                <button class="btn ghost" type="button" data-sunrise-logout>Log Out</button>
+                <button class="btn ghost" type="button" id="monarch-logout-btn">Log Out</button>
                 <a class="btn ghost" href="#sunrise" data-route="sunrise">Back</a>
               </div>
             </div>
@@ -1106,6 +1156,47 @@
       </form>
       <div class="sunriseCodeHelp" id="sunrise-code-help" hidden></div>
       <p class="authInfo sunriseDockInfo" id="sunrise-shortcut-dock-info"></p>
+    </div>
+
+    <div class="vvsCacWidget" id="vvs-cac-widget" hidden>
+      <button class="vvsCacFab" id="vvs-cac-toggle" type="button" aria-expanded="false" aria-controls="vvs-cac-panel">
+        <span class="vvsCacFabIcon" aria-hidden="true">
+          <svg class="vvsCacFabMark" viewBox="0 0 220 120" xmlns="http://www.w3.org/2000/svg">
+            <path d="M48 76h124v10H48z" class="markStroke"/>
+            <path d="M74 38h72v38H74z" class="markStroke"/>
+          </svg>
+        </span>
+        <span class="vvsCacFabText">Support</span>
+      </button>
+      <section class="vvsCacPanel" id="vvs-cac-panel" hidden>
+        <header class="vvsCacHead">
+          <h3>VVS Customer Assistance</h3>
+          <button class="vvsCacClose" id="vvs-cac-close" type="button" aria-label="Close chat">×</button>
+        </header>
+        <p class="vvsCacWelcome" id="vvs-cac-welcome">Welcome to VVS Customer Assistance, how can we help you today?</p>
+        <div class="vvsCacMessages" id="vvs-cac-messages"></div>
+        <form class="vvsCacComposer" id="vvs-cac-form">
+          <textarea class="input" id="vvs-cac-input" rows="3" placeholder="Type your message..." required></textarea>
+          <div class="vvsCacActions">
+            <button class="btn primary" type="submit">Send</button>
+            <button class="btn ghost" type="button" id="vvs-cac-end">End conversation</button>
+          </div>
+        </form>
+        <div class="vvsCacFeedback" id="vvs-cac-feedback" hidden>
+          <label for="vvs-cac-rating">Rate your experience (1-5 Concierge Bells)</label>
+          <select class="select" id="vvs-cac-rating">
+            <option value="5">5 Bells</option>
+            <option value="4">4 Bells</option>
+            <option value="3">3 Bells</option>
+            <option value="2">2 Bells</option>
+            <option value="1">1 Bell</option>
+          </select>
+          <textarea class="input" id="vvs-cac-feedback-note" rows="2" placeholder="Additional feedback (optional)"></textarea>
+          <div class="vvsCacActions">
+            <button class="btn primary" id="vvs-cac-feedback-submit" type="button">Submit feedback</button>
+          </div>
+        </div>
+      </section>
     </div>
 
     <div class="contactOverlay" id="contact-overlay" hidden>
@@ -1750,6 +1841,6 @@
     </footer>
   </div>
 
-  <script src="script.js?v=20260307-905"></script>
+  <script src="script.js?v=20260312-hotfix9"></script>
 </body>
 </html>
