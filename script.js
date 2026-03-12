@@ -9389,6 +9389,7 @@ const sunriseOwnerInboxState = {
 const cacRuntime = {
   selectedCustomerEmail: "",
   selectedClosedChatId: "",
+  pendingClosedDeleteId: "",
   liveToken: "",
   lastSignalAt: 0,
   replyDraftByEmail: {},
@@ -18354,9 +18355,9 @@ function transferCacClosedChatToMonarch(closedChatId = "") {
   persistMonarchArchangelState();
   syncMonarchArchangelArchive({ immediate: true });
   persistCacLiveChanges("closed-transfer-monarch");
-  monarchArchangelRuntime.info = `CAC closed chat transferred to MONARCH ARCHANGEL (${sourceKey}).`;
+  monarchArchangelRuntime.info = `CAC closed chat archived (${sourceKey}).`;
   if (currentVisibleRoute() === "sunrise-monarch") renderMonarchArchangelPage();
-  return { ok: true, message: `Closed chat transferred to MONARCH ARCHANGEL (${sourceKey}).` };
+  return { ok: true, message: "Closed chat deleted from Sunrise archive." };
 }
 
 function focusCacClosedDetailsCard({ smooth = true } = {}) {
@@ -18385,6 +18386,7 @@ function renderCACClosedChatsPage() {
   const closedChats = store.closedChats.map((entry) => normalizeCacClosedChat(entry));
   if (!closedChats.length) {
     cacRuntime.selectedClosedChatId = "";
+    cacRuntime.pendingClosedDeleteId = "";
     grid.innerHTML = `<article class="sunriseControlCard sunriseDetailWide">
       <h3>Closed Chats</h3>
       <p class="opsText">No closed chats are currently archived in CAC.</p>
@@ -18400,6 +18402,10 @@ function renderCACClosedChatsPage() {
   }
   const selectedClosed = closedChats.find((entry) => String(entry.id || "").trim() === String(cacRuntime.selectedClosedChatId || "").trim()) || closedChats[0];
   const selectedClosedId = String(selectedClosed?.id || "").trim();
+  const pendingDeleteId = String(cacRuntime.pendingClosedDeleteId || "").trim();
+  const hasPendingDelete = !!(pendingDeleteId && closedChats.some((entry) => String(entry.id || "").trim() === pendingDeleteId));
+  if (!hasPendingDelete) cacRuntime.pendingClosedDeleteId = "";
+  const selectedPendingDelete = hasPendingDelete && pendingDeleteId === selectedClosedId;
   const selectedMessages = Array.isArray(selectedClosed?.messages) ? selectedClosed.messages : [];
   const selectedClient = `${String(selectedClosed?.customerTitle || "").trim() || "Mr."} ${String(selectedClosed?.customerLastName || selectedClosed?.customerName || "Client").trim() || "Client"}`.trim();
   const selectedClosedBy = `${String(selectedClosed?.closedByName || "System").trim() || "System"}${String(selectedClosed?.closedByPosition || "").trim() ? ` • ${String(selectedClosed?.closedByPosition || "").trim()}` : ""}`;
@@ -18425,7 +18431,7 @@ function renderCACClosedChatsPage() {
 
   grid.innerHTML = `<article class="sunriseControlCard sunriseDetailWide">
     <h3>Closed Chats Archive</h3>
-    <p class="opsText">Open a closed chat to review all messages, metadata, and feedback. Delete action transfers the chat to MONARCH ARCHANGEL.</p>
+    <p class="opsText">Open a closed chat to review all messages, metadata, and feedback. Delete removes the chat from Sunrise closed archive.</p>
     <div class="sunriseControlActions"><a class="sunriseMiniBtn" href="#sunrise-cac" data-route="sunrise-cac">Back to Live CAC</a></div>
     <table class="sunriseControlTable">
       <thead><tr><th>Client</th><th>Tier</th><th>Closed At</th><th>Closed By</th><th>Messages</th><th>Rating</th><th>Actions</th></tr></thead>
@@ -18444,7 +18450,12 @@ function renderCACClosedChatsPage() {
     </div>
     <p class="opsText">Conversation timeline with sender and timestamp:</p>
     <div class="cacConversationMessages">${renderCacMessages(selectedMessages)}</div>
-    <div class="sunriseControlActions"><button class="sunriseMiniBtn" type="button" data-cac-closed-transfer="${encodeHtmlEntities(selectedClosedId)}">Delete</button></div>
+    ${selectedPendingDelete
+    ? `<div class="sunriseControlActions">
+      <button class="sunriseMiniBtn" type="button" data-cac-closed-delete-confirm="${encodeHtmlEntities(selectedClosedId)}">Confirm Delete</button>
+      <button class="sunriseMiniBtn" type="button" data-cac-closed-delete-cancel>Cancel</button>
+    </div>`
+    : `<div class="sunriseControlActions"><button class="sunriseMiniBtn" type="button" data-cac-closed-transfer="${encodeHtmlEntities(selectedClosedId)}">Delete</button></div>`}
     <p class="authInfo">${encodeHtmlEntities(String(cacRuntime.closedStatus || "").trim())}</p>
   </article>`;
 }
@@ -19238,7 +19249,9 @@ function bindSunriseControlInteractions() {
       const closedId = String(cacClosedOpenBtn.getAttribute("data-cac-closed-open") || "").trim();
       if (!closedId) return;
       cacRuntime.selectedClosedChatId = closedId;
-      cacRuntime.closedStatus = "";
+      if (String(cacRuntime.pendingClosedDeleteId || "").trim() !== closedId) {
+        cacRuntime.closedStatus = "";
+      }
       renderCACClosedChatsPage();
       focusCacClosedDetailsCard({ smooth: true });
       return;
@@ -19248,12 +19261,38 @@ function bindSunriseControlInteractions() {
     if (cacClosedTransferBtn) {
       const closedId = String(cacClosedTransferBtn.getAttribute("data-cac-closed-transfer") || "").trim();
       if (!closedId) return;
-      const shouldTransfer = window.confirm("Delete this closed chat from CAC? The record will be transferred to MONARCH ARCHANGEL.");
-      if (!shouldTransfer) return;
-      const transfer = transferCacClosedChatToMonarch(closedId);
-      cacRuntime.closedStatus = transfer.message;
+      cacRuntime.selectedClosedChatId = closedId;
+      cacRuntime.pendingClosedDeleteId = closedId;
+      cacRuntime.closedStatus = "Confirm delete inside Sunrise to remove this closed chat.";
       cacRuntime.liveToken = "";
       renderCacLiveViewsIfChanged();
+      if (currentVisibleRoute() === "sunrise-cac-closed") renderCACClosedChatsPage();
+      focusCacClosedDetailsCard({ smooth: true });
+      void triggerCacLiveSyncPull({ force: false });
+      return;
+    }
+
+    const cacClosedDeleteConfirmBtn = clickTarget.closest("[data-cac-closed-delete-confirm]");
+    if (cacClosedDeleteConfirmBtn) {
+      const closedId = String(cacClosedDeleteConfirmBtn.getAttribute("data-cac-closed-delete-confirm") || "").trim();
+      if (!closedId) return;
+      const transfer = transferCacClosedChatToMonarch(closedId);
+      cacRuntime.pendingClosedDeleteId = "";
+      cacRuntime.closedStatus = transfer.ok
+        ? "Closed chat deleted from Sunrise archive. Saved."
+        : "Unable to delete the selected closed chat.";
+      cacRuntime.liveToken = "";
+      renderCacLiveViewsIfChanged();
+      if (currentVisibleRoute() === "sunrise-cac-closed") renderCACClosedChatsPage();
+      void triggerCacLiveSyncPull({ force: false });
+      return;
+    }
+
+    const cacClosedDeleteCancelBtn = clickTarget.closest("[data-cac-closed-delete-cancel]");
+    if (cacClosedDeleteCancelBtn) {
+      cacRuntime.pendingClosedDeleteId = "";
+      cacRuntime.closedStatus = "Delete canceled.";
+      cacRuntime.liveToken = "";
       if (currentVisibleRoute() === "sunrise-cac-closed") renderCACClosedChatsPage();
       void triggerCacLiveSyncPull({ force: false });
       return;
