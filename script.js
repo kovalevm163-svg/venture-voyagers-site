@@ -18137,13 +18137,24 @@ function renderCacMessages(messages = []) {
   if (!Array.isArray(messages) || !messages.length) {
     return `<p class="profileNote">No messages yet.</p>`;
   }
+  const roleLabel = (value = "") => {
+    const normalized = String(value || "").trim().toLowerCase();
+    if (normalized === "employee") return "Concierge";
+    if (normalized === "client") return "Client";
+    if (normalized === "system") return "System";
+    if (!normalized) return "Participant";
+    return `${normalized.charAt(0).toUpperCase()}${normalized.slice(1)}`;
+  };
   return messages.map((message) => {
     const role = String(message?.fromType || "client").trim().toLowerCase();
-    const sender = encodeHtmlEntities(String(message?.senderName || "Participant").trim() || "Participant");
+    const senderName = String(message?.senderName || "").trim();
+    const sender = encodeHtmlEntities(senderName || roleLabel(role));
     const position = encodeHtmlEntities(String(message?.senderPosition || "").trim());
+    const senderEmail = encodeHtmlEntities(String(message?.senderEmail || "").trim());
     const stamp = encodeHtmlEntities(String(message?.at || "").trim());
     const text = encodeHtmlEntities(String(message?.text || "").trim()).replace(/\n/g, "<br>");
-    return `<article class="cacMsg cacMsg-${encodeHtmlEntities(role)}"><p class="cacMsgHead"><b>${sender}</b>${position ? ` • ${position}` : ""}<span>${stamp}</span></p><p>${text}</p></article>`;
+    const meta = [position, senderEmail].filter(Boolean).join(" • ");
+    return `<article class="cacMsg cacMsg-${encodeHtmlEntities(role)}"><p class="cacMsgHead"><b>${sender}</b>${meta ? ` • ${meta}` : ""}<span>${stamp || "-"}</span></p><p>${text}</p></article>`;
   }).join("");
 }
 
@@ -18348,6 +18359,20 @@ function transferCacClosedChatToMonarch(closedChatId = "") {
   return { ok: true, message: `Closed chat transferred to MONARCH ARCHANGEL (${sourceKey}).` };
 }
 
+function focusCacClosedDetailsCard({ smooth = true } = {}) {
+  const detailsCard = document.getElementById("sunrise-cac-closed-details-card");
+  if (!(detailsCard instanceof HTMLElement)) return;
+  try {
+    detailsCard.scrollIntoView({
+      behavior: smooth ? "smooth" : "auto",
+      block: "start"
+    });
+  } catch (_) {}
+  try {
+    detailsCard.focus({ preventScroll: true });
+  } catch (_) {}
+}
+
 function renderCACClosedChatsPage() {
   const grid = document.getElementById("sunrise-cac-closed-grid");
   if (!grid) return;
@@ -18394,7 +18419,7 @@ function renderCACClosedChatsPage() {
       <td>${encodeHtmlEntities(closedBy)}</td>
       <td>${encodeHtmlEntities(String(Array.isArray(entry?.messages) ? entry.messages.length : 0))}</td>
       <td>${encodeHtmlEntities(rating)}</td>
-      <td class="cacClosedActions"><button class="sunriseMiniBtn" type="button" data-cac-closed-open="${encodeHtmlEntities(id)}">Details</button><button class="sunriseMiniBtn" type="button" data-cac-closed-transfer="${encodeHtmlEntities(id)}">Delete to Monarch</button></td>
+      <td class="cacClosedActions"><button class="sunriseMiniBtn" type="button" data-cac-closed-open="${encodeHtmlEntities(id)}">Details</button><button class="sunriseMiniBtn" type="button" data-cac-closed-transfer="${encodeHtmlEntities(id)}">Delete</button></td>
     </tr>`;
   }).join("");
 
@@ -18407,7 +18432,7 @@ function renderCACClosedChatsPage() {
       <tbody>${rows}</tbody>
     </table>
   </article>
-  <article class="sunriseControlCard sunriseDetailWide">
+  <article class="sunriseControlCard sunriseDetailWide" id="sunrise-cac-closed-details-card" tabindex="-1">
     <h3>Chat Details • ${encodeHtmlEntities(selectedClient)}</h3>
     <div class="cacClosedMetaGrid">
       <p class="profileNote"><b>Client Email:</b> ${encodeHtmlEntities(String(selectedClosed?.customerEmail || "").trim() || "-")}</p>
@@ -18417,8 +18442,9 @@ function renderCACClosedChatsPage() {
       <p class="profileNote"><b>Feedback Rating:</b> ${encodeHtmlEntities(selectedClosedRating)}</p>
       <p class="profileNote"><b>Feedback Note:</b> ${encodeHtmlEntities(selectedClosedNote)}</p>
     </div>
+    <p class="opsText">Conversation timeline with sender and timestamp:</p>
     <div class="cacConversationMessages">${renderCacMessages(selectedMessages)}</div>
-    <div class="sunriseControlActions"><button class="sunriseMiniBtn" type="button" data-cac-closed-transfer="${encodeHtmlEntities(selectedClosedId)}">Delete to Monarch</button></div>
+    <div class="sunriseControlActions"><button class="sunriseMiniBtn" type="button" data-cac-closed-transfer="${encodeHtmlEntities(selectedClosedId)}">Delete</button></div>
     <p class="authInfo">${encodeHtmlEntities(String(cacRuntime.closedStatus || "").trim())}</p>
   </article>`;
 }
@@ -19214,6 +19240,7 @@ function bindSunriseControlInteractions() {
       cacRuntime.selectedClosedChatId = closedId;
       cacRuntime.closedStatus = "";
       renderCACClosedChatsPage();
+      focusCacClosedDetailsCard({ smooth: true });
       return;
     }
 
@@ -19221,7 +19248,7 @@ function bindSunriseControlInteractions() {
     if (cacClosedTransferBtn) {
       const closedId = String(cacClosedTransferBtn.getAttribute("data-cac-closed-transfer") || "").trim();
       if (!closedId) return;
-      const shouldTransfer = window.confirm("Delete this closed chat from CAC and transfer it to MONARCH ARCHANGEL?");
+      const shouldTransfer = window.confirm("Delete this closed chat from CAC? The record will be transferred to MONARCH ARCHANGEL.");
       if (!shouldTransfer) return;
       const transfer = transferCacClosedChatToMonarch(closedId);
       cacRuntime.closedStatus = transfer.message;
