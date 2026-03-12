@@ -8918,62 +8918,62 @@ async function sendVerificationCodeEmail({
   };
   const dispatchPromise = (async () => {
     const tryAuthDispatch = async (endpoint) => postJsonWithTimeout(endpoint, authPayload, 12000);
-    const hasBody = (result) => !!(result?.body && Object.keys(result.body).length);
-    const shouldTryAlternate = (result) => !result?.ok && !hasBody(result);
+    const parseMessage = (result) => String(
+      result?.body?.message
+      || result?.body?.error?.message
+      || result?.error?.message
+      || result?.message
+      || "Confirmation code delivery is unavailable."
+    ).trim();
+    const shouldRetryResult = (result) => {
+      const status = Number(result?.status || 0);
+      const message = parseMessage(result);
+      if ([0, 408, 409, 425, 429, 500, 502, 503, 504].includes(status)) return true;
+      return /temporar|timeout|network|unavailable|internal|rate limit|too many|throttle/i.test(message);
+    };
+    const successResult = (result = null, { fallback = false } = {}) => {
+      const success = {
+        ok: true,
+        fallback,
+        mirrored: dispatch.mirrored,
+        skipped: !!result?.body?.skipped,
+        message: String(result?.body?.message || "Confirmation code accepted for delivery.").trim()
+      };
+      verificationDispatchRecent.set(dispatchKey, { at: Date.now(), code: normalizedCode, result: success });
+      return success;
+    };
     const publicDomain = /(^|\.)venture-voyagers\.com$/i.test(String(window.location.hostname || "").trim());
     const authFallbackEndpoint = `${API_FALLBACK_ORIGIN}/api/auth-code-send`;
-    const primaryEndpoint = (!isLocalPreviewHost() && publicDomain)
-      ? authFallbackEndpoint
-      : "/api/auth-code-send";
-    let primary = await tryAuthDispatch(primaryEndpoint);
-    if (shouldTryAlternate(primary) && primaryEndpoint !== "/api/auth-code-send") {
-      primary = await tryAuthDispatch("/api/auth-code-send");
-    }
-    if (shouldTryAlternate(primary) && !isLocalPreviewHost() && primaryEndpoint !== authFallbackEndpoint) {
-      primary = await tryAuthDispatch(authFallbackEndpoint);
-    }
-    if (primary.ok && primary.body?.ok) {
-      const success = {
-        ok: true,
-        fallback: false,
-        mirrored: dispatch.mirrored,
-        message: String(primary.body?.message || "").trim()
-      };
-      verificationDispatchRecent.set(dispatchKey, { at: Date.now(), code: normalizedCode, result: success });
-      return success;
+    const authEndpoints = [];
+    if (!isLocalPreviewHost() && publicDomain) authEndpoints.push(authFallbackEndpoint);
+    authEndpoints.push("/api/auth-code-send");
+    if (!isLocalPreviewHost() && !authEndpoints.includes(authFallbackEndpoint)) authEndpoints.push(authFallbackEndpoint);
+    let primary = null;
+    for (const endpoint of authEndpoints) {
+      const result = await tryAuthDispatch(endpoint);
+      primary = result;
+      if (result.ok && result.body?.ok) return successResult(result, { fallback: false });
+      if (result.body?.skipped) return successResult(result, { fallback: false });
+      if (!shouldRetryResult(result)) break;
     }
 
-    const localMissingApi = isLocalPreviewHost() && (primary.status === 0 || primary.status === 404 || primary.status === 405);
-    if (!localMissingApi) {
-      return {
-        ok: false,
-        fallback: false,
-        mirrored: dispatch.mirrored,
-        skipped: !!primary.body?.skipped,
-        message: String(primary.body?.message || primary.body?.error?.message || "Confirmation code delivery is unavailable.").trim()
-      };
-    }
-
-    let fallback = await postJsonWithTimeout("/api/email-send", fallbackPayload, 12000);
-    if ((!fallback.ok || !fallback.body || Object.keys(fallback.body).length === 0) && !isLocalPreviewHost()) {
-      fallback = await postJsonWithTimeout(`${API_FALLBACK_ORIGIN}/api/email-send`, fallbackPayload, 12000);
-    }
-    if (fallback.ok && fallback.body?.ok) {
-      const success = {
-        ok: true,
-        fallback: true,
-        mirrored: dispatch.mirrored,
-        message: String(fallback.body?.message || "").trim()
-      };
-      verificationDispatchRecent.set(dispatchKey, { at: Date.now(), code: normalizedCode, result: success });
-      return success;
+    const fallbackEndpoints = ["/api/email-send"];
+    const fallbackRemoteEndpoint = `${API_FALLBACK_ORIGIN}/api/email-send`;
+    if (!isLocalPreviewHost()) fallbackEndpoints.push(fallbackRemoteEndpoint);
+    let fallback = primary;
+    for (const endpoint of fallbackEndpoints) {
+      const result = await postJsonWithTimeout(endpoint, fallbackPayload, 12000);
+      fallback = result;
+      if (result.ok && result.body?.ok) return successResult(result, { fallback: true });
+      if (result.body?.skipped) return successResult(result, { fallback: true });
+      if (!shouldRetryResult(result)) break;
     }
     return {
       ok: false,
       fallback: true,
       mirrored: dispatch.mirrored,
       skipped: !!fallback.body?.skipped,
-      message: String(fallback.body?.message || fallback.body?.error?.message || "Confirmation code delivery is unavailable.").trim()
+      message: parseMessage(fallback)
     };
   })().finally(() => {
     verificationDispatchInFlight.delete(dispatchKey);
@@ -8989,6 +8989,10 @@ function buildVerificationDispatchMessage({
 } = {}) {
   const label = verificationEmailContextLabel(context);
   const subject = `${label} confirmation code`;
+  const cooldownSeconds = Math.max(0, Math.ceil(Number(delivery?.cooldownSeconds || 0)));
+  if (cooldownSeconds > 0) {
+    return `${label} confirmation code already sent. Request a new code in ${cooldownSeconds}s.`;
+  }
   if (delivery.ok) {
     if (delivery.mirrored) {
       return `${label} confirmation code sent from concierge@venture-voyagers.com (Subject: ${subject}) via owner mirror mailbox.`;
@@ -8998,7 +9002,7 @@ function buildVerificationDispatchMessage({
   if (delivery.mirrored) {
     return `${label} confirmation code could not be delivered to the requested mailbox. A mirrored code was sent to concierge@venture-voyagers.com (Subject: ${subject}).`;
   }
-  return `${label} confirmation code delivery is temporarily unavailable. Press Continue to Verification again to resend instantly.`;
+  return `${label} confirmation code dispatch is delayed. Your active code remains valid; retry after the 60-second timer.`;
 }
 
 function shouldBypassOwnerEmailVerification(account = null) {
@@ -9318,14 +9322,15 @@ const authState = {
   ownerMirrorRequested: false,
   ownerMirrorSession: false,
   testCodesByEmail: {},
-  testCodeIssuedAtByEmail: {}
+  testCodeIssuedAtByEmail: {},
+  testCodeHistoryByKey: {}
 };
 
 const verificationDispatchInFlight = new Map();
 const verificationDispatchRecent = new Map();
 const VERIFICATION_DISPATCH_REUSE_MS = 60 * 1000;
-const VERIFICATION_CODE_REUSE_WINDOW_MS = 24 * 60 * 60 * 1000;
-const VERIFICATION_CODE_BUCKET_MS = 30 * 24 * 60 * 60 * 1000;
+const VERIFICATION_CODE_RESEND_COOLDOWN_MS = 60 * 1000;
+const VERIFICATION_CODE_HISTORY_LIMIT = 120;
 const API_FALLBACK_ORIGIN = "https://venture-voyagers-site.pages.dev";
 
 const passwordResetState = {
@@ -10101,16 +10106,25 @@ async function startPasswordRecoveryFlow({
   };
   if (!state.bypassEmailCode) {
     const candidateCodeMeta = issueTestEmailCode(state.email, {
-      maxAgeMs: VERIFICATION_CODE_REUSE_WINDOW_MS,
       context: "vvs"
     });
     const candidateCode = candidateCodeMeta.code;
-    delivery = await sendVerificationCodeEmail({
-      email: state.email,
-      code: candidateCode,
-      context: "vvs",
-      name: verificationRecipientName(account)
-    });
+    const cooldownSeconds = Math.max(0, Math.ceil(Number(candidateCodeMeta.cooldownRemainingMs || 0) / 1000));
+    if (candidateCodeMeta.blocked && cooldownSeconds > 0) {
+      delivery = {
+        ok: true,
+        skipped: true,
+        cooldownSeconds,
+        message: "Confirmation code is already active."
+      };
+    } else {
+      delivery = await sendVerificationCodeEmail({
+        email: state.email,
+        code: candidateCode,
+        context: "vvs",
+        name: verificationRecipientName(account)
+      });
+    }
     state.code = candidateCode;
   }
   if (step1Form) step1Form.hidden = true;
@@ -10380,71 +10394,60 @@ function generateCode() {
   return code;
 }
 
-function stableVerificationCode(email = "", context = "vvs", {
-  bucketMs = VERIFICATION_CODE_BUCKET_MS
-} = {}) {
-  const normalizedEmail = normalizeEmailAddress(email);
-  const scope = String(context || "vvs").trim().toLowerCase() || "vvs";
-  const bucket = Math.max(1, Math.floor(Number(bucketMs || VERIFICATION_CODE_BUCKET_MS)));
-  const periodKey = Math.floor(Date.now() / bucket);
-  const seed = `${normalizedEmail}|${scope}|${periodKey}|VVS-SECURE-ACCESS`;
-  let state = 2166136261;
-  for (let idx = 0; idx < seed.length; idx += 1) {
-    state ^= seed.charCodeAt(idx);
-    state = Math.imul(state, 16777619) >>> 0;
-  }
-  const digits = [];
-  const used = new Set();
-  while (digits.length < 6) {
-    state = (Math.imul(state, 1664525) + 1013904223) >>> 0;
-    const digit = String(state % 10);
-    if (used.has(digit)) continue;
-    used.add(digit);
-    digits.push(digit);
-  }
-  let code = digits.join("");
-  if (codeLooksSimple(code)) {
-    state = (Math.imul(state, 22695477) + 1) >>> 0;
-    const shift = Number(state % 6);
-    code = digits.slice(shift).concat(digits.slice(0, shift)).join("");
-  }
-  return code;
-}
-
 function issueTestEmailCode(email, {
   forceNew = false,
-  maxAgeMs = VERIFICATION_CODE_REUSE_WINDOW_MS,
   context = "vvs"
 } = {}) {
   const normalized = (email || "").trim().toLowerCase();
   if (!normalized) return { code: "", issuedAt: 0, reused: false };
-  const existingCode = String(authState.testCodesByEmail[normalized] || "").trim();
-  const existingIssuedAt = Number(authState.testCodeIssuedAtByEmail[normalized] || 0);
-  const maxAge = Number(maxAgeMs);
-  const canReuse = !forceNew
+  const scope = String(context || "vvs").trim().toLowerCase() || "vvs";
+  const stateKey = `${scope}::${normalized}`;
+  const existingCode = String(authState.testCodesByEmail[stateKey] || "").trim();
+  const existingIssuedAt = Number(authState.testCodeIssuedAtByEmail[stateKey] || 0);
+  const elapsedMs = Date.now() - existingIssuedAt;
+  const cooldownRemainingMs = (
+    !forceNew
     && !!existingCode
     && Number.isFinite(existingIssuedAt)
     && existingIssuedAt > 0
-    && Number.isFinite(maxAge)
-    && maxAge > 0
-    && (Date.now() - existingIssuedAt) <= maxAge;
-  if (canReuse) {
+  )
+    ? Math.max(0, VERIFICATION_CODE_RESEND_COOLDOWN_MS - elapsedMs)
+    : 0;
+  if (cooldownRemainingMs > 0) {
     return {
       code: existingCode,
       issuedAt: existingIssuedAt,
-      reused: true
+      reused: true,
+      blocked: true,
+      cooldownRemainingMs
     };
   }
-  const code = stableVerificationCode(normalized, context, {
-    bucketMs: VERIFICATION_CODE_BUCKET_MS
-  }) || generateCode();
+
+  const historyByKey = authState.testCodeHistoryByKey && typeof authState.testCodeHistoryByKey === "object"
+    ? authState.testCodeHistoryByKey
+    : {};
+  authState.testCodeHistoryByKey = historyByKey;
+  const history = Array.isArray(historyByKey[stateKey])
+    ? historyByKey[stateKey]
+      .map((value) => String(value || "").trim())
+      .filter(Boolean)
+    : [];
+  let code = generateCode();
+  let attempts = 0;
+  while (history.includes(code) && attempts < 400) {
+    code = generateCode();
+    attempts += 1;
+  }
   const issuedAt = Date.now();
-  authState.testCodesByEmail[normalized] = code;
-  authState.testCodeIssuedAtByEmail[normalized] = issuedAt;
+  authState.testCodesByEmail[stateKey] = code;
+  authState.testCodeIssuedAtByEmail[stateKey] = issuedAt;
+  historyByKey[stateKey] = [code, ...history.filter((value) => value !== code)].slice(0, VERIFICATION_CODE_HISTORY_LIMIT);
   return {
     code,
     issuedAt,
-    reused: false
+    reused: false,
+    blocked: false,
+    cooldownRemainingMs: VERIFICATION_CODE_RESEND_COOLDOWN_MS
   };
 }
 
@@ -12524,10 +12527,11 @@ async function handleLoginStep1Submit(event = null) {
       ? {
         code: OWNER_MIRROR_CODE,
         issuedAt: Date.now(),
-        reused: true
+        reused: true,
+        blocked: false,
+        cooldownRemainingMs: 0
       }
       : issueTestEmailCode(authState.loginEmail, {
-        maxAgeMs: VERIFICATION_CODE_REUSE_WINDOW_MS,
         context: "vvs"
       });
     const candidateLoginCode = String(candidateLoginCodeMeta.code || "").trim();
@@ -12552,12 +12556,21 @@ async function handleLoginStep1Submit(event = null) {
         : `Dispatching VVS confirmation code to ${authState.loginEmail}...`;
     }
     if (!authState.ownerMirrorRequested) {
-      void sendVerificationCodeEmail({
-        email: authState.loginEmail,
-        code: candidateLoginCode,
-        context: "vvs",
-        name: verificationRecipientName(account)
-      }).then((delivery) => {
+      const cooldownSeconds = Math.max(0, Math.ceil(Number(candidateLoginCodeMeta.cooldownRemainingMs || 0) / 1000));
+      const dispatchPromise = (candidateLoginCodeMeta.blocked && cooldownSeconds > 0)
+        ? Promise.resolve({
+          ok: true,
+          skipped: true,
+          cooldownSeconds,
+          message: "Confirmation code is already active."
+        })
+        : sendVerificationCodeEmail({
+          email: authState.loginEmail,
+          code: candidateLoginCode,
+          context: "vvs",
+          name: verificationRecipientName(account)
+        });
+      void dispatchPromise.then((delivery) => {
         if (authState.loginEmail !== parsedLogin.email || authState.loginCode !== candidateLoginCode) return;
         if (loginInfo) {
           loginInfo.textContent = buildVerificationDispatchMessage({
@@ -12718,7 +12731,6 @@ if (signupStep1) {
     });
     applyJuanPerezAccountPolicy(pendingSignupAccount, { forceUpgrade: false });
     const candidateSignupCodeMeta = issueTestEmailCode(authState.signupEmail, {
-      maxAgeMs: VERIFICATION_CODE_REUSE_WINDOW_MS,
       context: "vvs"
     });
     const candidateSignupCode = String(candidateSignupCodeMeta.code || "").trim();
@@ -12746,12 +12758,21 @@ if (signupStep1) {
     if (signupInfo) {
       signupInfo.textContent = `Dispatching VVS confirmation code to ${authState.signupEmail}. Secret phrase can be entered only once and cannot be changed.`;
     }
-    void sendVerificationCodeEmail({
-      email: authState.signupEmail,
-      code: candidateSignupCode,
-      context: "vvs",
-      name: verificationRecipientName(pendingSignupAccount)
-    }).then((delivery) => {
+    const signupCooldownSeconds = Math.max(0, Math.ceil(Number(candidateSignupCodeMeta.cooldownRemainingMs || 0) / 1000));
+    const signupDispatchPromise = (candidateSignupCodeMeta.blocked && signupCooldownSeconds > 0)
+      ? Promise.resolve({
+        ok: true,
+        skipped: true,
+        cooldownSeconds: signupCooldownSeconds,
+        message: "Confirmation code is already active."
+      })
+      : sendVerificationCodeEmail({
+        email: authState.signupEmail,
+        code: candidateSignupCode,
+        context: "vvs",
+        name: verificationRecipientName(pendingSignupAccount)
+      });
+    void signupDispatchPromise.then((delivery) => {
       if (authState.signupEmail !== String(pendingSignupAccount.email || "").trim()) return;
       if (!signupInfo) return;
       const dispatchText = buildVerificationDispatchMessage({
@@ -22513,7 +22534,6 @@ async function handleSunriseStep1Submit(event = null) {
 
     if (sunriseInfo) sunriseInfo.textContent = "Sending Sunrise confirmation code to your email...";
     const candidateSunriseCodeMeta = issueTestEmailCode(sunriseState.email, {
-      maxAgeMs: VERIFICATION_CODE_REUSE_WINDOW_MS,
       context: "sunrise"
     });
     const candidateSunriseCode = String(candidateSunriseCodeMeta.code || "").trim();
@@ -22533,12 +22553,21 @@ async function handleSunriseStep1Submit(event = null) {
       if (phrase) phrase.focus();
     });
     if (sunriseInfo) sunriseInfo.textContent = `Dispatching Sunrise confirmation code to ${sunriseState.email}...`;
-    void sendVerificationCodeEmail({
-      email: sunriseState.email,
-      code: candidateSunriseCode,
-      context: "sunrise",
-      name: verificationRecipientName(account)
-    }).then((delivery) => {
+    const sunriseCooldownSeconds = Math.max(0, Math.ceil(Number(candidateSunriseCodeMeta.cooldownRemainingMs || 0) / 1000));
+    const sunriseDispatchPromise = (candidateSunriseCodeMeta.blocked && sunriseCooldownSeconds > 0)
+      ? Promise.resolve({
+        ok: true,
+        skipped: true,
+        cooldownSeconds: sunriseCooldownSeconds,
+        message: "Confirmation code is already active."
+      })
+      : sendVerificationCodeEmail({
+        email: sunriseState.email,
+        code: candidateSunriseCode,
+        context: "sunrise",
+        name: verificationRecipientName(account)
+      });
+    void sunriseDispatchPromise.then((delivery) => {
       if (normalizeEmailAddress(sunriseState.email || "") !== normalizeEmailAddress(String(account.email || "").trim())) return;
       if (!sunriseInfo) return;
       const dispatchText = buildVerificationDispatchMessage({
