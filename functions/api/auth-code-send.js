@@ -17,6 +17,8 @@ export async function onRequestOptions() {
       "Access-Control-Allow-Origin": "*",
       "Access-Control-Allow-Headers": "Content-Type, Authorization",
       "Access-Control-Allow-Methods": "POST, OPTIONS",
+      "Access-Control-Max-Age": "86400",
+      "Vary": "Origin",
       "Cache-Control": "no-store"
     }
   });
