@@ -2,3 +2,10 @@
 cf-pages-upload/
 cf-pages-upload.zip
 .dev.vars
+
+# wrangler files
+.wrangler
+.dev.vars*
+!.dev.vars.example
+.env*
+!.env.example
